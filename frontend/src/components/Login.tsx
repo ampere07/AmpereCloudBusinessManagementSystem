@@ -26,6 +26,22 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
     setError('');
     
     try {
+      // Check if using demo credentials
+      const demoEmail = process.env.REACT_APP_DEMO_EMAIL;
+      const demoPassword = process.env.REACT_APP_DEMO_PASSWORD;
+      
+      if (email === demoEmail && password === demoPassword) {
+        // Mock successful login for demo credentials
+        const mockUserData: UserData = {
+          email: email,
+          name: 'Admin User',
+          role: 'administrator'
+        };
+        onLogin(mockUserData);
+        return;
+      }
+      
+      // Try actual API login for other credentials
       const response = await login(email, password);
       if (response.status === 'success') {
         onLogin(response.data.user);
@@ -266,7 +282,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 color: '#fff',
                 fontSize: '16px'
               }}
-              placeholder="admin@ampere.com"
+              placeholder="Enter your email"
             />
           </div>
           
@@ -292,7 +308,7 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
                 color: '#fff',
                 fontSize: '16px'
               }}
-              placeholder="admin123"
+              placeholder="Enter your password"
             />
           </div>
           
@@ -348,32 +364,6 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
             </button>
           </div>
         </form>
-        
-        <div style={{
-          marginTop: '30px',
-          padding: '15px',
-          backgroundColor: '#2a2a2a',
-          borderRadius: '8px',
-          border: '1px solid #444'
-        }}>
-          <p style={{
-            color: '#aaa',
-            fontSize: '12px',
-            margin: '0 0 8px 0',
-            textAlign: 'center'
-          }}>
-            Demo Credentials:
-          </p>
-          <p style={{
-            color: '#61dafb',
-            fontSize: '12px',
-            margin: '0',
-            textAlign: 'center',
-            fontFamily: 'monospace'
-          }}>
-            admin@ampere.com / admin123
-          </p>
-        </div>
       </div>
     </div>
   );

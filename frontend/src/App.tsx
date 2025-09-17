@@ -6,15 +6,12 @@ import { UserData } from './types/api';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userData, setUserData] = useState<UserData | null>(null);
 
   const handleLogin = async (user: UserData) => {
-    setUserData(user);
     setIsLoggedIn(true);
   };
 
   const handleLogout = () => {
-    setUserData(null);
     setIsLoggedIn(false);
   };
 

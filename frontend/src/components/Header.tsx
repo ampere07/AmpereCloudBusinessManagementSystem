@@ -40,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onSearch }) => {
   };
 
   return (
-    <header className="bg-gray-900 border-b border-gray-700 h-16 flex items-center px-4">
+    <header className="bg-gray-800 border-b border-gray-600 h-16 flex items-center px-4">
       <div className="flex items-center space-x-4">
         <button 
           onClick={onToggleSidebar}
@@ -51,8 +51,8 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onSearch }) => {
           </svg>
         </button>
         
-        <h1 className="text-orange-500 text-xl font-bold">
-          Ampere<span className="text-white">Cloud</span>
+        <h1 className="text-white text-xl font-bold">
+          CBMS
         </h1>
       </div>
       
@@ -68,7 +68,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onSearch }) => {
             placeholder="Search here..."
             value={searchQuery}
             onChange={handleSearchChange}
-            className="w-full bg-gray-800 text-white placeholder-gray-400 pl-10 pr-4 py-2 rounded border border-gray-600 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
+            className="w-full bg-gray-700 text-white placeholder-gray-400 pl-10 pr-4 py-2 rounded border border-gray-500 focus:outline-none focus:border-orange-500 focus:ring-1 focus:ring-orange-500"
           />
         </div>
       </div>
@@ -90,16 +90,6 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onSearch }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
             </svg>
-          </button>
-          
-          <button className="p-2 text-gray-400 hover:text-white transition-colors relative">
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 17h5l-5 5v-5z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-            <div className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full h-4 w-4 flex items-center justify-center">
-              1
-            </div>
           </button>
           
           <div className="w-8 h-8 bg-gray-600 rounded-full flex items-center justify-center">

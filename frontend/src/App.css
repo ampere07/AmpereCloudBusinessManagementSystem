@@ -9,7 +9,7 @@
 body {
   margin: 0;
   padding: 0;
-  background-color: #111827;
+  background-color: #030712;
   color: #fff;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
     'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
@@ -20,7 +20,7 @@ body {
 
 #root {
   min-height: 100vh;
-  background-color: #111827;
+  background-color: #030712;
 }
 
 .bg-gray-750 {
@@ -29,4 +29,8 @@ body {
 
 .bg-gray-850 {
   background-color: #1f2937;
+}
+
+.hover\:bg-gray-750:hover {
+  background-color: #374151;
 }
