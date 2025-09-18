@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from './Sidebar';
 import Header from './Header';
-import DashboardContent from './DashboardContent';
+import DashboardContent from '../components/DashboardContent';
 import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import GroupManagement from './GroupManagement';

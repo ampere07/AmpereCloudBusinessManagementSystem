@@ -5,7 +5,7 @@ const DashboardContent: React.FC = () => {
   const statsCards = [
     {
       title: "TODAY'S SALES",
-      value: "$0",
+      value: "₱0",
       subtitle: "0%",
       icon: TrendingUp
     },
