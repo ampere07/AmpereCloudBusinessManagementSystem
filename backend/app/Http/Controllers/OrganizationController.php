@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Organization;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogService;
 
 class OrganizationController extends Controller
 {
@@ -46,6 +47,17 @@ class OrganizationController extends Controller
                 'org_name' => $request->org_name,
                 'org_type' => $request->org_type,
             ]);
+
+            // Try to log organization creation activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::organizationCreated(
+                    null, // For now, no authenticated user
+                    $organization,
+                    ['created_by' => 'system']
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log organization creation activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -95,7 +107,20 @@ class OrganizationController extends Controller
 
         try {
             $organization = Organization::findOrFail($id);
+            $oldData = $organization->toArray();
             $organization->update($request->only(['org_name', 'org_type']));
+
+            // Try to log organization update activity (but don't fail if logging fails)
+            try {
+                $changes = array_diff_assoc($request->only(['org_name', 'org_type']), $oldData);
+                ActivityLogService::organizationUpdated(
+                    null, // For now, no authenticated user
+                    $organization,
+                    $changes
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log organization update activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -115,7 +140,19 @@ class OrganizationController extends Controller
     {
         try {
             $organization = Organization::findOrFail($id);
+            $orgName = $organization->org_name;
             $organization->delete();
+
+            // Try to log organization deletion activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::organizationDeleted(
+                    null, // For now, no authenticated user
+                    $id,
+                    $orgName
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log organization deletion activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

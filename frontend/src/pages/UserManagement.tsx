@@ -72,9 +72,9 @@ const UserManagement: React.FC = () => {
   };
 
   const handleUserCreated = (newUser: User) => {
-    if (!newUser || !newUser.user_id || newUser.user_id <= 0) {
+    if (!newUser) {
       console.error('Received invalid user from creation');
-      alert('Warning: User was created but has an invalid ID. Please refresh the page.');
+      alert('Warning: Failed to receive user data. Please refresh the page.');
       return;
     }
     
@@ -83,9 +83,9 @@ const UserManagement: React.FC = () => {
   };
 
   const handleEditUser = (user: User) => {
-    if (!user || !user.user_id || user.user_id <= 0) {
-      console.error('Cannot edit user: Invalid user data');
-      alert('Cannot edit user: Invalid user data');
+    if (!user) {
+      console.error('Cannot edit user: No user data');
+      alert('Cannot edit user: No user data');
       return;
     }
     

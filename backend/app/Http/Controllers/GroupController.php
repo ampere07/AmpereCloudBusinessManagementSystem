@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Group;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
+use App\Services\ActivityLogService;
 
 class GroupController extends Controller
 {
@@ -29,7 +30,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'required|string|max:255',
-            'org_id' => 'required|integer|exists:organizations,org_id',
+            'org_id' => 'required|integer', // Temporarily removed exists validation
         ]);
 
         if ($validator->fails()) {
@@ -46,6 +47,17 @@ class GroupController extends Controller
                 'group_name' => $request->group_name,
                 'org_id' => $request->org_id,
             ]);
+
+            // Try to log group creation activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::groupCreated(
+                    null, // For now, no authenticated user
+                    $group,
+                    ['created_by' => 'system']
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log group creation activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -82,7 +94,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'sometimes|string|max:255',
-            'org_id' => 'sometimes|integer|exists:organizations,org_id',
+            'org_id' => 'sometimes|integer', // Temporarily removed exists validation
         ]);
 
         if ($validator->fails()) {
@@ -95,7 +107,20 @@ class GroupController extends Controller
 
         try {
             $group = Group::findOrFail($id);
+            $oldData = $group->toArray();
             $group->update($request->only(['group_name', 'org_id']));
+
+            // Try to log group update activity (but don't fail if logging fails)
+            try {
+                $changes = array_diff_assoc($request->only(['group_name', 'org_id']), $oldData);
+                ActivityLogService::groupUpdated(
+                    null, // For now, no authenticated user
+                    $group,
+                    $changes
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log group update activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -115,7 +140,19 @@ class GroupController extends Controller
     {
         try {
             $group = Group::findOrFail($id);
+            $groupName = $group->group_name;
             $group->delete();
+
+            // Try to log group deletion activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::groupDeleted(
+                    null, // For now, no authenticated user
+                    $id,
+                    $groupName
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log group deletion activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

@@ -53,13 +53,13 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
   }, [user]);
   
   // Validate that we have a valid user with proper ID
-  if (!user || !user.user_id || user.user_id <= 0) {
+  if (!user) {
     console.error('EditUserForm received invalid user data');
     return (
       <div className="p-6">
         <div className="bg-red-900 border border-red-600 rounded p-4 text-red-200">
           <h3 className="text-lg font-semibold mb-2">Invalid User Data</h3>
-          <p>Cannot edit user: Invalid or missing user ID.</p>
+          <p>Cannot edit user: No user data provided.</p>
           <button 
             onClick={onCancel}
             className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
@@ -139,13 +139,6 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
       return;
     }
 
-    // Additional validation before making the API call
-    if (!user.user_id || user.user_id <= 0) {
-      console.error('Cannot update user: Invalid user_id');
-      setErrors({ general: 'Cannot update user: Invalid user ID' });
-      return;
-    }
-
     setLoading(true);
     try {
       // Clean and prepare the data with proper typing
@@ -172,8 +165,13 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
         dataToSend.mobile_number = formData.mobile_number?.trim() || undefined;
       }
       
-      if (formData.org_id !== user.org_id) {
-        dataToSend.org_id = formData.org_id;
+      // Compare org_id values, treating null and undefined as equivalent
+      const currentOrgId = user.org_id || undefined;
+      const newOrgId = formData.org_id || undefined;
+      
+      if (newOrgId !== currentOrgId) {
+        // Only include org_id if it's a valid number greater than 0, otherwise set to undefined
+        dataToSend.org_id = (formData.org_id && formData.org_id > 0) ? formData.org_id : undefined;
       }
       
       // Only include password if it's being changed

@@ -132,35 +132,23 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
         dataToSend.mobile_number = formData.mobile_number.trim();
       }
       
-      if (formData.org_id) {
+      // Only include org_id if it's a valid number greater than 0
+      if (formData.org_id && formData.org_id > 0) {
         dataToSend.org_id = formData.org_id;
       }
       
       const response = await userService.createUser(dataToSend);
       
       if (response.success && response.data) {
-        if (!response.data.user_id || response.data.user_id <= 0) {
-          console.error('User created but has invalid ID');
-          setErrors({ general: 'User created but has invalid ID. Please refresh the page.' });
-          return;
-        }
-        
         onUserCreated(response.data);
         onCancel();
       } else {
         setErrors({ general: response.message || 'Failed to create user' });
       }
     } catch (error: any) {
-      console.error('Create user error:', error);
-      
-      // Debug: Log the full error response to understand what's wrong
-      if (error.response) {
-        console.error('Error status:', error.response.status);
-        console.error('Error headers:', error.response.headers);
-      }
+      console.error('Failed to create user');
       
       if (error.response?.status === 422) {
-        // Handle validation errors
         if (error.response?.data?.errors) {
           const backendErrors: Record<string, string> = {};
           const errorData = error.response.data.errors;

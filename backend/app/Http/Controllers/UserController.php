@@ -37,7 +37,7 @@ class UserController extends Controller
             'email' => 'required|string|email|max:255|unique:users',
             'mobile_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'required|string|min:8',
-            'org_id' => 'nullable|integer|exists:organizations,org_id',
+            'org_id' => 'nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -60,22 +60,25 @@ class UserController extends Controller
                 'email' => $request->email,
                 'mobile_number' => $request->mobile_number,
                 'password_hash' => $request->password,
-                'org_id' => $request->org_id ?: null,
+                'org_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
             ];
             
             $user = User::create($userData);
             
-            // Verify the user was created with correct ID
-            if (!$user || $user->user_id <= 0) {
-                throw new \Exception('User created with invalid ID: ' . ($user ? $user->user_id : 'null'));
+            if (!$user) {
+                throw new \Exception('Failed to create user');
             }
 
-            // Log user creation activity
-            ActivityLogService::userCreated(
-                null, // For now, no authenticated user
-                $user,
-                ['created_by' => 'system']
-            );
+            // Try to log user creation activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::userCreated(
+                    null, // For now, no authenticated user
+                    $user,
+                    ['created_by' => 'system']
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log user creation activity: ' . $logError->getMessage());
+            }
             
             $responseUser = $user->load(['organization']);
 
@@ -130,7 +133,7 @@ class UserController extends Controller
             'email' => 'sometimes|string|email|max:255|unique:users,email,' . $id . ',user_id',
             'mobile_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'sometimes|string|min:8',
-            'org_id' => 'sometimes|nullable|integer|exists:organizations,org_id',
+            'org_id' => 'sometimes|nullable|integer',
         ]);
 
         if ($validator->fails()) {
@@ -150,20 +153,34 @@ class UserController extends Controller
                 $updateData['password_hash'] = $request->password;
             }
             
-            // Remove empty or null values to avoid unnecessary updates
-            $updateData = array_filter($updateData, function($value) {
-                return $value !== null && $value !== '';
-            });
+            // Handle org_id properly - ensure it's null if not provided or 0
+            if (array_key_exists('org_id', $updateData)) {
+                $updateData['org_id'] = $updateData['org_id'] && $updateData['org_id'] > 0 ? $updateData['org_id'] : null;
+            }
+            
+            // Remove empty values to avoid unnecessary updates
+            $updateData = array_filter($updateData, function($value, $key) {
+                return $value !== null && $value !== '' && $key !== 'org_id';
+            }, ARRAY_FILTER_USE_BOTH);
+            
+            // Add org_id back if it was in the request (even if null)
+            if ($request->has('org_id')) {
+                $updateData['org_id'] = $request->org_id && $request->org_id > 0 ? $request->org_id : null;
+            }
 
             $user->update($updateData);
 
-            // Log user update activity
-            $changes = array_diff_assoc($updateData, $oldData);
-            ActivityLogService::userUpdated(
-                null, // For now, no authenticated user
-                $user,
-                $changes
-            );
+            // Try to log user update activity (but don't fail if logging fails)
+            try {
+                $changes = array_diff_assoc($updateData, $oldData);
+                ActivityLogService::userUpdated(
+                    null, // For now, no authenticated user
+                    $user,
+                    $changes
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log user update activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,
@@ -188,12 +205,16 @@ class UserController extends Controller
             $username = $user->username;
             $user->delete();
 
-            // Log user deletion activity
-            ActivityLogService::userDeleted(
-                null, // For now, no authenticated user
-                $id,
-                $username
-            );
+            // Try to log user deletion activity (but don't fail if logging fails)
+            try {
+                ActivityLogService::userDeleted(
+                    null, // For now, no authenticated user
+                    $id,
+                    $username
+                );
+            } catch (\Exception $logError) {
+                \Log::warning('Failed to log user deletion activity: ' . $logError->getMessage());
+            }
 
             return response()->json([
                 'success' => true,

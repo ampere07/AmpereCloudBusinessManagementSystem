@@ -11,6 +11,8 @@ class Organization extends Model
 
     protected $primaryKey = 'org_id';
     protected $table = 'organizations';
+    public $incrementing = false; // Disable auto-incrementing
+    protected $keyType = 'int'; // Specify key type
 
     protected $fillable = [
         'org_id',

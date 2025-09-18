@@ -11,6 +11,8 @@ class Group extends Model
 
     protected $primaryKey = 'group_id';
     protected $table = 'groups';
+    public $incrementing = false; // Disable auto-incrementing
+    protected $keyType = 'int'; // Specify key type
 
     protected $fillable = [
         'group_id',

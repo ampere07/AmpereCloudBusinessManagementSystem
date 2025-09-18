@@ -44,7 +44,7 @@ export interface User {
   username: string;
   email: string;
   mobile_number?: string;
-  org_id?: number;
+  org_id?: number | null;
   created_at: string;
   updated_at: string;
   organization?: {
@@ -101,7 +101,7 @@ export interface UpdateUserRequest {
   email?: string;
   mobile_number?: string;
   password?: string;
-  org_id?: number;
+  org_id?: number | null | undefined;
 }
 
 export interface ApiResponse<T> {
