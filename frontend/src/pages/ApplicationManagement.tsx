@@ -1,15 +1,24 @@
 import React, { useState } from 'react';
-import { FileText } from 'lucide-react';
+import { FileText, Search, ChevronDown } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
 
 interface Application {
   id: string;
-  name: string;
-  date: string;
-  time: string;
-  address: string;
+  timestamp: string;
+  fullName: string;
+  assignedEmail: string;
+  visitStatus: string;
+  applicationStatus: string;
+  statusRemarks: string;
+  referredBy: string;
+  fullAddress: string;
+  visitBy: string;
+  visitWith: string;
+  visitWithOther: string;
+  visitRemarks: string;
+  modifiedDate: string;
+  modifiedBy: string;
   location: string;
-  status: 'scheduled' | 'completed' | 'cancelled';
   email?: string;
   mobileNumber?: string;
   secondaryMobileNumber?: string;
@@ -18,7 +27,6 @@ interface Application {
   agreementStatus?: string;
   userEmail?: string;
   houseFrontPicture?: string;
-  referredBy?: string;
   promo?: string;
 }
 
@@ -30,144 +38,91 @@ interface LocationItem {
 
 const ApplicationManagement: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
+  const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
 
-  // Mock data similar to the screenshot
+  // Mock data for applications with the columns shown in the images
   const applications: Application[] = [
     {
       id: '1',
-      name: 'JOHN H DOE',
-      date: '09/19/2025',
-      time: '10:20:09',
-      address: '123 MAIN STREET SAMPLE SUBDIVISION BRGY EXAMPLE ANYTOWN CITY, Sample Province',
+      timestamp: '09/19/2025 10:20:09',
+      fullName: 'John H Doe',
+      assignedEmail: 'tech1@amperecloud.com',
+      visitStatus: 'Scheduled',
+      applicationStatus: 'Pending',
+      statusRemarks: 'Waiting for customer confirmation',
+      referredBy: 'Maria Garcia',
+      fullAddress: '123 Main St, Sample City, Metro Manila',
+      visitBy: 'John Denver Dones',
+      visitWith: 'Leonardo Bayos',
+      visitWithOther: 'NONE',
+      visitRemarks: 'Customer requested evening installation',
+      modifiedDate: '09/18/2025 15:30:22',
+      modifiedBy: 'Admin User',
       location: 'binangonan',
-      status: 'scheduled'
+      email: 'johndoe@example.com',
+      mobileNumber: '9123456789',
+      secondaryMobileNumber: '9987654321',
+      desiredPlan: 'SwitchConnect - P799',
+      governmentId: 'https://drive.google.com/open?id=abc123...',
+      agreementStatus: 'Yes, I Agree',
+      userEmail: 'admin@amperecloud.com',
+      houseFrontPicture: 'https://drive.google.com/open?id=xyz789...',
+      promo: 'New Customer Discount'
     },
     {
       id: '2',
-      name: 'JANE M SMITH',
-      date: '09/19/2025',
-      time: '10:00:20',
-      address: '456 CENTER AVENUE METRO HOMES BRGY CENTER ANYTOWN CITY, Sample Province',
+      timestamp: '09/19/2025 11:30:15',
+      fullName: 'Jane M Smith',
+      assignedEmail: 'tech2@amperecloud.com',
+      visitStatus: 'Completed',
+      applicationStatus: 'Approved',
+      statusRemarks: 'Installation completed successfully',
+      referredBy: 'Robert Johnson',
+      fullAddress: '456 Oak St, Sample Town, Metro Manila',
+      visitBy: 'Maria Santos',
+      visitWith: 'Paulo Reyes',
+      visitWithOther: 'NONE',
+      visitRemarks: 'No issues during installation',
+      modifiedDate: '09/18/2025 12:45:36',
+      modifiedBy: 'Support Staff',
       location: 'binangonan',
-      status: 'scheduled'
+      email: 'janesmith@example.com',
+      mobileNumber: '9234567890',
+      secondaryMobileNumber: '9876543210',
+      desiredPlan: 'SwitchNet - P999',
+      governmentId: 'https://drive.google.com/open?id=def456...',
+      agreementStatus: 'Yes, I Agree',
+      userEmail: 'support@amperecloud.com',
+      houseFrontPicture: 'https://drive.google.com/open?id=pqr789...',
+      promo: 'Upgrade Discount'
     },
     {
       id: '3',
-      name: 'ROBERT A JOHNSON',
-      date: '09/19/2025',
-      time: '15:22:58',
-      address: '789 PARK LANE, Sample Area, Anytown City, Sample Province',
+      timestamp: '09/19/2025 09:15:45',
+      fullName: 'Robert A Johnson',
+      assignedEmail: 'tech3@amperecloud.com',
+      visitStatus: 'Pending',
+      applicationStatus: 'Under Review',
+      statusRemarks: 'Checking service availability',
+      referredBy: 'Customer Walk-in',
+      fullAddress: '789 Pine St, Sample Village, Metro Manila',
+      visitBy: 'Unassigned',
+      visitWith: 'Unassigned',
+      visitWithOther: 'NONE',
+      visitRemarks: '',
+      modifiedDate: '09/18/2025 10:05:18',
+      modifiedBy: 'Sales Agent',
       location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '4',
-      name: 'EMILY R WILLIAMS',
-      date: '09/19/2025',
-      time: '14:05:00',
-      address: '101 SUNSET DRIVE PHASE 2 GARDEN HOMES BRGY WEST ANYTOWN CITY, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '5',
-      name: 'MICHAEL J BROWN',
-      date: '09/19/2025',
-      time: '13:12:04',
-      address: '202 RIVERSIDE ROAD, East District, Anytown City, Sample Province',
-      location: 'binangonan',
-      status: 'completed'
-    },
-    {
-      id: '6',
-      name: 'SARAH L TAYLOR',
-      date: '09/19/2025',
-      time: '12:20:14',
-      address: 'UNIT 303 BUILDING A SAMPLE APARTMENTS NATIONAL ROAD BRGY SOUTH ANYTOWN CITY, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '7',
-      name: 'DAVID W MILLER',
-      date: '09/19/2025',
-      time: '12:29:10',
-      address: '404 MOUNTAIN VIEW AVENUE, North District, Anytown City, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '8',
-      name: 'JENNIFER K WILSON',
-      date: '09/19/2025',
-      time: '11:55:20',
-      address: '505 LIBERTY STREET BRGY DOWNTOWN ANYTOWN CITY, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '9',
-      name: 'THOMAS P MARTINEZ',
-      date: '09/19/2025',
-      time: '11:35:00',
-      address: '606 LAKESIDE DRIVE, Waterfront District, Anytown City, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '10',
-      name: 'LISA G ANDERSON',
-      date: '09/19/2025',
-      time: '11:24:05',
-      address: '707 HIGHLAND AVENUE, Central District, Anytown City, Sample Province',
-      location: 'binangonan',
-      status: 'scheduled'
-    },
-    {
-      id: '11',
-      name: 'JAMES F THOMPSON',
-      date: '09/19/2025',
-      time: '09:15:30',
-      address: '808 PINE STREET, Western District, Another City, Other Province',
-      location: 'las-pinas',
-      status: 'scheduled'
-    },
-    {
-      id: '12',
-      name: 'MARY C WILSON',
-      date: '09/19/2025',
-      time: '08:45:12',
-      address: '909 MAPLE AVENUE, Northern District, Another City, Other Province',
-      location: 'las-pinas',
-      status: 'completed'
-    },
-    {
-      id: '13',
-      name: 'CHARLES D RODRIGUEZ',
-      date: '09/19/2025',
-      time: '07:30:45',
-      address: '111 OAK BOULEVARD, Eastern District, Another City, Other Province',
-      location: 'las-pinas',
-      status: 'scheduled'
-    },
-    {
-      id: '14',
-      name: 'KAREN B MARTINEZ',
-      date: '09/19/2025',
-      time: '16:20:18',
-      address: '222 CEDAR ROAD, Southern District, Another City, Other Province',
-      location: 'las-pinas',
-      status: 'scheduled'
-    },
-    {
-      id: '15',
-      name: 'STEVEN V GARCIA',
-      date: '09/19/2025',
-      time: '14:10:55',
-      address: '333 WILLOW AVENUE, Coastal District, Another City, Other Province',
-      location: 'las-pinas',
-      status: 'scheduled'
+      email: 'robertjohnson@example.com',
+      mobileNumber: '9345678901',
+      secondaryMobileNumber: '9765432109',
+      desiredPlan: 'SwitchMax - P1499',
+      governmentId: 'https://drive.google.com/open?id=ghi789...',
+      agreementStatus: 'Yes, I Agree',
+      userEmail: 'sales@amperecloud.com',
+      houseFrontPicture: 'https://drive.google.com/open?id=stu012...',
+      promo: 'Standard Rate'
     }
   ];
 
@@ -179,37 +134,90 @@ const ApplicationManagement: React.FC = () => {
       count: applications.length
     },
     {
-      id: 'region1',
-      name: 'Region One',
-      count: applications.filter(app => app.location === 'region1').length
-    },
-    {
       id: 'binangonan',
-      name: 'Anytown',
+      name: 'Binangonan',
       count: applications.filter(app => app.location === 'binangonan').length
     },
     {
       id: 'cardona',
-      name: 'Westville',
+      name: 'Cardona',
       count: applications.filter(app => app.location === 'cardona').length
     },
     {
       id: 'taytay',
-      name: 'Northbridge',
+      name: 'Taytay',
       count: applications.filter(app => app.location === 'taytay').length
     },
     {
       id: 'las-pinas',
-      name: 'Eastport',
+      name: 'Las Piñas',
       count: applications.filter(app => app.location === 'las-pinas').length
     }
   ];
 
-  // Filter applications based on location only
-  const filteredApplications = applications.filter(app => {
-    const matchesLocation = selectedLocation === 'all' || app.location === selectedLocation;
-    return matchesLocation;
+  // Filter applications based on location and search query
+  const filteredApplications = applications.filter(application => {
+    const matchesLocation = selectedLocation === 'all' || 
+                           application.location === selectedLocation;
+    
+    const matchesSearch = searchQuery === '' || 
+                         application.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         application.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         application.assignedEmail.toLowerCase().includes(searchQuery.toLowerCase());
+    
+    return matchesLocation && matchesSearch;
   });
+
+  const handleRowClick = (application: Application) => {
+    setSelectedApplication(application);
+  };
+
+  // Status text color component
+  const StatusText = ({ status, type }: { status: string, type: 'visit' | 'application' }) => {
+    let textColor = '';
+    
+    if (type === 'visit') {
+      switch (status.toLowerCase()) {
+        case 'completed':
+          textColor = 'text-green-500';
+          break;
+        case 'scheduled':
+          textColor = 'text-yellow-500';
+          break;
+        case 'pending':
+          textColor = 'text-blue-500';
+          break;
+        case 'cancelled':
+          textColor = 'text-red-500';
+          break;
+        default:
+          textColor = 'text-gray-400';
+      }
+    } else {
+      switch (status.toLowerCase()) {
+        case 'approved':
+          textColor = 'text-green-500';
+          break;
+        case 'pending':
+          textColor = 'text-yellow-500';
+          break;
+        case 'under review':
+          textColor = 'text-blue-500';
+          break;
+        case 'rejected':
+          textColor = 'text-red-500';
+          break;
+        default:
+          textColor = 'text-gray-400';
+      }
+    }
+    
+    return (
+      <span className={`${textColor} capitalize`}>
+        {status}
+      </span>
+    );
+  };
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -258,64 +266,141 @@ const ApplicationManagement: React.FC = () => {
       </div>
 
       {/* Applications List - Shrinks when detail view is shown */}
-      <div className={`bg-gray-900 border-r border-gray-700 overflow-y-auto ${selectedApplication ? 'w-1/3' : 'flex-1'}`}>
-        <div className="w-full">
-          {filteredApplications.length > 0 ? (
-            <div className="w-full">
-              {filteredApplications.map((application) => (
-                <div 
-                  key={application.id} 
-                  className={`p-4 hover:bg-gray-800 transition-colors border-b border-gray-700 cursor-pointer ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
-                  onClick={() => setSelectedApplication(application)}
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center mb-1">
-                        <h4 className="text-base font-medium text-white truncate">{application.name}</h4>
-                      </div>
-                      
-                      <div className="flex items-center text-sm text-gray-300 mb-2">
-                        <span className="truncate">{application.date} {application.time}</span>
-                        <span className="mx-2 flex-shrink-0">|</span>
-                        <span className="text-gray-400 truncate">{application.address}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex space-x-2 ml-4 flex-shrink-0">
-                      {application.status === 'scheduled' && (
-                        <>
-                          <button 
-                            className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-xs rounded transition-colors whitespace-nowrap"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Schedule
-                          </button>
-                          <button 
-                            className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded transition-colors whitespace-nowrap"
-                            onClick={(e) => e.stopPropagation()}
-                          >
-                            Duplicate
-                          </button>
-                        </>
-                      )}
-                      {application.status === 'completed' && (
-                        <button 
-                          className="px-3 py-1 bg-orange-600 hover:bg-orange-700 text-white text-xs rounded transition-colors whitespace-nowrap"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          Duplicate
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
+      <div className={`bg-gray-900 overflow-hidden ${selectedApplication ? 'w-1/3' : 'flex-1'}`}>
+        <div className="flex flex-col h-full">
+          {/* Search Bar */}
+          <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex items-center space-x-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search applications..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
+                <span className="mr-2">Filter</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
             </div>
-          ) : (
-            <div className="flex items-center justify-center w-full h-full">
-              <p className="text-gray-400">No applications found for {selectedLocation === 'all' ? 'any location' : locationItems.find(l => l.id === selectedLocation)?.name}.</p>
+          </div>
+          
+          {/* Table Container */}
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full overflow-x-auto overflow-y-auto pb-4">
+              <table className="min-w-full divide-y divide-gray-700 text-sm">
+                <thead className="bg-gray-800 sticky top-0">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Timestamp
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Full Name
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Assigned Email
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit Status
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Application Status
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Status Remarks
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Referred By
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Full Address
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit By
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit With
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit With (Other)
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Visit Remarks
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Modified Date
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Modified By
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-900 divide-y divide-gray-800">
+                  {filteredApplications.length > 0 ? (
+                    filteredApplications.map((application) => (
+                      <tr 
+                        key={application.id} 
+                        className={`hover:bg-gray-800 cursor-pointer ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
+                        onClick={() => handleRowClick(application)}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.timestamp}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.fullName}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.assignedEmail}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusText status={application.visitStatus} type="visit" />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusText status={application.applicationStatus} type="application" />
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {application.statusRemarks}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.referredBy}
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {application.fullAddress}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.visitBy}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.visitWith}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.visitWithOther}
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {application.visitRemarks}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.modifiedDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {application.modifiedBy}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={14} className="px-4 py-12 text-center text-gray-400">
+                        No applications found matching your filters
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
-          )}
+          </div>
         </div>
       </div>
 
