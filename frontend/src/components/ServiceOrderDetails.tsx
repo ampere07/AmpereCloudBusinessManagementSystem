@@ -56,7 +56,7 @@ const ServiceOrderDetails: React.FC<ServiceOrderDetailsProps> = ({ serviceOrder,
           <button className="hover:text-white text-gray-400">
             <FileCheck size={16} />
           </button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-sm flex items-center">
+          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
             <Edit size={16} className="mr-1" />
             <span>Edit</span>
           </button>

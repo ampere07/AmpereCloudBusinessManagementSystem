@@ -97,7 +97,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
           <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
             <ExternalLink size={16} />
           </button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-sm flex items-center">
+          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
             <span>Done</span>
           </button>
           <button className="hover:text-white text-gray-400"><ArrowLeft size={16} /></button>

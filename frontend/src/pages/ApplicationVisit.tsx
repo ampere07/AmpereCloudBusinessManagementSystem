@@ -38,7 +38,7 @@ const ApplicationVisit: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedVisit, setSelectedVisit] = useState<ApplicationVisit | null>(null);
 
-  // Mock data for application visits
+  // Mock data
   const applicationVisits: ApplicationVisit[] = [
     {
       id: '1',
@@ -249,112 +249,134 @@ const ApplicationVisit: React.FC = () => {
 
       {/* Application Visits List - Shrinks when detail view is shown */}
       <div className={`bg-gray-900 overflow-hidden ${selectedVisit ? 'flex-1' : 'flex-1'}`}>
-        {/* Search Bar */}
-        <div className="bg-gray-900 p-4 border-b border-gray-700">
-          <div className="flex items-center space-x-3">
-            <div className="relative flex-1">
-              <input
-                type="text"
-                placeholder="Search application visits..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-              />
-              <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+        <div className="flex flex-col h-full">
+          {/* Search Bar */}
+          <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex items-center space-x-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search application visits..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
+              </div>
+              <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
+                <span className="mr-2">Filter</span>
+                <ChevronDown className="h-4 w-4" />
+              </button>
             </div>
-            <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
-              <span className="mr-2">Filter</span>
-              <ChevronDown className="h-4 w-4" />
-            </button>
           </div>
-        </div>
-        
-        {/* Table Container */}
-        <div className="overflow-auto" style={{ height: "calc(100vh - 130px)" }}>
-          <table className="min-w-full divide-y divide-gray-700 text-sm">
-            <thead className="bg-gray-800 sticky top-0">
-              <tr>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Timestamp
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Full Name
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Assigned Email
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Visit Status
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Application Status
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Status Remarks
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Referred By
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                  Full Address
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Visit By
-                </th>
-                <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                  Visit With
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-gray-900 divide-y divide-gray-800">
-              {filteredVisits.length > 0 ? (
-                filteredVisits.map((visit) => (
-                  <tr 
-                    key={visit.id} 
-                    className={`hover:bg-gray-800 cursor-pointer ${selectedVisit?.id === visit.id ? 'bg-gray-800' : ''}`}
-                    onClick={() => handleRowClick(visit)}
-                  >
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.timestamp}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.fullName}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.assignedEmail}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <StatusText status={visit.visitStatus} type="visit" />
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap">
-                      <StatusText status={visit.applicationStatus} type="application" />
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                      {visit.statusRemarks}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.referredBy}
-                    </td>
-                    <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                      {visit.fullAddress}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.visitBy}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                      {visit.visitWith}
-                    </td>
+          
+          {/* Table Container */}
+          <div className="flex-1 overflow-hidden">
+            <div className="h-full overflow-x-auto overflow-y-auto pb-4">
+              <table className="min-w-full divide-y divide-gray-700 text-sm">
+                <thead className="bg-gray-800 sticky top-0">
+                  <tr>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Timestamp
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Full Name
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Assigned Email
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit Status
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Application Status
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Status Remarks
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Referred By
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      Full Address
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit By
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit With
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit With(Other)
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Modified Date
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Modified By
+                    </th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                    No application visits found matching your filters
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody className="bg-gray-900 divide-y divide-gray-800">
+                  {filteredVisits.length > 0 ? (
+                    filteredVisits.map((visit) => (
+                      <tr 
+                        key={visit.id} 
+                        className={`hover:bg-gray-800 cursor-pointer ${selectedVisit?.id === visit.id ? 'bg-gray-800' : ''}`}
+                        onClick={() => handleRowClick(visit)}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.timestamp}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.fullName}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.assignedEmail}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusText status={visit.visitStatus} type="visit" />
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap">
+                          <StatusText status={visit.applicationStatus} type="application" />
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {visit.statusRemarks}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.referredBy}
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {visit.fullAddress}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.visitBy}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.visitWith}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.visitWithOther}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.modifiedDate}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                          {visit.modifiedBy}
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
+                        No application visits found matching your filters
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
 

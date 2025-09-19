@@ -1,7 +1,7 @@
 import React from 'react';
 import { 
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
-  ExternalLink, Mail, Edit, Trash2, ArrowRightToLine
+  ExternalLink, Mail, Edit, Trash2, ArrowRightToLine, Trash, XOctagon, RotateCw
 } from 'lucide-react';
 
 interface ApplicationVisitDetailsProps {
@@ -41,7 +41,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           <button className="hover:text-white text-gray-400">
             <ArrowRightToLine size={16} />
           </button>
-          <button className="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-sm flex items-center">
+          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
             <Edit size={16} className="mr-1" />
             <span>Visit Status</span>
           </button>
@@ -59,32 +59,24 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
       </div>
       
       {/* Status Buttons */}
-      <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-start space-x-8 px-8">
+      <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-center space-x-8">
         <button className="flex flex-col items-center text-center">
-          <div className="bg-red-600 p-3 rounded-full">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-              <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-              <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="bg-orange-600 p-3 rounded-full">
+            <Trash className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">Clear Status</span>
         </button>
         
         <button className="flex flex-col items-center text-center">
-          <div className="bg-red-600 p-3 rounded-full">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-              <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm2 14.59L11.41 14 8 17.41 6.59 16 10 12.59 7.59 10 9 8.59 12.41 12 16 8.41 17.41 9.83 13.83 13.41z" fill="currentColor"/>
-            </svg>
+          <div className="bg-orange-600 p-3 rounded-full">
+            <XOctagon className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">Failed</span>
         </button>
         
         <button className="flex flex-col items-center text-center">
-          <div className="bg-red-600 p-3 rounded-full">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-white">
-              <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+          <div className="bg-orange-600 p-3 rounded-full">
+            <RotateCw className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">Visit In Progress</span>
         </button>
