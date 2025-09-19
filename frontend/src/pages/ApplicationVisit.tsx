@@ -214,12 +214,6 @@ const ApplicationVisit: React.FC = () => {
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Application Visits</h2>
-            <button 
-              className="bg-orange-600 text-white px-3 py-1 rounded text-sm flex items-center space-x-1"
-              aria-label="Application Visit"
-            >
-              <span>Visit</span>
-            </button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
