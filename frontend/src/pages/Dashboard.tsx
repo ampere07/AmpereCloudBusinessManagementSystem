@@ -5,6 +5,10 @@ import DashboardContent from '../components/DashboardContent';
 import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import GroupManagement from './GroupManagement';
+import ApplicationManagement from './ApplicationManagement';
+import JobOrder from './JobOrder';
+import ServiceOrder from './ServiceOrder';
+import ApplicationVisit from './ApplicationVisit';
 import Logs from './Logs';
 
 interface DashboardProps {
@@ -24,6 +28,14 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <OrganizationManagement />;
       case 'group-management':
         return <GroupManagement />;
+      case 'application-management':
+        return <ApplicationManagement />;
+      case 'job-order':
+        return <JobOrder />;
+      case 'service-order':
+        return <ServiceOrder />;
+      case 'application-visit':
+        return <ApplicationVisit />;
       case 'logs':
         return <Logs />;
       case 'dashboard':
@@ -60,8 +72,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         </div>
         
         {/* Scrollable Content Area Only */}
-        <div className="flex-1 overflow-y-auto bg-gray-950">
-          {renderContent()}
+        <div className="flex-1 bg-gray-950 overflow-hidden">
+          <div className="h-full overflow-y-auto">
+            {renderContent()}
+          </div>
         </div>
       </div>
     </div>
