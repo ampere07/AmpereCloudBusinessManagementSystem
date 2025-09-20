@@ -120,4 +120,18 @@ export interface ApiResponse<T> {
   };
 }
 
-export {};
+export interface Application {
+  id: string;
+  customerName: string;
+  timestamp: string;
+  address: string;
+  action?: 'Schedule' | 'Duplicate';
+  location: string;
+  email?: string;
+  mobileNumber?: string;
+  secondaryNumber?: string;
+}
+
+export interface ApplicationsResponse {
+  applications: Application[];
+}

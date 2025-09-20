@@ -1,33 +1,27 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
+import { getApplications } from '../services/applicationService';
+import { getCities, City } from '../services/cityService';
+import { Application as ApiApplication } from '../types/application';
 
 interface Application {
   id: string;
+  customerName: string;
   timestamp: string;
-  fullName: string;
-  assignedEmail: string;
-  visitStatus: string;
-  applicationStatus: string;
-  statusRemarks: string;
-  referredBy: string;
-  fullAddress: string;
-  visitBy: string;
-  visitWith: string;
-  visitWithOther: string;
-  visitRemarks: string;
-  modifiedDate: string;
-  modifiedBy: string;
+  address: string;
+  action?: 'Schedule' | 'Duplicate';
   location: string;
+  status?: string;
   email?: string;
   mobileNumber?: string;
-  secondaryMobileNumber?: string;
-  desiredPlan?: string;
-  governmentId?: string;
-  agreementStatus?: string;
-  userEmail?: string;
-  houseFrontPicture?: string;
-  promo?: string;
+  secondaryNumber?: string;
+  visitDate?: string;
+  visitBy?: string;
+  visitWith?: string;
+  notes?: string;
+  lastModified?: string;
+  modifiedBy?: string;
 }
 
 interface LocationItem {
@@ -40,183 +34,132 @@ const ApplicationManagement: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedApplication, setSelectedApplication] = useState<Application | null>(null);
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data for applications with the columns shown in the images
-  const applications: Application[] = [
-    {
-      id: '1',
-      timestamp: '09/19/2025 10:20:09',
-      fullName: 'John H Doe',
-      assignedEmail: 'tech1@amperecloud.com',
-      visitStatus: 'Scheduled',
-      applicationStatus: 'Pending',
-      statusRemarks: 'Waiting for customer confirmation',
-      referredBy: 'Maria Garcia',
-      fullAddress: '123 Main St, Sample City, Metro Manila',
-      visitBy: 'John Denver Dones',
-      visitWith: 'Leonardo Bayos',
-      visitWithOther: 'NONE',
-      visitRemarks: 'Customer requested evening installation',
-      modifiedDate: '09/18/2025 15:30:22',
-      modifiedBy: 'Admin User',
-      location: 'binangonan',
-      email: 'johndoe@example.com',
-      mobileNumber: '9123456789',
-      secondaryMobileNumber: '9987654321',
-      desiredPlan: 'SwitchConnect - P799',
-      governmentId: 'https://drive.google.com/open?id=abc123...',
-      agreementStatus: 'Yes, I Agree',
-      userEmail: 'admin@amperecloud.com',
-      houseFrontPicture: 'https://drive.google.com/open?id=xyz789...',
-      promo: 'New Customer Discount'
-    },
-    {
-      id: '2',
-      timestamp: '09/19/2025 11:30:15',
-      fullName: 'Jane M Smith',
-      assignedEmail: 'tech2@amperecloud.com',
-      visitStatus: 'Completed',
-      applicationStatus: 'Approved',
-      statusRemarks: 'Installation completed successfully',
-      referredBy: 'Robert Johnson',
-      fullAddress: '456 Oak St, Sample Town, Metro Manila',
-      visitBy: 'Maria Santos',
-      visitWith: 'Paulo Reyes',
-      visitWithOther: 'NONE',
-      visitRemarks: 'No issues during installation',
-      modifiedDate: '09/18/2025 12:45:36',
-      modifiedBy: 'Support Staff',
-      location: 'binangonan',
-      email: 'janesmith@example.com',
-      mobileNumber: '9234567890',
-      secondaryMobileNumber: '9876543210',
-      desiredPlan: 'SwitchNet - P999',
-      governmentId: 'https://drive.google.com/open?id=def456...',
-      agreementStatus: 'Yes, I Agree',
-      userEmail: 'support@amperecloud.com',
-      houseFrontPicture: 'https://drive.google.com/open?id=pqr789...',
-      promo: 'Upgrade Discount'
-    },
-    {
-      id: '3',
-      timestamp: '09/19/2025 09:15:45',
-      fullName: 'Robert A Johnson',
-      assignedEmail: 'tech3@amperecloud.com',
-      visitStatus: 'Pending',
-      applicationStatus: 'Under Review',
-      statusRemarks: 'Checking service availability',
-      referredBy: 'Customer Walk-in',
-      fullAddress: '789 Pine St, Sample Village, Metro Manila',
-      visitBy: 'Unassigned',
-      visitWith: 'Unassigned',
-      visitWithOther: 'NONE',
-      visitRemarks: '',
-      modifiedDate: '09/18/2025 10:05:18',
-      modifiedBy: 'Sales Agent',
-      location: 'binangonan',
-      email: 'robertjohnson@example.com',
-      mobileNumber: '9345678901',
-      secondaryMobileNumber: '9765432109',
-      desiredPlan: 'SwitchMax - P1499',
-      governmentId: 'https://drive.google.com/open?id=ghi789...',
-      agreementStatus: 'Yes, I Agree',
-      userEmail: 'sales@amperecloud.com',
-      houseFrontPicture: 'https://drive.google.com/open?id=stu012...',
-      promo: 'Standard Rate'
-    }
-  ];
+  // Fetch cities data
+  useEffect(() => {
+    const fetchCities = async () => {
+      try {
+        console.log('Fetching cities...');
+        const citiesData = await getCities();
+        console.log('Received cities:', citiesData);
+        setCities(citiesData || []);
+      } catch (err) {
+        console.error('Failed to fetch cities:', err);
+        setCities([]);
+      }
+    };
+    
+    fetchCities();
+  }, []);
 
-  // Generate location items with counts
+  // Fetch applications data
+  useEffect(() => {
+    const fetchApplications = async () => {
+      try {
+        setIsLoading(true);
+        console.log('Fetching applications...');
+        const apiApplications = await getApplications();
+        console.log('Received applications:', apiApplications);
+        
+        if (apiApplications && apiApplications.length > 0) {
+          // Transform API applications to match our interface
+          const transformedApplications: Application[] = apiApplications.map(app => ({
+            id: app.id || '',
+            customerName: app.customer_name || '',
+            timestamp: app.timestamp || '',
+            address: app.address || '',
+            // Determine action based on status
+            action: app.status === 'pending' || app.status === 'new' ? 'Schedule' : 
+                   app.status === 'duplicate' ? 'Duplicate' : undefined,
+            location: app.location || '',
+            status: app.status,
+            email: app.email,
+            mobileNumber: app.mobile_number,
+            secondaryNumber: app.secondary_number,
+            visitDate: app.visit_date,
+            visitBy: app.visit_by,
+            visitWith: app.visit_with,
+            notes: app.notes,
+            lastModified: app.last_modified,
+            modifiedBy: app.modified_by
+          }));
+          
+          console.log('Transformed applications:', transformedApplications);
+          setApplications(transformedApplications);
+        } else {
+          console.warn('No applications returned from API');
+          setApplications([]);
+        }
+        
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch applications:', err);
+        setError('Failed to load applications. Please try again.');
+        setApplications([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    fetchApplications();
+  }, []);
+  
+  // Generate location items with counts from cities data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
       name: 'All',
       count: applications.length
     },
-    {
-      id: 'binangonan',
-      name: 'Binangonan',
-      count: applications.filter(app => app.location === 'binangonan').length
-    },
-    {
-      id: 'cardona',
-      name: 'Cardona',
-      count: applications.filter(app => app.location === 'cardona').length
-    },
-    {
-      id: 'taytay',
-      name: 'Taytay',
-      count: applications.filter(app => app.location === 'taytay').length
-    },
-    {
-      id: 'las-pinas',
-      name: 'Las Piñas',
-      count: applications.filter(app => app.location === 'las-pinas').length
-    }
+    // If cities data is empty or API fails, add Manila as default location from DB
+    ...(cities.length > 0 
+      ? cities.map(city => ({
+          id: city.id.toString(),
+          name: city.name,
+          count: applications.filter(app => 
+            app.location.toLowerCase() === city.name.toLowerCase() || 
+            app.address.toLowerCase().includes(city.name.toLowerCase())
+          ).length
+        }))
+      : [
+          {
+            id: '1',
+            name: 'Manila', // Default from the database as seen in the image
+            count: applications.filter(app => 
+              app.location.toLowerCase() === 'manila' || 
+              app.address.toLowerCase().includes('manila')
+            ).length
+          }
+        ]
+    )
   ];
 
   // Filter applications based on location and search query
   const filteredApplications = applications.filter(application => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           application.location === selectedLocation;
+    // Update to handle city IDs as well
+    const locationId = selectedLocation === 'all' ? 'all' : selectedLocation;
+    const cityData = cities.find(city => city.id.toString() === locationId);
+    
+    const matchesLocation = 
+      locationId === 'all' || 
+      application.location === selectedLocation || 
+      application.location.toLowerCase() === (cityData?.name || '').toLowerCase() ||
+      application.address.toLowerCase().includes((cityData?.name || selectedLocation).toLowerCase());
     
     const matchesSearch = searchQuery === '' || 
-                         application.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         application.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         application.assignedEmail.toLowerCase().includes(searchQuery.toLowerCase());
+                         application.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         application.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (application.timestamp && application.timestamp.includes(searchQuery));
     
     return matchesLocation && matchesSearch;
   });
 
   const handleRowClick = (application: Application) => {
     setSelectedApplication(application);
-  };
-
-  // Status text color component
-  const StatusText = ({ status, type }: { status: string, type: 'visit' | 'application' }) => {
-    let textColor = '';
-    
-    if (type === 'visit') {
-      switch (status.toLowerCase()) {
-        case 'completed':
-          textColor = 'text-green-500';
-          break;
-        case 'scheduled':
-          textColor = 'text-yellow-500';
-          break;
-        case 'pending':
-          textColor = 'text-blue-500';
-          break;
-        case 'cancelled':
-          textColor = 'text-red-500';
-          break;
-        default:
-          textColor = 'text-gray-400';
-      }
-    } else {
-      switch (status.toLowerCase()) {
-        case 'approved':
-          textColor = 'text-green-500';
-          break;
-        case 'pending':
-          textColor = 'text-yellow-500';
-          break;
-        case 'under review':
-          textColor = 'text-blue-500';
-          break;
-        case 'rejected':
-          textColor = 'text-red-500';
-          break;
-        default:
-          textColor = 'text-gray-400';
-      }
-    }
-    
-    return (
-      <span className={`${textColor} capitalize`}>
-        {status}
-      </span>
-    );
   };
 
   return (
@@ -288,117 +231,59 @@ const ApplicationManagement: React.FC = () => {
             </div>
           </div>
           
-          {/* Table Container */}
+          {/* Applications List Container */}
           <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-x-auto overflow-y-auto pb-4">
-              <table className="min-w-full divide-y divide-gray-700 text-sm">
-                <thead className="bg-gray-800 sticky top-0">
-                  <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Timestamp
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Full Name
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Assigned Email
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Visit Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Application Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Status Remarks
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Referred By
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Full Address
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Visit By
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Visit With
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Visit With (Other)
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Visit Remarks
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified Date
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified By
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-800">
+            <div className="h-full overflow-y-auto pb-4">
+              {isLoading ? (
+                <div className="px-4 py-12 text-center text-gray-400">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 w-1/3 bg-gray-700 rounded mb-4"></div>
+                    <div className="h-4 w-1/2 bg-gray-700 rounded"></div>
+                  </div>
+                  <p className="mt-4">Loading applications...</p>
+                </div>
+              ) : error ? (
+                <div className="px-4 py-12 text-center text-red-400">
+                  <p>{error}</p>
+                  <button 
+                    onClick={() => window.location.reload()}
+                    className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    Retry
+                  </button>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-800">
                   {filteredApplications.length > 0 ? (
                     filteredApplications.map((application) => (
-                      <tr 
+                      <div 
                         key={application.id} 
                         className={`hover:bg-gray-800 cursor-pointer ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
                         onClick={() => handleRowClick(application)}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.timestamp}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.fullName}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.assignedEmail}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={application.visitStatus} type="visit" />
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={application.applicationStatus} type="application" />
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {application.statusRemarks}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.referredBy}
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {application.fullAddress}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.visitBy}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.visitWith}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.visitWithOther}
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {application.visitRemarks}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.modifiedDate}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {application.modifiedBy}
-                        </td>
-                      </tr>
+                        <div className="p-4 flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex justify-between">
+                              <div className="text-white font-medium">{application.customerName}</div>
+                              {application.action && (
+                                <div className={`text-green-500 text-sm ${application.action === 'Duplicate' ? 'text-yellow-500' : ''}`}>
+                                  {application.action}
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-gray-400 text-sm mt-1">
+                              {application.timestamp} | {application.address}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
                     ))
                   ) : (
-                    <tr>
-                      <td colSpan={14} className="px-4 py-12 text-center text-gray-400">
-                        No applications found matching your filters
-                      </td>
-                    </tr>
+                    <div className="px-4 py-12 text-center text-gray-400">
+                      No applications found matching your filters
+                    </div>
                   )}
-                </tbody>
-              </table>
+                </div>
+              )}
             </div>
           </div>
         </div>

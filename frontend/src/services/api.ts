@@ -2,7 +2,8 @@ import apiClient from '../config/api';
 import { 
   LoginResponse, 
   ForgotPasswordResponse, 
-  HealthCheckResponse 
+  HealthCheckResponse,
+  ApplicationsResponse
 } from '../types/api';
 
 export const login = async (email: string, password: string): Promise<LoginResponse> => {
@@ -23,4 +24,14 @@ export const forgotPassword = async (email: string): Promise<ForgotPasswordRespo
 export const healthCheck = async (): Promise<HealthCheckResponse> => {
   const response = await apiClient.get<HealthCheckResponse>('/health');
   return response.data;
+};
+
+export const fetchApplications = async (): Promise<ApplicationsResponse> => {
+  try {
+    const response = await apiClient.get<ApplicationsResponse>('/applications');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching applications:', error);
+    throw error;
+  }
 };

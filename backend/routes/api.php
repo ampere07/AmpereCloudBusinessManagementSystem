@@ -9,6 +9,7 @@ use App\Http\Controllers\GroupController;
 use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\LogsController;
+use App\Http\Controllers\ApplicationController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -176,4 +177,13 @@ Route::prefix('logs')->middleware('ensure.database.tables')->group(function () {
     Route::get('/export', [LogsController::class, 'export']);
     Route::get('/{id}', [LogsController::class, 'show']);
     Route::delete('/clear', [LogsController::class, 'clear']);
+});
+
+// Applications Management Routes
+Route::prefix('applications')->middleware('ensure.database.tables')->group(function () {
+    Route::get('/', [ApplicationController::class, 'index']);
+    Route::post('/', [ApplicationController::class, 'store']);
+    Route::get('/{id}', [ApplicationController::class, 'show']);
+    Route::put('/{id}', [ApplicationController::class, 'update']);
+    Route::delete('/{id}', [ApplicationController::class, 'destroy']);
 });
