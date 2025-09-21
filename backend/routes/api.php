@@ -12,6 +12,8 @@ use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\JobOrderController;
 use App\Http\Controllers\ApplicationVisitController;
+use App\Http\Controllers\CityController;
+use App\Http\Controllers\RegionController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -216,4 +218,17 @@ Route::prefix('application-visits')->middleware('ensure.database.tables')->group
     Route::put('/{id}', [ApplicationVisitController::class, 'update']);
     Route::delete('/{id}', [ApplicationVisitController::class, 'destroy']);
     Route::get('/application/{applicationId}', [ApplicationVisitController::class, 'getByApplication']);
+});
+
+// Cities Management Routes
+Route::prefix('app-cities')->middleware('ensure.database.tables')->group(function () {
+    Route::get('/', [CityController::class, 'index']);
+    Route::get('/{id}', [CityController::class, 'show']);
+    Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
+});
+
+// Regions Management Routes
+Route::prefix('app-regions')->middleware('ensure.database.tables')->group(function () {
+    Route::get('/', [RegionController::class, 'index']);
+    Route::get('/{id}', [RegionController::class, 'show']);
 });

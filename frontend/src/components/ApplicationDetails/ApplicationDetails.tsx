@@ -19,6 +19,12 @@ interface ApplicationDetailsProps {
     address: string;
     action?: 'Schedule' | 'Duplicate';
     location: string;
+    cityId?: number | null;
+    regionId?: number | null;
+    boroughId?: number | null;
+    villageId?: number | null;
+    addressLine?: string;
+    fullAddress?: string;
     email?: string;
     mobileNumber?: string;
   };
@@ -65,16 +71,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       try {
         setLoading(true);
         setError(null);
-        console.log('Fetching details for application ID:', application.id);
         
         const result = await getApplication(application.id);
-        console.log('Application details:', result);
-        console.log('Secondary number fields:', {
-          mobile_alt: result?.mobile_alt,
-          mobile_alt_type: typeof result?.mobile_alt,
-          allKeys: Object.keys(result || {})  // Log all keys to check field names
-        });
-        
         setDetailedApplication(result);
       } catch (err: any) {
         console.error('Error fetching application details:', err);
@@ -276,9 +274,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Full Address</div>
                 <div className="text-white flex-1">
-                  {detailedApplication?.address_line 
-                    ? `${detailedApplication.address_line}${detailedApplication.village_id ? `, ${detailedApplication.village_id}` : ''}${detailedApplication.borough_id ? `, ${detailedApplication.borough_id}` : ''}${detailedApplication.city_id ? `, ${detailedApplication.city_id}` : ''}${detailedApplication.region_id ? `, ${detailedApplication.region_id}` : ''}` 
-                    : application.address || 'None'}
+                  {application.fullAddress || detailedApplication?.address_line || application.address || 'No address'}
                 </div>
               </div>
               

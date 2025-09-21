@@ -11,10 +11,8 @@ interface ApplicationResponse {
 export const getApplications = async (): Promise<Application[]> => {
   try {
     const response = await apiClient.get<ApplicationResponse>('/applications');
-    console.log('API Response:', response.data); // Log the full response
     
     if (response.data && response.data.applications && Array.isArray(response.data.applications) && response.data.applications.length > 0) {
-      console.log('Found applications in response:', response.data.applications.length);
       return response.data.applications.map(app => ({
         id: app.id || '',
         customer_name: app.customer_name || '',
@@ -22,12 +20,17 @@ export const getApplications = async (): Promise<Application[]> => {
         address: app.address || '',
         status: app.status || '',
         location: app.location || '',
+        city_id: app.city_id || '',
+        region_id: app.region_id || '',
+        borough_id: app.borough_id || '',
+        village_id: app.village_id || '',
+        create_date: app.create_date || '',
+        create_time: app.create_time || '',
         email: app.email || '',
         mobile_number: app.mobile_number || '',
         secondary_number: app.secondary_number || ''
       }));
     } else {
-      console.warn('No applications found in API response, checking data structure:', response.data);
       return [];
     }
   } catch (error) {
@@ -38,10 +41,7 @@ export const getApplications = async (): Promise<Application[]> => {
 
 export const getApplication = async (id: string): Promise<Application> => {
   try {
-    console.log(`Fetching application details for ID: ${id}`);
     const response = await apiClient.get<ApplicationResponse>(`/applications/${id}`);
-    
-    console.log('Application details response:', response.data);
     
     if (!response.data.application) {
       throw new Error('Application not found in API response');
@@ -57,6 +57,7 @@ export const getApplication = async (id: string): Promise<Application> => {
       address: app.address || app.address_line || '',
       status: app.status || '',
       location: app.location || '',
+      city_id: app.city_id || '',
       email: app.email || '',
       mobile_number: app.mobile_number || app.mobile || '',
       secondary_number: app.secondary_number || app.mobile_alt || '',

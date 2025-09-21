@@ -59,7 +59,13 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
 
 export const getApplicationVisits = async (applicationId: string) => {
   try {
+    console.log(`Fetching application visits for applicationId: ${applicationId}`);
     const response = await apiClient.get<ApiResponse<ApplicationVisitData[]>>(`/application-visits/application/${applicationId}`);
+    console.log('API response received for application visits:', {
+      success: response.data.success,
+      dataLength: response.data.data?.length || 0,
+      sample: response.data.data?.length ? response.data.data[0] : 'No data'
+    });
     return response.data;
   } catch (error) {
     console.error('Error fetching application visits:', error);
