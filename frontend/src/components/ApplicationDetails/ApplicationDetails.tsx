@@ -6,6 +6,10 @@ import {
 } from 'lucide-react';
 import { getApplication } from '../../services/applicationService';
 import ConfirmationModal from '../../modals/MoveToJoModal';
+import JOAssignFormModal from '../../modals/JOAssignFormModal';
+import ApplicationVisitFormModal from '../../modals/ApplicationVisitFormModal';
+import { JobOrderData } from '../../services/jobOrderService';
+import { ApplicationVisitData } from '../../services/applicationVisitService';
 
 interface ApplicationDetailsProps {
   application: {
@@ -26,10 +30,34 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   const [error, setError] = useState<string | null>(null);
   const [detailedApplication, setDetailedApplication] = useState<any>(null);
   const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
+  const [showJOAssignForm, setShowJOAssignForm] = useState(false);
+  const [showVisitForm, setShowVisitForm] = useState(false);
 
   const handleMoveToJO = () => {
-    console.log('Moving application to JO:', application.id);
+    setShowMoveConfirmation(true);
+  };
+
+  const handleConfirmMoveToJO = () => {
     setShowMoveConfirmation(false);
+    setShowJOAssignForm(true);
+  };
+
+  const handleScheduleVisit = () => {
+    setShowVisitForm(true);
+  };
+
+  const handleSaveJOForm = (formData: JobOrderData) => {
+    console.log('Job Order saved successfully:', formData);
+    console.log('Application ID:', application.id);
+    // Job order has already been saved by the modal
+    setShowJOAssignForm(false);
+  };
+
+  const handleSaveVisitForm = (formData: ApplicationVisitData) => {
+    console.log('Visit scheduled successfully:', formData);
+    console.log('Application ID:', application.id);
+    // Visit has already been saved by the modal
+    setShowVisitForm(false);
   };
 
   useEffect(() => {
@@ -41,6 +69,11 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         
         const result = await getApplication(application.id);
         console.log('Application details:', result);
+        console.log('Secondary number fields:', {
+          mobile_alt: result?.mobile_alt,
+          mobile_alt_type: typeof result?.mobile_alt,
+          allKeys: Object.keys(result || {})  // Log all keys to check field names
+        });
         
         setDetailedApplication(result);
       } catch (err: any) {
@@ -66,7 +99,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
     middle_initial: detailedApplication?.middle_initial || '',
     last_name: detailedApplication?.last_name || '',
     mobileNumber: detailedApplication?.mobile || application.mobileNumber || '',
-    secondaryNumber: detailedApplication?.mobile_alt || '',
+    mobile_alt: detailedApplication?.mobile_alt || '',  // Explicitly include mobile_alt
+    secondaryNumber: detailedApplication?.mobile_alt || '',  // Add this as secondaryNumber too
     status: detailedApplication?.status || (application.action === 'Schedule' ? 'Schedule' : 'In Progress'),
     // Region data
     region_id: detailedApplication?.region_id,
@@ -132,11 +166,14 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
           </button>
           <button 
             className="bg-transparent text-gray-400 hover:text-white p-1 rounded"
-            onClick={() => setShowMoveConfirmation(true)}
+            onClick={handleMoveToJO}
           >
             <ArrowRightFromLine size={20} />
           </button>
-          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded flex items-center">
+          <button 
+            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded flex items-center"
+            onClick={handleScheduleVisit}
+          >
             <Calendar size={16} className="mr-1" />
             <span>Schedule</span>
           </button>
@@ -267,11 +304,11 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               </div>
               
-              {(detailedApplication?.mobile_alt) && (
-                <div className="flex py-3 border-b border-gray-800">
-                  <div className="w-40 text-gray-400 text-sm">Secondary Mobile Number</div>
-                  <div className="text-white flex-1 flex justify-between items-center">
-                    <span>{detailedApplication.mobile_alt}</span>
+              <div className="flex py-3 border-b border-gray-800">
+                <div className="w-40 text-gray-400 text-sm">Second Mobile Number</div>
+                <div className="text-white flex-1 flex justify-between items-center">
+                  <span>{detailedApplication?.secondary_number || detailedApplication?.mobile_alt || 'None'}</span>
+                  {(detailedApplication?.secondary_number || detailedApplication?.mobile_alt) && (
                     <div>
                       <button className="text-gray-400 hover:text-white ml-2">
                         <Phone size={16} />
@@ -280,9 +317,9 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                         <MessageSquare size={16} />
                       </button>
                     </div>
-                  </div>
+                  )}
                 </div>
-              )}
+              </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Desired Plan</div>
@@ -358,11 +395,37 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       <ConfirmationModal
         isOpen={showMoveConfirmation}
         title="Confirm"
-        message="Are you sure?"
+        message="Are you sure you want to move this application to JO?"
         confirmText="Move to JO"
-        cancelText="No"
-        onConfirm={handleMoveToJO}
+        cancelText="Cancel"
+        onConfirm={handleConfirmMoveToJO}
         onCancel={() => setShowMoveConfirmation(false)}
+      />
+
+      {/* Use the JOAssignFormModal component */}
+      <JOAssignFormModal
+        isOpen={showJOAssignForm}
+        onClose={() => setShowJOAssignForm(false)}
+        onSave={handleSaveJOForm}
+        applicationData={detailedApplication}
+      />
+
+      {/* Use the ApplicationVisitFormModal component */}
+      <ApplicationVisitFormModal
+        isOpen={showVisitForm}
+        onClose={() => setShowVisitForm(false)}
+        onSave={handleSaveVisitForm}
+        applicationData={{
+          ...detailedApplication,
+          // Explicitly ensure secondaryNumber is included
+          secondaryNumber: detailedApplication?.mobile_alt || '',
+          // Log what's being passed
+          __debug: console.log('DEBUG - Data passed to Visit Modal:', {
+            applicationId: application.id,
+            mobile_alt: detailedApplication?.mobile_alt,
+            secondaryNumber: detailedApplication?.mobile_alt || ''
+          })
+        }}
       />
     </div>
   );

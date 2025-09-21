@@ -224,10 +224,6 @@ const ApplicationManagement: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
-                <span className="mr-2">Filter</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
             </div>
           </div>
           

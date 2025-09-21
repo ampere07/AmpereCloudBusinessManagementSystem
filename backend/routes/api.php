@@ -10,6 +10,8 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\SetupController;
 use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ApplicationController;
+use App\Http\Controllers\JobOrderController;
+use App\Http\Controllers\ApplicationVisitController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -186,4 +188,32 @@ Route::prefix('applications')->middleware('ensure.database.tables')->group(funct
     Route::get('/{id}', [ApplicationController::class, 'show']);
     Route::put('/{id}', [ApplicationController::class, 'update']);
     Route::delete('/{id}', [ApplicationController::class, 'destroy']);
+});
+
+// Job Orders Management Routes
+Route::prefix('job-orders')->middleware('ensure.database.tables')->group(function () {
+    Route::get('/', [JobOrderController::class, 'index']);
+    Route::post('/', [JobOrderController::class, 'store']);
+    Route::get('/{id}', [JobOrderController::class, 'show']);
+    Route::put('/{id}', [JobOrderController::class, 'update']);
+    Route::delete('/{id}', [JobOrderController::class, 'destroy']);
+    
+    // Lookup table endpoints
+    Route::get('/lookup/modem-router-sns', [JobOrderController::class, 'getModemRouterSNs']);
+    Route::get('/lookup/contract-templates', [JobOrderController::class, 'getContractTemplates']);
+    Route::get('/lookup/lcps', [JobOrderController::class, 'getLCPs']);
+    Route::get('/lookup/naps', [JobOrderController::class, 'getNAPs']);
+    Route::get('/lookup/ports', [JobOrderController::class, 'getPorts']);
+    Route::get('/lookup/vlans', [JobOrderController::class, 'getVLANs']);
+    Route::get('/lookup/lcpnaps', [JobOrderController::class, 'getLCPNAPs']);
+});
+
+// Application Visits Management Routes
+Route::prefix('application-visits')->middleware('ensure.database.tables')->group(function () {
+    Route::get('/', [ApplicationVisitController::class, 'index']);
+    Route::post('/', [ApplicationVisitController::class, 'store']);
+    Route::get('/{id}', [ApplicationVisitController::class, 'show']);
+    Route::put('/{id}', [ApplicationVisitController::class, 'update']);
+    Route::delete('/{id}', [ApplicationVisitController::class, 'destroy']);
+    Route::get('/application/{applicationId}', [ApplicationVisitController::class, 'getByApplication']);
 });
