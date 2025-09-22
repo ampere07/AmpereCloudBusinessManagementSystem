@@ -1,21 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import JobOrderDetails from '../components/JobOrderDetails';
+import { getJobOrders } from '../services/jobOrderService';
+import { getCities, City } from '../services/cityService';
 
 interface JobOrder {
   id: string;
-  timestamp: string;
-  clientName: string;
-  clientAddress: string;
-  onsiteStatus: 'inProgress' | 'done' | 'reschedule' | 'failed';
-  billingStatus: 'done' | 'pending';
-  statusRemarks: string;
-  assignedEmail: string;
-  contractTemplate: string;
-  billingDay: string;
-  installationFee: string;
-  modifiedBy: string;
-  modifiedDate: string;
+  Timestamp?: string;
+  First_Name?: string;
+  Middle_Initial?: string;
+  Last_Name?: string;
+  Address?: string;
+  Onsite_Status?: string;
+  Billing_Status?: string;
+  Status_Remarks?: string;
+  Assigned_Email?: string;
+  Contract_Template?: string;
+  Billing_Day?: string;
+  Installation_Fee?: string | number;
+  Modified_By?: string;
+  Modified_Date?: string;
+  Contact_Number?: string;
+  Second_Contact_Number?: string;
+  Email_Address?: string;
+  Referred_By?: string;
+  City?: string;
+  Choose_Plan?: string;
+  Contract_Link?: string;
+  Username?: string;
+  Installation_Landmark?: string;
 }
 
 interface LocationItem {
@@ -28,131 +41,160 @@ const JobOrder: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedJobOrder, setSelectedJobOrder] = useState<JobOrder | null>(null);
-  
-  // Mock data for job orders
-  const jobOrders: JobOrder[] = [
-    {
-      id: '1',
-      timestamp: '09/19/2025 10:20:09',
-      clientName: 'JOHN H DOE',
-      clientAddress: '123 MAIN STREET SAMPLE SUBDIVISION BRGY EXAMPLE ANYTOWN CITY, Sample Province',
-      onsiteStatus: 'done',
-      billingStatus: 'done',
-      statusRemarks: 'Installation completed successfully',
-      assignedEmail: 'technician1@amperecloud.com',
-      contractTemplate: 'Standard',
-      billingDay: '15',
-      installationFee: '₱1,500.00',
-      modifiedBy: 'admin@amperecloud.com',
-      modifiedDate: '09/19/2025 15:30:22'
-    },
-    {
-      id: '2',
-      timestamp: '09/19/2025 11:30:15',
-      clientName: 'JANE M SMITH',
-      clientAddress: '456 CENTER AVENUE METRO HOMES BRGY CENTER ANYTOWN CITY, Sample Province',
-      onsiteStatus: 'reschedule',
-      billingStatus: 'pending',
-      statusRemarks: 'Scheduled for next week',
-      assignedEmail: 'technician2@amperecloud.com',
-      contractTemplate: 'Business',
-      billingDay: '20',
-      installationFee: '₱2,500.00',
-      modifiedBy: 'manager@amperecloud.com',
-      modifiedDate: '09/19/2025 12:45:36'
-    },
-    {
-      id: '3',
-      timestamp: '09/19/2025 09:15:45',
-      clientName: 'ROBERT A JOHNSON',
-      clientAddress: '789 PARK LANE, Sample Area, Anytown City, Sample Province',
-      onsiteStatus: 'inProgress',
-      billingStatus: 'pending',
-      statusRemarks: 'Awaiting parts',
-      assignedEmail: 'technician3@amperecloud.com',
-      contractTemplate: 'Standard',
-      billingDay: '10',
-      installationFee: '₱1,500.00',
-      modifiedBy: 'supervisor@amperecloud.com',
-      modifiedDate: '09/19/2025 10:05:18'
-    },
-    {
-      id: '4',
-      timestamp: '09/19/2025 14:45:30',
-      clientName: 'EMILY R WILLIAMS',
-      clientAddress: '101 SUNSET DRIVE PHASE 2 GARDEN HOMES BRGY WEST ANYTOWN CITY, Sample Province',
-      onsiteStatus: 'done',
-      billingStatus: 'done',
-      statusRemarks: 'Partial payment received',
-      assignedEmail: 'technician1@amperecloud.com',
-      contractTemplate: 'Premium',
-      billingDay: '5',
-      installationFee: '₱3,000.00',
-      modifiedBy: 'admin@amperecloud.com',
-      modifiedDate: '09/19/2025 16:10:42'
-    },
-    {
-      id: '5',
-      timestamp: '09/19/2025 16:20:10',
-      clientName: 'MICHAEL J BROWN',
-      clientAddress: '202 RIVERSIDE ROAD, East District, Anytown City, Sample Province',
-      onsiteStatus: 'failed',
-      billingStatus: 'pending',
-      statusRemarks: 'Customer cancelled service',
-      assignedEmail: 'technician4@amperecloud.com',
-      contractTemplate: 'Standard',
-      billingDay: '15',
-      installationFee: '₱1,500.00',
-      modifiedBy: 'support@amperecloud.com',
-      modifiedDate: '09/19/2025 17:25:58'
+  const [jobOrders, setJobOrders] = useState<JobOrder[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Format date function
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return 'Not scheduled';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch (e) {
+      return dateStr;
     }
-  ];
+  };
   
-  // Generate location items with counts
+  // Format price function
+  const formatPrice = (price?: string | number): string => {
+    if (!price) return '₱0.00';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch cities data
+        console.log('Fetching cities...');
+        const citiesData = await getCities();
+        console.log(`Found ${citiesData.length} cities`);
+        if (citiesData.length === 0) {
+          console.warn('No cities returned from API. This may affect location filtering.');
+        } else {
+          console.log('Cities data sample:', citiesData[0]);
+        }
+        setCities(citiesData);
+        
+        // Fetch job orders data
+        console.log('Fetching job orders...');
+        const response = await getJobOrders();
+        console.log('Job Orders API Response:', response);
+        
+        if (response.success && Array.isArray(response.data)) {
+          console.log(`Found ${response.data.length} job orders`);
+          
+          // If we have data, log the first item to help with debugging
+          if (response.data.length > 0) {
+            console.log('First item example:', response.data[0]);
+            console.log('City field example:', response.data[0].City);
+          }
+          
+          // Map the response data to include id field
+          const processedOrders = response.data.map((order, index) => ({
+            id: String(order.Application_ID || index), // Use Application_ID or index as fallback
+            ...order
+          }));
+          
+          setJobOrders(processedOrders);
+          console.log('Job orders data processed successfully');
+        } else {
+          // If no job orders are returned, set an empty array
+          console.warn('No job orders returned from API or invalid response format', response);
+          setJobOrders([]);
+        }
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(`Failed to load data: ${err.message || 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+  
+  // Get client full name
+  const getClientFullName = (jobOrder: JobOrder): string => {
+    return [
+      jobOrder.First_Name || '',
+      jobOrder.Middle_Initial ? jobOrder.Middle_Initial + '.' : '',
+      jobOrder.Last_Name || ''
+    ].filter(Boolean).join(' ').trim() || 'Unknown Client';
+  };
+
+  // Get client full address
+  const getClientFullAddress = (jobOrder: JobOrder): string => {
+    return jobOrder.Address || 'No address provided';
+  };
+
+  // Generate location items from cities data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
       name: 'All',
       count: jobOrders.length
-    },
-    {
-      id: 'anytown',
-      name: 'Anytown',
-      count: jobOrders.filter(jo => jo.clientAddress.includes('Anytown')).length
-    },
-    {
-      id: 'eastport',
-      name: 'Eastport',
-      count: jobOrders.filter(jo => jo.clientAddress.includes('Eastport')).length
     }
   ];
+
+  // Add cities from database
+  cities.forEach(city => {
+    // Count job orders in this city
+    const cityCount = jobOrders.filter(job => {
+      // Try to match by city name (case insensitive)
+      // Using includes instead of exact match for more flexible matching
+      const jobCity = (job.City || '').toLowerCase();
+      const cityName = city.name.toLowerCase();
+      return jobCity.includes(cityName) || cityName.includes(jobCity);
+    }).length;
+    
+    // Add all cities from the database, even if they don't have job orders yet
+    locationItems.push({
+      id: city.name.toLowerCase(),
+      name: city.name,
+      count: cityCount
+    });
+  });
   
   // Filter job orders based on location and search query
   const filteredJobOrders = jobOrders.filter(jobOrder => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           jobOrder.clientAddress.toLowerCase().includes(selectedLocation.toLowerCase());
+    const jobLocation = (jobOrder.City || '').toLowerCase();
     
+    // Match location
+    const matchesLocation = selectedLocation === 'all' || 
+                          jobLocation.includes(selectedLocation) || 
+                          selectedLocation.includes(jobLocation);
+    
+    // Match search query
+    const fullName = getClientFullName(jobOrder).toLowerCase();
     const matchesSearch = searchQuery === '' || 
-                         jobOrder.clientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         jobOrder.clientAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         jobOrder.assignedEmail.toLowerCase().includes(searchQuery.toLowerCase());
+                         fullName.includes(searchQuery.toLowerCase()) ||
+                         (jobOrder.Address || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (jobOrder.Assigned_Email || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesLocation && matchesSearch;
   });
   
   // Status text color component
-  const StatusText = ({ status, type }: { status: string, type: 'onsite' | 'billing' }) => {
+  const StatusText = ({ status, type }: { status?: string, type: 'onsite' | 'billing' }) => {
+    if (!status) return <span className="text-gray-400">Unknown</span>;
+    
     let textColor = '';
     
     if (type === 'onsite') {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'done':
           textColor = 'text-green-500';
           break;
         case 'reschedule':
           textColor = 'text-blue-500';
           break;
-        case 'inProgress':
+        case 'inprogress':
+        case 'in progress':
           textColor = 'text-yellow-500';
           break;
         case 'failed':
@@ -162,7 +204,7 @@ const JobOrder: React.FC = () => {
           textColor = 'text-gray-400';
       }
     } else {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'done':
           textColor = 'text-green-500';
           break;
@@ -176,7 +218,7 @@ const JobOrder: React.FC = () => {
     
     return (
       <span className={`${textColor} capitalize`}>
-        {status === 'inProgress' ? 'In Progress' : status}
+        {status === 'inprogress' ? 'In Progress' : status}
       </span>
     );
   };
@@ -184,6 +226,34 @@ const JobOrder: React.FC = () => {
   const handleRowClick = (jobOrder: JobOrder) => {
     setSelectedJobOrder(jobOrder);
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-3"></div>
+          <p className="text-gray-300">Loading job orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
+          <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -254,46 +324,46 @@ const JobOrder: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-700 text-sm">
                 <thead className="bg-gray-800 sticky top-0">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       <div className="flex items-center">
                         Timestamp
                       </div>
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       <div className="flex items-center">
                         Full Name of Client
                       </div>
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap w-48">
                       <div className="flex items-center">
                         Full Address of Client
                       </div>
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Onsite Status
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Billing Status
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                       Status Remarks
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
                       Assigned Email
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Contract Template
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Billing Day
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Installation Fee
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Modified By
                     </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Modified Date
                     </th>
                   </tr>
@@ -306,48 +376,50 @@ const JobOrder: React.FC = () => {
                         className={`hover:bg-gray-800 cursor-pointer ${selectedJobOrder?.id === jobOrder.id ? 'bg-gray-800' : ''}`}
                         onClick={() => handleRowClick(jobOrder)}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {jobOrder.timestamp}
+                        <td className="px-4 py-1 whitespace-nowrap text-gray-300 text-xs">
+                          {formatDate(jobOrder.Timestamp)}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {jobOrder.clientName}
+                        <td className="px-4 py-1 whitespace-nowrap text-gray-300 text-xs">
+                          {getClientFullName(jobOrder)}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {jobOrder.clientAddress}
+                        <td className="px-4 py-1 text-gray-300 max-w-xs truncate text-xs whitespace-nowrap overflow-hidden">
+                          {getClientFullAddress(jobOrder)}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={jobOrder.onsiteStatus} type="onsite" />
+                        <td className="px-4 py-1 whitespace-nowrap text-xs">
+                          <StatusText status={jobOrder.Onsite_Status} type="onsite" />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={jobOrder.billingStatus} type="billing" />
+                        <td className="px-4 py-1 whitespace-nowrap text-xs">
+                          <StatusText status={jobOrder.Billing_Status} type="billing" />
                         </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {jobOrder.statusRemarks}
+                        <td className="px-4 py-1 text-gray-300 max-w-xs truncate text-xs">
+                          {jobOrder.Status_Remarks || 'No remarks'}
                         </td>
-                        <td className="px-4 py-3 text-gray-300">
-                          {jobOrder.assignedEmail}
+                        <td className="px-4 py-1 text-gray-300 text-xs">
+                          {jobOrder.Assigned_Email || 'Unassigned'}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                          {jobOrder.contractTemplate}
+                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                          {jobOrder.Contract_Template || 'Standard'}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-center">
-                          {jobOrder.billingDay}
+                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-center text-xs">
+                          {jobOrder.Billing_Day || '-'}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                          {jobOrder.installationFee}
+                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                          {formatPrice(jobOrder.Installation_Fee)}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                          {jobOrder.modifiedBy}
+                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                          {jobOrder.Modified_By || 'System'}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap">
-                          {jobOrder.modifiedDate}
+                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                          {formatDate(jobOrder.Modified_Date)}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
                       <td colSpan={12} className="px-4 py-12 text-center text-gray-400">
-                        No job orders found matching your filters
+                        {jobOrders.length > 0
+                          ? 'No job orders found matching your filters'
+                          : 'No job orders found. Create your first job order.'}
                       </td>
                     </tr>
                   )}

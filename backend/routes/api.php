@@ -302,14 +302,11 @@ Route::prefix('locations')->group(function () {
     Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
 });
 
-// Legacy Cities Management Routes (for backward compatibility)
 Route::prefix('app-cities')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [CityController::class, 'index']);
     Route::get('/{id}', [CityController::class, 'show']);
     Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
 });
-
-// Legacy Regions Management Routes (for backward compatibility)
 Route::prefix('app-regions')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [RegionController::class, 'index']);
     Route::get('/{id}', [RegionController::class, 'show']);

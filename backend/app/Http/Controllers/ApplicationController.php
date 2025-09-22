@@ -30,6 +30,10 @@ class ApplicationController extends Controller
                     'address' => $app->address_line,
                     'status' => $app->status,
                     'location' => $this->getLocationName($app->region_id, $app->city_id),
+                    'city_id' => $app->city_id,
+                    'region_id' => $app->region_id,
+                    'borough_id' => $app->borough_id,
+                    'village_id' => $app->village_id,
                     'email' => $app->email,
                     'mobile_number' => $app->mobile,
                     'secondary_number' => $app->mobile_alt,
@@ -131,6 +135,10 @@ class ApplicationController extends Controller
                 'address' => $application->address_line,
                 'status' => $application->status,
                 'location' => $this->getLocationName($application->region_id, $application->city_id),
+                'city_id' => $application->city_id,
+                'region_id' => $application->region_id,
+                'borough_id' => $application->borough_id,
+                'village_id' => $application->village_id,
                 'email' => $application->email,
                 'mobile_number' => $application->mobile,
                 'secondary_number' => $application->mobile_alt,
@@ -197,11 +205,17 @@ class ApplicationController extends Controller
         ]);
 
         $application = Application::findOrFail($id);
+        
+        // Add update timestamp when any field is modified
+        $validatedData['update_date'] = date('Y-m-d');
+        $validatedData['update_time'] = date('H:i:s');
+        
         $application->update($validatedData);
 
         return response()->json([
             'message' => 'Application updated successfully',
-            'application' => $application
+            'application' => $application,
+            'success' => true
         ]);
     }
 

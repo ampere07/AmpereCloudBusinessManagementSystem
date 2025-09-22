@@ -149,9 +149,33 @@ class ApplicationVisitController extends Controller
     public function getByApplication($applicationId): JsonResponse
     {
         try {
-            $visits = ApplicationVisit::where('application_id', $applicationId)
-                ->orderBy('created_at', 'desc')
-                ->get();
+            // Debug: Log the request for visits
+            \Log::info("ApplicationVisitController::getByApplication called with applicationId: {$applicationId}");
+            
+            // If 'all' is passed, return all visits regardless of application_id
+            if ($applicationId === 'all') {
+                $visits = ApplicationVisit::orderBy('created_at', 'desc')->get();
+                \Log::info('Found ' . $visits->count() . ' application visits');
+                
+                if ($visits->count() > 0) {
+                    \Log::debug('First visit data:', $visits->first()->toArray());
+                }
+            } else {
+                // Otherwise, filter by application_id
+                $visits = ApplicationVisit::where('application_id', $applicationId)
+                    ->orderBy('created_at', 'desc')
+                    ->get();
+                    
+                \Log::info("Found {$visits->count()} visits for application ID: {$applicationId}");
+            }
+            
+            // If no visits found, return empty array with success true
+            if ($visits->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
             
             return response()->json([
                 'success' => true,

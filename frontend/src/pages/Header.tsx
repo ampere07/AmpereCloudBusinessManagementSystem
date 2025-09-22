@@ -52,7 +52,7 @@ const Header: React.FC<HeaderProps> = ({ onToggleSidebar, onSearch }) => {
         </button>
         
         <h1 className="text-white text-xl font-bold">
-          CBMS
+          PRISM
         </h1>
       </div>
       

@@ -1,30 +1,42 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
+import { getApplicationVisits } from '../services/applicationVisitService';
+import { getApplication } from '../services/applicationService';
 
+// Interfaces for application visit data
 interface ApplicationVisit {
   id: string;
-  timestamp: string;
-  fullName: string;
-  assignedEmail: string;
-  visitStatus: string;
-  applicationStatus: string;
-  statusRemarks: string;
-  referredBy: string;
-  fullAddress: string;
-  visitBy: string;
-  visitWith: string;
-  visitWithOther: string;
-  visitRemarks: string;
-  modifiedDate: string;
-  modifiedBy: string;
+  application_id: string;
+  scheduled_date: string;
+  visit_by: string;
+  visit_with?: string;
+  visit_with_other?: string;
+  visit_type: string;
+  visit_status: string;
+  visit_remarks?: string;
+  status_remarks?: string;
+  referred_by?: string;
+  visit_notes?: string;
+  first_name: string;
+  middle_initial?: string;
+  last_name: string;
+  contact_number: string;
+  second_contact_number?: string;
+  email_address: string;
+  address: string;
   location: string;
-  contactNumber: string;
-  secondContactNumber: string;
-  applicantEmail: string;
-  choosePlan: string;
-  remarks: string;
-  installationLandmark: string;
+  barangay?: string;
+  city?: string;
+  region?: string;
+  choose_plan?: string;
+  installation_landmark?: string;
+  assigned_email?: string;
+  modified_by: string;
+  modified_date: string;
+  created_at: string;
+  updated_at: string;
+  application_status?: string;
 }
 
 interface LocationItem {
@@ -37,127 +49,158 @@ const ApplicationVisit: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedVisit, setSelectedVisit] = useState<ApplicationVisit | null>(null);
+  const [applicationVisits, setApplicationVisits] = useState<ApplicationVisit[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Mock data
-  const applicationVisits: ApplicationVisit[] = [
-    {
-      id: '1',
-      timestamp: '09/19/2025 10:20:09',
-      fullName: 'John H Doe',
-      assignedEmail: 'tech1@amperecloud.com',
-      visitStatus: 'Scheduled',
-      applicationStatus: 'Pending',
-      statusRemarks: 'Waiting for customer confirmation',
-      referredBy: 'Maria Garcia',
-      fullAddress: '123 Main St, Sample City, Metro Manila',
-      visitBy: 'John Denver Dones',
-      visitWith: 'Leonardo Bayos',
-      visitWithOther: 'NONE',
-      visitRemarks: 'Customer requested evening installation',
-      modifiedDate: '09/18/2025 15:30:22',
-      modifiedBy: 'gibson.lizardo@switchfiber.ph',
-      location: 'binangonan',
-      contactNumber: '9123456789',
-      secondContactNumber: '9987654321',
-      applicantEmail: 'gibson.lizardo@switchfiber.ph',
-      choosePlan: 'SwitchUltra - P1499',
-      remarks: 'Test',
-      installationLandmark: '14TPmdECiNtyEVDfDEiqMdKZ1vExHi9nK'
-    },
-    {
-      id: '2',
-      timestamp: '09/19/2025 11:30:15',
-      fullName: 'Jane M Smith',
-      assignedEmail: 'Office',
-      visitStatus: 'Completed',
-      applicationStatus: 'Done',
-      statusRemarks: 'Installation completed successfully',
-      referredBy: 'None',
-      fullAddress: '456 Oak St, Sample Town, Metro Manila',
-      visitBy: 'Maria Santos',
-      visitWith: 'Paulo Reyes',
-      visitWithOther: 'NONE',
-      visitRemarks: 'No issues during installation',
-      modifiedDate: '06/27/2025 8:11:52 AM',
-      modifiedBy: 'gibson.lizardo@switchfiber.ph',
-      location: 'binangonan',
-      contactNumber: '9123456789',
-      secondContactNumber: '9123456789',
-      applicantEmail: 'gibson.lizardo@switchfiber.ph',
-      choosePlan: 'SwitchUltra - P1499',
-      remarks: 'Test',
-      installationLandmark: '14TPmdECiNtyEVDfDEiqMdKZ1vExHi9nK'
-    },
-    {
-      id: '3',
-      timestamp: '6/26/2025 5:57:55 PM',
-      fullName: 'Test Account',
-      assignedEmail: 'Office',
-      visitStatus: 'Pending',
-      applicationStatus: 'Done',
-      statusRemarks: 'Checking service availability',
-      referredBy: 'None',
-      fullAddress: '123 Test, Batinigan, Binangonan, Rizal',
-      visitBy: 'Unassigned',
-      visitWith: 'Unassigned',
-      visitWithOther: 'NONE',
-      visitRemarks: '',
-      modifiedDate: '06/27/2025 8:11:52 AM',
-      modifiedBy: 'gibson.lizardo@switchfiber.ph',
-      location: 'binangonan',
-      contactNumber: '9123456789',
-      secondContactNumber: '9123456789',
-      applicantEmail: 'gibson.lizardo@switchfiber.ph',
-      choosePlan: 'SwitchUltra - P1499',
-      remarks: 'Test',
-      installationLandmark: '14TPmdECiNtyEVDfDEiqMdKZ1vExHi9nK'
+  // Format date function
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return 'Not scheduled';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch (e) {
+      return dateStr;
     }
-  ];
+  };
 
-  // Generate location items with counts
+  // Fetch data from API
+  useEffect(() => {
+    const fetchApplicationVisits = async () => {
+      try {
+        setLoading(true);
+        console.log('Fetching application visits...');
+        
+        // Get all application visit data
+        const response = await getApplicationVisits('all');
+        console.log('API Response:', response);
+        
+        if (response.success && Array.isArray(response.data)) {
+          console.log(`Found ${response.data.length} application visits`);
+          
+          // If we have data, log the first item to help with debugging
+          if (response.data.length > 0) {
+            console.log('First item example:', response.data[0]);
+          }
+          
+          // Map the API response to our interface
+          const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
+            id: visit.id ? String(visit.id) : '',
+            application_id: visit.application_id ? String(visit.application_id) : '',
+            scheduled_date: visit.scheduled_date || '',
+            visit_by: visit.visit_by || '',
+            visit_with: visit.visit_with || '',
+            visit_with_other: visit.visit_with_other || '',
+            visit_type: visit.visit_type || 'Initial Visit',
+            visit_status: visit.visit_status || 'Scheduled',
+            visit_remarks: visit.visit_remarks || '',
+            status_remarks: visit.status_remarks || visit.visit_remarks || '',
+            referred_by: visit.referred_by || '',
+            visit_notes: visit.visit_notes || '',
+            first_name: visit.first_name || '',
+            middle_initial: visit.middle_initial || '',
+            last_name: visit.last_name || '',
+            contact_number: visit.contact_number || '',
+            second_contact_number: visit.second_contact_number || '',
+            email_address: visit.email_address || '',
+            address: visit.address || '',
+            location: visit.location || '',
+            barangay: visit.barangay || '',
+            city: visit.city || '',
+            region: visit.region || '',
+            choose_plan: visit.choose_plan || '',
+            installation_landmark: visit.installation_landmark || '',
+            assigned_email: visit.assigned_email || '',
+            modified_by: visit.modified_by || '',
+            modified_date: visit.modified_date || new Date(visit.updated_at || Date.now()).toLocaleString(),
+            created_at: visit.created_at || '',
+            updated_at: visit.updated_at || '',
+            application_status: visit.application_status || '',
+          }));
+          
+          setApplicationVisits(visits);
+          console.log('Application visits data processed successfully');
+        } else {
+          // If no visits are returned, set an empty array
+          console.warn('No application visits returned from API or invalid response format', response);
+          setApplicationVisits([]);
+        }
+      } catch (err: any) {
+        console.error('Error fetching application visits:', err);
+        setError(`Failed to load visits: ${err.message || 'Unknown error'}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchApplicationVisits();
+  }, []);
+
+  // Generate location items with counts based on real data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
       name: 'All',
       count: applicationVisits.length
-    },
-    {
-      id: 'binangonan',
-      name: 'Binangonan',
-      count: applicationVisits.filter(visit => visit.location === 'binangonan').length
-    },
-    {
-      id: 'cardona',
-      name: 'Cardona',
-      count: applicationVisits.filter(visit => visit.location === 'cardona').length
-    },
-    {
-      id: 'taytay',
-      name: 'Taytay',
-      count: applicationVisits.filter(visit => visit.location === 'taytay').length
-    },
-    {
-      id: 'las-pinas',
-      name: 'Las Piñas',
-      count: applicationVisits.filter(visit => visit.location === 'las-pinas').length
     }
   ];
 
+  // Add unique locations from the data
+  const locationSet = new Set<string>();
+  applicationVisits.forEach(visit => {
+    const location = (visit.location || visit.city || '').toLowerCase();
+    if (location) {
+      locationSet.add(location);
+    }
+  });
+  const uniqueLocations = Array.from(locationSet);
+    
+  uniqueLocations.forEach(location => {
+    if (location) {
+      locationItems.push({
+        id: location,
+        name: location.charAt(0).toUpperCase() + location.slice(1), // Capitalize
+        count: applicationVisits.filter(visit => 
+          (visit.location || visit.city || '').toLowerCase() === location).length
+      });
+    }
+  });
+
   // Filter application visits based on location and search query
   const filteredVisits = applicationVisits.filter(visit => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           visit.location === selectedLocation;
+    const visitLocation = (visit.location || visit.city || '').toLowerCase();
+    const matchesLocation = selectedLocation === 'all' || visitLocation === selectedLocation;
     
+    const fullName = `${visit.first_name} ${visit.middle_initial || ''} ${visit.last_name}`.toLowerCase();
     const matchesSearch = searchQuery === '' || 
-                         visit.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         visit.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         visit.assignedEmail.toLowerCase().includes(searchQuery.toLowerCase());
+                         fullName.includes(searchQuery.toLowerCase()) ||
+                         visit.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (visit.assigned_email || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesLocation && matchesSearch;
   });
 
-  const handleRowClick = (visit: ApplicationVisit) => {
-    setSelectedVisit(visit);
+  const handleRowClick = async (visit: ApplicationVisit) => {
+    try {
+      // When selecting a visit, fetch the associated application data if needed
+      if (!visit.application_status) {
+        // Fetch application data to get the application status
+        const applicationData = await getApplication(visit.application_id);
+        
+        // Update the visit with application data
+        const updatedVisit = {
+          ...visit,
+          application_status: applicationData.status || 'Pending'
+        };
+        
+        setSelectedVisit(updatedVisit);
+      } else {
+        setSelectedVisit(visit);
+      }
+    } catch (err: any) {
+      console.error('Error fetching application data:', err);
+      // Still set the selected visit even if we can't get the application data
+      setSelectedVisit(visit);
+    }
   };
 
   // Status text color component
@@ -184,15 +227,18 @@ const ApplicationVisit: React.FC = () => {
     } else {
       switch (status.toLowerCase()) {
         case 'approved':
+        case 'done':
           textColor = 'text-green-500';
           break;
         case 'pending':
           textColor = 'text-yellow-500';
           break;
         case 'under review':
+        case 'scheduled':
           textColor = 'text-blue-500';
           break;
         case 'rejected':
+        case 'failed':
           textColor = 'text-red-500';
           break;
         default:
@@ -206,6 +252,34 @@ const ApplicationVisit: React.FC = () => {
       </span>
     );
   };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-3"></div>
+          <p className="text-gray-300">Loading application visits...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
+          <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -310,6 +384,9 @@ const ApplicationVisit: React.FC = () => {
                       Visit With(Other)
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
+                      Visit Remarks
+                    </th>
+                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
                       Modified Date
                     </th>
                     <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
@@ -326,50 +403,55 @@ const ApplicationVisit: React.FC = () => {
                         onClick={() => handleRowClick(visit)}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.timestamp}
+                          {formatDate(visit.scheduled_date)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.fullName}
+                          {`${visit.first_name} ${visit.middle_initial || ''} ${visit.last_name}`.trim()}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.assignedEmail}
+                          {visit.assigned_email || 'Unassigned'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={visit.visitStatus} type="visit" />
+                          <StatusText status={visit.visit_status || 'Scheduled'} type="visit" />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
-                          <StatusText status={visit.applicationStatus} type="application" />
+                          <StatusText status={visit.application_status || 'Pending'} type="application" />
                         </td>
                         <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {visit.statusRemarks}
+                          {visit.status_remarks || 'No remarks'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.referredBy}
+                          {visit.referred_by || 'None'}
                         </td>
                         <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {visit.fullAddress}
+                          {visit.address || 'No address'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visitBy}
+                          {visit.visit_by || 'Unassigned'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visitWith}
+                          {visit.visit_with || 'None'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visitWithOther}
+                          {visit.visit_with_other || 'N/A'}
+                        </td>
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                          {visit.visit_remarks || 'No remarks'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.modifiedDate}
+                          {visit.modified_date || formatDate(visit.updated_at)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.modifiedBy}
+                          {visit.modified_by || 'System'}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={10} className="px-4 py-12 text-center text-gray-400">
-                        No application visits found matching your filters
+                      <td colSpan={14} className="px-4 py-12 text-center text-gray-400">
+                        {applicationVisits.length > 0
+                          ? 'No application visits found matching your filters'
+                          : 'No application visits found. Create your first visit by scheduling from the Applications page.'}
                       </td>
                     </tr>
                   )}
@@ -384,23 +466,7 @@ const ApplicationVisit: React.FC = () => {
       {selectedVisit && (
         <div className="flex-1 overflow-hidden">
           <ApplicationVisitDetails 
-            applicationVisit={{
-              id: selectedVisit.id,
-              fullName: selectedVisit.fullName,
-              timestamp: selectedVisit.timestamp,
-              referredBy: selectedVisit.referredBy,
-              contactNumber: selectedVisit.contactNumber,
-              secondContactNumber: selectedVisit.secondContactNumber,
-              applicantEmail: selectedVisit.applicantEmail,
-              fullAddress: selectedVisit.fullAddress,
-              choosePlan: selectedVisit.choosePlan,
-              remarks: selectedVisit.remarks,
-              installationLandmark: selectedVisit.installationLandmark,
-              assignedEmail: selectedVisit.assignedEmail,
-              applicationStatus: selectedVisit.applicationStatus,
-              modifiedBy: selectedVisit.modifiedBy,
-              modifiedDate: selectedVisit.modifiedDate
-            }} 
+            applicationVisit={selectedVisit}
             onClose={() => setSelectedVisit(null)}
           />
         </div>

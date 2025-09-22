@@ -1,69 +1,87 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
   ExternalLink, Mail, Edit
 } from 'lucide-react';
+import { updateJobOrder } from '../services/jobOrderService';
 
 interface JobOrderDetailsProps {
   jobOrder: {
     id: string;
-    timestamp: string;
-    clientName: string;
-    clientAddress: string;
-    onsiteStatus: string;
-    billingStatus: string;
-    statusRemarks: string;
-    assignedEmail: string;
-    contractTemplate: string;
-    billingDay: string;
-    installationFee: string;
-    modifiedBy: string;
-    modifiedDate: string;
-    contactNumber?: string;
-    secondContactNumber?: string;
-    applicantEmail?: string;
-    barangay?: string;
-    city?: string;
-    choosePlan?: string;
-    status?: string;
-    remarks?: string;
-    installationLandmark?: string;
-    provider?: string;
-    contractLink?: string;
-    username?: string;
-    referredBy?: string;
+    Timestamp?: string;
+    First_Name?: string;
+    Middle_Initial?: string;
+    Last_Name?: string;
+    Address?: string;
+    Onsite_Status?: string;
+    Billing_Status?: string;
+    Status_Remarks?: string;
+    Assigned_Email?: string;
+    Contract_Template?: string;
+    Billing_Day?: string;
+    Installation_Fee?: string | number;
+    Modified_By?: string;
+    Modified_Date?: string;
+    Contact_Number?: string;
+    Second_Contact_Number?: string;
+    Email_Address?: string;
+    Applicant_Email_Address?: string;
+    Barangay?: string;
+    City?: string;
+    Choose_Plan?: string;
+    Remarks?: string;
+    Installation_Landmark?: string;
+    Connection_Type?: string;
+    Contract_Link?: string;
+    Username?: string;
+    Referred_By?: string;
+    [key: string]: any;
   };
   onClose: () => void;
 }
 
 const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) => {
-  // Default values if missing from the job order object
-  const defaultJobOrder = {
-    ...jobOrder,
-    contactNumber: jobOrder.contactNumber || '9107632537',
-    secondContactNumber: jobOrder.secondContactNumber || '9709295892',
-    applicantEmail: jobOrder.applicantEmail || 'john.doe@example.com',
-    barangay: jobOrder.barangay || 'Sample Barangay',
-    city: jobOrder.city || 'Sample City',
-    choosePlan: jobOrder.choosePlan || 'SwitchNet - P999',
-    status: jobOrder.status || 'Confirmed',
-    remarks: jobOrder.remarks || 'Sample remarks',
-    installationLandmark: jobOrder.installationLandmark || '1ZIA1KjEkZ-h8tg8kVa37fE5YDKY9gLET',
-    provider: jobOrder.provider || 'SWITCH',
-    contractLink: jobOrder.contractLink || '1HU1-pHtYl0cNMAnRDKGfMrw0CWZJtMt/view?usp=sharing',
-    username: jobOrder.username || 'user0918251440',
-    referredBy: jobOrder.referredBy || 'Jane Smith'
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
+  // Format date function
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return 'Not scheduled';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+  
+  // Format price function
+  const formatPrice = (price?: string | number): string => {
+    if (!price) return '₱0.00';
+    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
+    return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  // Get client full name
+  const getClientFullName = (): string => {
+    return [
+      jobOrder.First_Name || '',
+      jobOrder.Middle_Initial ? jobOrder.Middle_Initial + '.' : '',
+      jobOrder.Last_Name || ''
+    ].filter(Boolean).join(' ').trim() || 'Unknown Client';
   };
 
   // Helper function for status text color
-  const getStatusColor = (status: string, type: 'onsite' | 'billing') => {
+  const getStatusColor = (status: string | undefined, type: 'onsite' | 'billing') => {
+    if (!status) return 'text-gray-400';
+    
     if (type === 'onsite') {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'done':
           return 'text-green-500';
         case 'reschedule':
           return 'text-blue-500';
-        case 'inProgress':
+        case 'inprogress':
+        case 'in progress':
           return 'text-yellow-500';
         case 'failed':
           return 'text-red-500';
@@ -71,7 +89,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
           return 'text-gray-400';
       }
     } else {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'done':
           return 'text-green-500';
         case 'pending':
@@ -82,12 +100,34 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     }
   };
   
+  // Handle status update
+  const handleStatusUpdate = async (newStatus: string) => {
+    try {
+      setLoading(true);
+      await updateJobOrder(jobOrder.id, { 
+        Onsite_Status: newStatus,
+        Modified_By: 'current_user@ampere.com',
+      });
+      
+      jobOrder.Onsite_Status = newStatus;
+      
+      // Show success message
+      alert(`Status updated to ${newStatus}`);
+    } catch (err: any) {
+      setError(`Failed to update status: ${err.message}`);
+      console.error('Status update error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   return (
     <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
       {/* Header */}
       <div className="bg-gray-800 p-3 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center">
-          <h2 className="text-white font-medium">{jobOrder.clientName}</h2>
+          <h2 className="text-white font-medium">{getClientFullName()}</h2>
+          {loading && <div className="ml-3 animate-pulse text-orange-500 text-sm">Loading...</div>}
         </div>
         
         <div className="flex items-center space-x-3">
@@ -97,7 +137,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
           <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
             <ExternalLink size={16} />
           </button>
-          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
+          <button 
+            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center"
+            onClick={() => handleStatusUpdate('Done')}
+            disabled={loading}
+          >
             <span>Done</span>
           </button>
           <button className="hover:text-white text-gray-400"><ArrowLeft size={16} /></button>
@@ -125,97 +169,114 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         </button>
       </div>
       
+      {/* Error display */}
+      {error && (
+        <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-400 p-3 m-3 rounded">
+          {error}
+        </div>
+      )}
+      
       {/* Job Order Details */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto py-6 px-4 bg-gray-950">
           <div className="space-y-4">
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Timestamp:</div>
-              <div className="text-white flex-1">{jobOrder.timestamp}</div>
+              <div className="text-white flex-1">{formatDate(jobOrder.Timestamp)}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Billing Status:</div>
-              <div className={`${getStatusColor(jobOrder.billingStatus, 'billing')} flex-1 capitalize`}>
-                {jobOrder.billingStatus}
+              <div className={`${getStatusColor(jobOrder.Billing_Status, 'billing')} flex-1 capitalize`}>
+                {jobOrder.Billing_Status || 'Not set'}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Billing Day:</div>
-              <div className="text-white flex-1">{defaultJobOrder.billingDay}</div>
+              <div className="text-white flex-1">{jobOrder.Billing_Day || 'Not set'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Installation Fee:</div>
-              <div className="text-white flex-1">{jobOrder.installationFee}</div>
+              <div className="text-white flex-1">{formatPrice(jobOrder.Installation_Fee)}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Referred By:</div>
-              <div className="text-white flex-1">{defaultJobOrder.referredBy}</div>
+              <div className="text-white flex-1">{jobOrder.Referred_By || 'None'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Full Name of Client:</div>
-              <div className="text-white flex-1">{jobOrder.clientName}</div>
+              <div className="text-white flex-1">{getClientFullName()}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Full Address of Client:</div>
-              <div className="text-white flex-1">{jobOrder.clientAddress}</div>
+              <div className="text-white flex-1">{jobOrder.Address || 'No address provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Contact Number:</div>
               <div className="text-white flex-1 flex items-center">
-                {defaultJobOrder.contactNumber}
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <Phone size={16} />
-                </button>
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <MessageSquare size={16} />
-                </button>
+                {jobOrder.Contact_Number || 'Not provided'}
+                {jobOrder.Contact_Number && (
+                  <>
+                    <button className="text-gray-400 hover:text-white ml-2">
+                      <Phone size={16} />
+                    </button>
+                    <button className="text-gray-400 hover:text-white ml-2">
+                      <MessageSquare size={16} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Second Contact Number:</div>
               <div className="text-white flex-1 flex items-center">
-                {defaultJobOrder.secondContactNumber}
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <Phone size={16} />
-                </button>
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <MessageSquare size={16} />
-                </button>
+                {jobOrder.Second_Contact_Number || 'Not provided'}
+                {jobOrder.Second_Contact_Number && (
+                  <>
+                    <button className="text-gray-400 hover:text-white ml-2">
+                      <Phone size={16} />
+                    </button>
+                    <button className="text-gray-400 hover:text-white ml-2">
+                      <MessageSquare size={16} />
+                    </button>
+                  </>
+                )}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Applicant Email Address:</div>
+              <div className="w-40 text-gray-400 text-sm">Email Address:</div>
               <div className="text-white flex-1 flex items-center">
-                {defaultJobOrder.applicantEmail}
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <Mail size={16} />
-                </button>
+                {jobOrder.Email_Address || jobOrder.Applicant_Email_Address || 'Not provided'}
+                {(jobOrder.Email_Address || jobOrder.Applicant_Email_Address) && (
+                  <button className="text-gray-400 hover:text-white ml-2">
+                    <Mail size={16} />
+                  </button>
+                )}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Barangay:</div>
-              <div className="text-white flex-1">{defaultJobOrder.barangay}</div>
+              <div className="text-white flex-1">{jobOrder.Barangay || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">City:</div>
-              <div className="text-white flex-1">{defaultJobOrder.city}</div>
+              <div className="text-white flex-1">{jobOrder.City || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Choose Plan:</div>
               <div className="text-white flex-1 flex items-center">
-                {defaultJobOrder.choosePlan}
+                {jobOrder.Choose_Plan || 'Not specified'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Info size={16} />
                 </button>
@@ -223,60 +284,67 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Status:</div>
-              <div className="text-white flex-1">{defaultJobOrder.status}</div>
+              <div className="w-40 text-gray-400 text-sm">Status Remarks:</div>
+              <div className="text-white flex-1">{jobOrder.Status_Remarks || 'No remarks'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Remarks:</div>
-              <div className="text-white flex-1">{defaultJobOrder.remarks}</div>
+              <div className="text-white flex-1">{jobOrder.Remarks || 'No remarks'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Installation Landmark:</div>
-              <div className="text-white flex-1">{defaultJobOrder.installationLandmark}</div>
+              <div className="text-white flex-1">{jobOrder.Installation_Landmark || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Provider:</div>
-              <div className="text-white flex-1">{defaultJobOrder.provider}</div>
+              <div className="w-40 text-gray-400 text-sm">Connection Type:</div>
+              <div className="text-white flex-1">{jobOrder.Connection_Type || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Onsite Status:</div>
-              <div className={`${getStatusColor(jobOrder.onsiteStatus, 'onsite')} flex-1 capitalize`}>
-                {jobOrder.onsiteStatus === 'inProgress' ? 'In Progress' : jobOrder.onsiteStatus}
+              <div className={`${getStatusColor(jobOrder.Onsite_Status, 'onsite')} flex-1 capitalize`}>
+                {jobOrder.Onsite_Status === 'inprogress' ? 'In Progress' : (jobOrder.Onsite_Status || 'Not set')}
               </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Contract Template:</div>
+              <div className="text-white flex-1">{jobOrder.Contract_Template || 'Standard'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Contract Link:</div>
               <div className="text-white flex-1 truncate flex items-center">
-                {defaultJobOrder.contractLink}
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <ExternalLink size={16} />
-                </button>
+                {jobOrder.Contract_Link || 'Not available'}
+                {jobOrder.Contract_Link && (
+                  <button className="text-gray-400 hover:text-white ml-2">
+                    <ExternalLink size={16} />
+                  </button>
+                )}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Username:</div>
-              <div className="text-white flex-1">{defaultJobOrder.username}</div>
+              <div className="text-white flex-1">{jobOrder.Username || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Modified By:</div>
-              <div className="text-white flex-1">{jobOrder.modifiedBy}</div>
+              <div className="text-white flex-1">{jobOrder.Modified_By || 'System'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Modified Date:</div>
-              <div className="text-white flex-1">{jobOrder.modifiedDate}</div>
+              <div className="text-white flex-1">{formatDate(jobOrder.Modified_Date)}</div>
             </div>
             
             <div className="flex pb-4">
               <div className="w-40 text-gray-400 text-sm">Assigned Email:</div>
-              <div className="text-white flex-1">{jobOrder.assignedEmail}</div>
+              <div className="text-white flex-1">{jobOrder.Assigned_Email || 'Not assigned'}</div>
             </div>
           </div>
         </div>

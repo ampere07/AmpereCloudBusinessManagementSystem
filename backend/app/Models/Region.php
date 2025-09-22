@@ -1,7 +1,6 @@
 <?php
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Region extends Model
@@ -15,6 +14,11 @@ class Region extends Model
         'code',
         'description',
         'is_active',
+
+    protected $table = 'app_regions';
+    
+    protected $fillable = [
+        'name',
         'created_at',
         'updated_at'
     ];
@@ -37,4 +41,5 @@ class Region extends Model
     {
         return $query->where('is_active', true);
     }
+}
 }
