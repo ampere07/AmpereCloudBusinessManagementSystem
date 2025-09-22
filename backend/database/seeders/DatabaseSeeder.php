@@ -14,6 +14,11 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
+        // Call the LocationSeeder to populate location data
+        $this->call([
+            LocationSeeder::class,
+        ]);
+        
         // \App\Models\User::factory(10)->create();
 
         // \App\Models\User::factory()->create([

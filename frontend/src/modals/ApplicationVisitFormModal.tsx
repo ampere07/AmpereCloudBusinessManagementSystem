@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown } from 'lucide-react';
 import { createApplicationVisit, ApplicationVisitData } from '../services/applicationVisitService';
+import { getRegions, getCitiesByRegion, getBarangaysByCity } from '../services/cityService';
+import { Location } from '../types/location';
+import { locationEvents, LOCATION_EVENTS } from '../services/locationEvents';
 
 interface ApplicationVisitFormModalProps {
   isOpen: boolean;
@@ -83,9 +86,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       secondContactNumber: initialSecondContact,
       email: applicationData?.email || '',
       address: applicationData?.address_line || applicationData?.address || '',
-      barangay: 'All',
-      city: 'All',
-      region: applicationData?.region_id || 'Rizal',
+      barangay: '',
+      city: '',
+      region: '',
       choosePlan: 'SwitchConnect - P799',
       remarks: '',
       assignedEmail: '',
@@ -101,8 +104,116 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     };
   });
 
+  // Location states
+  const [regions, setRegions] = useState<Location[]>([]);
+  const [cities, setCities] = useState<Location[]>([]);
+  const [barangays, setBarangays] = useState<Location[]>([]);
+  const [loadingLocations, setLoadingLocations] = useState(true);
+
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Load regions when component mounts
+  useEffect(() => {
+    const loadRegions = async () => {
+      try {
+        setLoadingLocations(true);
+        const regionsData = await getRegions();
+        setRegions(regionsData);
+      } catch (error) {
+        console.error('Error loading regions:', error);
+      } finally {
+        setLoadingLocations(false);
+      }
+    };
+
+    if (isOpen) {
+      loadRegions();
+    }
+  }, [isOpen]);
+
+  // Load cities when region changes
+  useEffect(() => {
+    const loadCities = async () => {
+      if (formData.region) {
+        try {
+          const regionId = parseInt(formData.region);
+          const citiesData = await getCitiesByRegion(regionId);
+          setCities(citiesData);
+          // Clear city and barangay selections when region changes
+          setFormData(prev => ({ ...prev, city: '', barangay: '' }));
+          setBarangays([]);
+        } catch (error) {
+          console.error('Error loading cities:', error);
+          setCities([]);
+        }
+      } else {
+        setCities([]);
+        setBarangays([]);
+      }
+    };
+
+    loadCities();
+  }, [formData.region]);
+
+  // Load barangays when city changes
+  useEffect(() => {
+    const loadBarangays = async () => {
+      if (formData.city) {
+        try {
+          const cityId = parseInt(formData.city);
+          const barangaysData = await getBarangaysByCity(cityId);
+          setBarangays(barangaysData);
+          // Clear barangay selection when city changes
+          setFormData(prev => ({ ...prev, barangay: '' }));
+        } catch (error) {
+          console.error('Error loading barangays:', error);
+          setBarangays([]);
+        }
+      } else {
+        setBarangays([]);
+      }
+    };
+
+    loadBarangays();
+  }, [formData.city]);
+
+  // Listen for location updates from other components
+  useEffect(() => {
+    const handleLocationUpdate = async () => {
+      if (isOpen) {
+        // Reload all location data when locations are updated
+        try {
+          const regionsData = await getRegions();
+          setRegions(regionsData);
+          
+          // If a region is selected, reload its cities
+          if (formData.region) {
+            const regionId = parseInt(formData.region);
+            const citiesData = await getCitiesByRegion(regionId);
+            setCities(citiesData);
+            
+            // If a city is selected, reload its barangays
+            if (formData.city) {
+              const cityId = parseInt(formData.city);
+              const barangaysData = await getBarangaysByCity(cityId);
+              setBarangays(barangaysData);
+            }
+          }
+        } catch (error) {
+          console.error('Error reloading location data:', error);
+        }
+      }
+    };
+
+    // Subscribe to location update events
+    locationEvents.on(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
+
+    // Cleanup subscription
+    return () => {
+      locationEvents.off(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
+    };
+  }, [isOpen, formData.region, formData.city]);
 
   // Update form data when applicationData changes
   useEffect(() => {
@@ -433,13 +544,18 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                  disabled={!formData.city || barangays.length === 0}
                 >
-                  <option value="All">All</option>
-                  <option value="Barangay 1">Barangay 1</option>
-                  <option value="Barangay 2">Barangay 2</option>
+                  <option value="">Select Barangay</option>
+                  {barangays.map((barangay) => (
+                    <option key={barangay.id} value={barangay.id.toString()}>
+                      {barangay.name}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {!formData.city && <p className="text-gray-400 text-xs mt-1">Select a city first</p>}
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
             </div>
 
@@ -453,13 +569,18 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  disabled={!formData.region || cities.length === 0}
                 >
-                  <option value="All">All</option>
-                  <option value="Binangonan">Binangonan</option>
-                  <option value="Rizal">Rizal</option>
+                  <option value="">Select City</option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.id.toString()}>
+                      {city.name}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {!formData.region && <p className="text-gray-400 text-xs mt-1">Select a region first</p>}
             </div>
 
             {/* Region */}
@@ -467,12 +588,23 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Region<span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.region}
-                onChange={(e) => handleInputChange('region', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
-              />
+              <div className="relative">
+                <select
+                  value={formData.region}
+                  onChange={(e) => handleInputChange('region', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                  disabled={loadingLocations}
+                >
+                  <option value="">Select Region</option>
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.id.toString()}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+              </div>
+              {loadingLocations && <p className="text-gray-400 text-xs mt-1">Loading regions...</p>}
               {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
             </div>
 

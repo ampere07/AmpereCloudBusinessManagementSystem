@@ -8,6 +8,15 @@ return new class extends Migration
 {
     public function up()
     {
+        // Skip if table already has the columns we need
+        if (Schema::hasColumn('users', 'user_id')) {
+            return;
+        }
+        
+        // Drop the existing users table if it exists
+        Schema::dropIfExists('users');
+        
+        // Create the updated users table
         Schema::create('users', function (Blueprint $table) {
             $table->integer('user_id')->primary();
             $table->string('salutation', 10)->nullable();

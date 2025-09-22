@@ -12,6 +12,7 @@ use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\JobOrderController;
 use App\Http\Controllers\ApplicationVisitController;
+use App\Http\Controllers\LocationController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\RegionController;
 use App\Models\User;
@@ -183,8 +184,8 @@ Route::prefix('logs')->middleware('ensure.database.tables')->group(function () {
     Route::delete('/clear', [LogsController::class, 'clear']);
 });
 
-// Applications Management Routes
-Route::prefix('applications')->middleware('ensure.database.tables')->group(function () {
+// Applications Management Routes - Temporarily removed middleware
+Route::prefix('applications')->group(function () {
     Route::get('/', [ApplicationController::class, 'index']);
     Route::post('/', [ApplicationController::class, 'store']);
     Route::get('/{id}', [ApplicationController::class, 'show']);
@@ -220,15 +221,90 @@ Route::prefix('application-visits')->middleware('ensure.database.tables')->group
     Route::get('/application/{applicationId}', [ApplicationVisitController::class, 'getByApplication']);
 });
 
-// Cities Management Routes
+// Location Management Routes - New centralized system
+Route::prefix('locations')->group(function () {
+    // Test endpoint
+    Route::get('/test', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Location API is working',
+            'timestamp' => now()
+        ]);
+    });
+    
+    // Region routes  
+    Route::get('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'getRegions']);
+    Route::post('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+    Route::get('/regions/{regionId}/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'getCitiesByRegion']);
+    
+    // City routes
+    Route::post('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+    Route::get('/cities/{cityId}/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'getBarangaysByCity']);
+    
+    // Barangay routes
+    Route::post('/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+    
+    // General location routes
+    Route::get('/all', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllLocations']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LocationApiController::class, 'getStatistics']);
+    Route::put('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+    Route::delete('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+    
+    // Legacy routes (keep for compatibility)
+    Route::get('/', [LocationController::class, 'index']);
+    Route::post('/', [LocationController::class, 'store']);
+    Route::get('/stats', [LocationController::class, 'getStats']);
+    Route::get('/type/{type}', [LocationController::class, 'getByType']);
+    Route::get('/parent/{parentId}', [LocationController::class, 'getChildren']);
+    Route::get('/{id}', [LocationController::class, 'show']);
+    Route::put('/{id}', [LocationController::class, 'update']);
+    Route::delete('/{id}', [LocationController::class, 'destroy']);
+    Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
+});
+
 Route::prefix('app-cities')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [CityController::class, 'index']);
     Route::get('/{id}', [CityController::class, 'show']);
     Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
 });
-
-// Regions Management Routes
 Route::prefix('app-regions')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [RegionController::class, 'index']);
     Route::get('/{id}', [RegionController::class, 'show']);
+});
+
+// Plan Management Routes - Using app_plans table
+Route::prefix('plans')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\PlanApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\PlanApiController::class, 'store']);
+    Route::get('/all', [\App\Http\Controllers\Api\PlanApiController::class, 'getAllPlans']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\PlanApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
+    Route::post('/{id}/restore', [\App\Http\Controllers\Api\PlanApiController::class, 'restore']);
+    Route::delete('/{id}/force', [\App\Http\Controllers\Api\PlanApiController::class, 'forceDelete']);
+});
+
+// Router Models Management Routes - Using modem_router_sn table
+Route::prefix('router-models')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\RouterModelApiController::class, 'getStatistics']);
+    Route::get('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'show']);
+    Route::put('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'update']);
+    Route::delete('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'destroy']);
+});
+
+// Basic Cities endpoint for simple data (fallback)
+Route::prefix('cities')->group(function () {
+    Route::get('/', function () {
+        // Return basic city data for Philippines regions
+        return response()->json([
+            ['id' => 1, 'region_id' => 1, 'name' => 'Binangonan'],
+            ['id' => 2, 'region_id' => 1, 'name' => 'Tagpos'],
+            ['id' => 3, 'region_id' => 1, 'name' => 'Tatala'],
+            ['id' => 4, 'region_id' => 1, 'name' => 'Pantok'],
+            ['id' => 5, 'region_id' => 1, 'name' => 'Manila']
+        ]);
+    });
 });
