@@ -13,6 +13,7 @@ import PaymentPortal from './PaymentPortal';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
+import LocationList from './LocationList';
 import Inventory from './Inventory';
 import Logs from './Logs';
 
