@@ -7,6 +7,9 @@ import OrganizationManagement from './OrganizationManagement';
 import GroupManagement from './GroupManagement';
 import ApplicationManagement from './ApplicationManagement';
 import Billing from './Billing';
+import BillingListView from './BillingListView';
+import TransactionList from './TransactionList';
+import PaymentPortal from './PaymentPortal';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
@@ -34,6 +37,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <ApplicationManagement />;
       case 'billing':
         return <Billing />;
+      case 'billing-list-view':
+        return <BillingListView />;
+      case 'transaction-list':
+        return <TransactionList />;
+      case 'payment-portal':
+        return <PaymentPortal />;
       case 'job-order':
         return <JobOrder />;
       case 'service-order':
