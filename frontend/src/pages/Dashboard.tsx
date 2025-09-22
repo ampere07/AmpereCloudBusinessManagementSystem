@@ -14,6 +14,7 @@ import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
 import LocationList from './LocationList';
+import PlanList from './PlanList';
 import Inventory from './Inventory';
 import Logs from './Logs';
 
@@ -52,6 +53,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <ApplicationVisit />;
       case 'location-list':
         return <LocationList />;
+      case 'plan-list':
+        return <PlanList />;
       case 'inventory':
         return <Inventory />;
       case 'logs':

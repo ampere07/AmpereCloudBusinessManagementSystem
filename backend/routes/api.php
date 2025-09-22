@@ -272,6 +272,19 @@ Route::prefix('app-regions')->middleware('ensure.database.tables')->group(functi
     Route::get('/{id}', [RegionController::class, 'show']);
 });
 
+// Plan Management Routes - Using app_plans table
+Route::prefix('plans')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\PlanApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\PlanApiController::class, 'store']);
+    Route::get('/all', [\App\Http\Controllers\Api\PlanApiController::class, 'getAllPlans']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\PlanApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
+    Route::post('/{id}/restore', [\App\Http\Controllers\Api\PlanApiController::class, 'restore']);
+    Route::delete('/{id}/force', [\App\Http\Controllers\Api\PlanApiController::class, 'forceDelete']);
+});
+
 // Basic Cities endpoint for simple data (fallback)
 Route::prefix('cities')->group(function () {
     Route::get('/', function () {
