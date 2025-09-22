@@ -3,622 +3,575 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Region;
-use App\Models\City;
-use App\Models\Barangay;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\Validator;
 
 class LocationApiController extends Controller
 {
     /**
-     * Get all regions
-     */
-    public function getRegions()
-    {
-        try {
-            $regions = Region::active()
-                ->orderBy('name')
-                ->get();
-            
-            return response()->json([
-                'success' => true,
-                'data' => $regions
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch regions',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get cities by region
-     */
-    public function getCitiesByRegion($regionId)
-    {
-        try {
-            $cities = City::active()
-                ->where('region_id', $regionId)
-                ->orderBy('name')
-                ->get();
-            
-            return response()->json([
-                'success' => true,
-                'data' => $cities
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch cities',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get barangays by city
-     */
-    public function getBarangaysByCity($cityId)
-    {
-        try {
-            $barangays = Barangay::active()
-                ->where('city_id', $cityId)
-                ->orderBy('name')
-                ->get();
-            
-            return response()->json([
-                'success' => true,
-                'data' => $barangays
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch barangays',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get all locations hierarchically
+     * Get all locations - Simple DB queries only
      */
     public function getAllLocations()
     {
         try {
-            $regions = Region::active()
-                ->with(['activeCities.activeBarangays'])
-                ->orderBy('name')
-                ->get();
+            // Use raw DB queries to avoid model issues
+            $regions = DB::select('SELECT * FROM regions WHERE is_active = 1 ORDER BY name');
+            
+            $result = [];
+            foreach ($regions as $region) {
+                $regionData = (array) $region;
+                
+                // Get cities for this region
+                $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$region->id]);
+                $regionData['active_cities'] = [];
+                
+                foreach ($cities as $city) {
+                    $cityData = (array) $city;
+                    
+                    // Get barangays for this city
+                    $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$city->id]);
+                    $cityData['active_barangays'] = array_map(function($b) { return (array) $b; }, $barangays);
+                    
+                    $regionData['active_cities'][] = $cityData;
+                }
+                
+                $result[] = $regionData;
+            }
             
             return response()->json([
                 'success' => true,
-                'data' => $regions
+                'data' => $result,
+                'source' => 'RAW_DATABASE_QUERIES',
+                'count' => count($result)
             ]);
+            
         } catch (\Exception $e) {
+            \Log::error('LocationApiController error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch locations',
-                'error' => $e->getMessage()
+                'message' => 'Database error: ' . $e->getMessage(),
+                'error_details' => [
+                    'file' => $e->getFile(),
+                    'line' => $e->getLine(),
+                    'trace' => $e->getTraceAsString()
+                ]
             ], 500);
         }
     }
 
     /**
-     * Add new region
+     * Get regions - Simple version
+     */
+    public function getRegions()
+    {
+        try {
+            $regions = DB::select('SELECT * FROM regions WHERE is_active = 1 ORDER BY name');
+            
+            return response()->json([
+                'success' => true,
+                'data' => $regions,
+                'source' => 'RAW_DATABASE_QUERIES'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching regions: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get cities by region - Simple version
+     */
+    public function getCitiesByRegion($regionId)
+    {
+        try {
+            $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$regionId]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $cities,
+                'source' => 'RAW_DATABASE_QUERIES'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching cities: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get barangays by city - Simple version
+     */
+    public function getBarangaysByCity($cityId)
+    {
+        try {
+            $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$cityId]);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $barangays,
+                'source' => 'RAW_DATABASE_QUERIES'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangays: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Add new region - Simple version
      */
     public function addRegion(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         try {
-            // Check for duplicate region name (case-insensitive)
-            $existingRegion = Region::whereRaw('LOWER(name) = ?', [strtolower($request->name)])->first();
-            
-            if ($existingRegion) {
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'A region with this name already exists: ' . $existingRegion->name
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $name = $request->input('name');
+            $description = $request->input('description', '');
+            
+            // Check for duplicate
+            $existing = DB::select('SELECT id FROM regions WHERE LOWER(name) = LOWER(?)', [$name]);
+            if (!empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A region with this name already exists'
                 ], 422);
             }
             
-            DB::beginTransaction();
+            // Insert new region
+            $code = 'R_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            // Generate unique code
-            $code = $this->generateCode($request->name, 'region');
-            
-            $region = Region::create([
+            $id = DB::table('regions')->insertGetId([
                 'code' => $code,
-                'name' => $request->name,
-                'description' => $request->description,
-                'is_active' => true
+                'name' => $name,
+                'description' => $description,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
             
-            DB::commit();
+            $region = DB::select('SELECT * FROM regions WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'Region added successfully',
-                'data' => $region
+                'data' => $region,
+                'source' => 'RAW_DATABASE_QUERIES'
             ], 201);
+            
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add region',
-                'error' => $e->getMessage()
+                'message' => 'Error adding region: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Add new city
+     * Add new city - Simple version
      */
     public function addCity(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'region_id' => 'required|exists:regions,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         try {
-            // Check for duplicate city name within the same region (case-insensitive)
-            $existingCity = City::where('region_id', $request->region_id)
-                ->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-                ->first();
-            
-            if ($existingCity) {
-                $region = Region::find($request->region_id);
+            $validator = Validator::make($request->all(), [
+                'region_id' => 'required|integer',
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'A city with this name already exists in ' . $region->name . ': ' . $existingCity->name
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $regionId = $request->input('region_id');
+            $name = $request->input('name');
+            $description = $request->input('description', '');
+            
+            // Check if region exists
+            $region = DB::select('SELECT id FROM regions WHERE id = ? AND is_active = 1', [$regionId]);
+            if (empty($region)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Region not found or inactive'
                 ], 422);
             }
             
-            DB::beginTransaction();
+            // Check for duplicate city in same region
+            $existing = DB::select('SELECT id FROM cities WHERE region_id = ? AND LOWER(name) = LOWER(?)', [$regionId, $name]);
+            if (!empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A city with this name already exists in this region'
+                ], 422);
+            }
             
-            // Generate unique code
-            $code = $this->generateCode($request->name, 'city');
+            // Insert new city
+            $code = 'C_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            $city = City::create([
-                'region_id' => $request->region_id,
+            $id = DB::table('cities')->insertGetId([
+                'region_id' => $regionId,
                 'code' => $code,
-                'name' => $request->name,
-                'description' => $request->description,
-                'is_active' => true
+                'name' => $name,
+                'description' => $description,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
             
-            DB::commit();
+            $city = DB::select('SELECT * FROM cities WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'City added successfully',
-                'data' => $city
+                'data' => $city,
+                'source' => 'RAW_DATABASE_QUERIES'
             ], 201);
+            
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to add city',
-                'error' => $e->getMessage()
+                'message' => 'Error adding city: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Add new barangay
+     * Add new barangay - Simple version
      */
     public function addBarangay(Request $request)
     {
-        $validator = Validator::make($request->all(), [
-            'city_id' => 'required|exists:cities,id',
-            'name' => 'required|string|max:255',
-            'description' => 'nullable|string|max:500',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'errors' => $validator->errors()
-            ], 422);
-        }
-
         try {
-            // Check for duplicate barangay name within the same city (case-insensitive)
-            $existingBarangay = Barangay::where('city_id', $request->city_id)
-                ->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-                ->first();
-            
-            if ($existingBarangay) {
-                $city = City::with('region')->find($request->city_id);
+            $validator = Validator::make($request->all(), [
+                'city_id' => 'required|integer',
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'A barangay with this name already exists in ' . $city->name . ': ' . $existingBarangay->name
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $cityId = $request->input('city_id');
+            $name = $request->input('name');
+            $description = $request->input('description', '');
+            
+            // Check if city exists
+            $city = DB::select('SELECT id FROM cities WHERE id = ? AND is_active = 1', [$cityId]);
+            if (empty($city)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'City not found or inactive'
                 ], 422);
             }
             
-            DB::beginTransaction();
+            // Check for duplicate barangay in same city
+            $existing = DB::select('SELECT id FROM barangays WHERE city_id = ? AND LOWER(name) = LOWER(?)', [$cityId, $name]);
+            if (!empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A barangay with this name already exists in this city'
+                ], 422);
+            }
             
-            // Generate unique code
-            $code = $this->generateCode($request->name, 'barangay');
+            // Insert new barangay
+            $code = 'B_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            $barangay = Barangay::create([
-                'city_id' => $request->city_id,
+            $id = DB::table('barangays')->insertGetId([
+                'city_id' => $cityId,
                 'code' => $code,
-                'name' => $request->name,
-                'description' => $request->description,
-                'is_active' => true
+                'name' => $name,
+                'description' => $description,
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
             
-            DB::commit();
+            $barangay = DB::select('SELECT * FROM barangays WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'Barangay added successfully',
-                'data' => $barangay
+                'data' => $barangay,
+                'source' => 'RAW_DATABASE_QUERIES'
             ], 201);
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to add barangay',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get location statistics
-     */
-    public function getStatistics()
-    {
-        try {
-            $stats = [
-                'regions' => Region::active()->count(),
-                'cities' => City::active()->count(),
-                'barangays' => Barangay::active()->count(),
-                'total' => Region::active()->count() + City::active()->count() + Barangay::active()->count()
-            ];
             
-            return response()->json([
-                'success' => true,
-                'data' => $stats
-            ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch statistics',
-                'error' => $e->getMessage()
+                'message' => 'Error adding barangay: ' . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Update location by type
+     * Update location (region, city, or barangay)
      */
     public function updateLocation($type, $id, Request $request)
     {
-        $validTypes = ['region', 'city', 'barangay'];
-        
-        if (!in_array($type, $validTypes)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid location type'
-            ], 422);
-        }
-        
         try {
-            DB::beginTransaction();
+            $validator = Validator::make($request->all(), [
+                'name' => 'required|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $name = $request->input('name');
+            $description = $request->input('description', '');
             
-            switch ($type) {
-                case 'region':
-                    $validator = Validator::make($request->all(), [
-                        'name' => 'required|string|max:255',
-                        'description' => 'nullable|string|max:500',
-                    ]);
-                    
-                    if ($validator->fails()) {
-                        return response()->json([
-                            'success' => false,
-                            'errors' => $validator->errors()
-                        ], 422);
-                    }
-                    
-                    $location = Region::find($id);
-                    if (!$location) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Region not found'
-                        ], 404);
-                    }
-                    
-                    // Check for duplicate name excluding current record
-                    $existing = Region::where('id', '!=', $id)
-                        ->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-                        ->first();
-                    
-                    if ($existing) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'A region with this name already exists: ' . $existing->name
-                        ], 422);
-                    }
-                    
-                    $location->update([
-                        'name' => $request->name,
-                        'description' => $request->description
-                    ]);
-                    break;
-                    
-                case 'city':
-                    $validator = Validator::make($request->all(), [
-                        'region_id' => 'required|exists:regions,id',
-                        'name' => 'required|string|max:255',
-                        'description' => 'nullable|string|max:500',
-                    ]);
-                    
-                    if ($validator->fails()) {
-                        return response()->json([
-                            'success' => false,
-                            'errors' => $validator->errors()
-                        ], 422);
-                    }
-                    
-                    $location = City::find($id);
-                    if (!$location) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'City not found'
-                        ], 404);
-                    }
-                    
-                    // Check for duplicate name in same region excluding current record
-                    $existing = City::where('id', '!=', $id)
-                        ->where('region_id', $request->region_id)
-                        ->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-                        ->first();
-                    
-                    if ($existing) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'A city with this name already exists in this region: ' . $existing->name
-                        ], 422);
-                    }
-                    
-                    $location->update([
-                        'region_id' => $request->region_id,
-                        'name' => $request->name,
-                        'description' => $request->description
-                    ]);
-                    break;
-                    
-                case 'barangay':
-                    $validator = Validator::make($request->all(), [
-                        'city_id' => 'required|exists:cities,id',
-                        'name' => 'required|string|max:255',
-                        'description' => 'nullable|string|max:500',
-                    ]);
-                    
-                    if ($validator->fails()) {
-                        return response()->json([
-                            'success' => false,
-                            'errors' => $validator->errors()
-                        ], 422);
-                    }
-                    
-                    $location = Barangay::find($id);
-                    if (!$location) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Barangay not found'
-                        ], 404);
-                    }
-                    
-                    // Check for duplicate name in same city excluding current record
-                    $existing = Barangay::where('id', '!=', $id)
-                        ->where('city_id', $request->city_id)
-                        ->whereRaw('LOWER(name) = ?', [strtolower($request->name)])
-                        ->first();
-                    
-                    if ($existing) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'A barangay with this name already exists in this city: ' . $existing->name
-                        ], 422);
-                    }
-                    
-                    $location->update([
-                        'city_id' => $request->city_id,
-                        'name' => $request->name,
-                        'description' => $request->description
-                    ]);
-                    break;
+            // Validate type and table
+            $validTypes = ['region', 'city', 'barangay'];
+            if (!in_array($type, $validTypes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid location type. Must be region, city, or barangay'
+                ], 400);
             }
             
-            DB::commit();
+            $table = $type === 'region' ? 'regions' : 
+                    ($type === 'city' ? 'cities' : 'barangays');
+            
+            // Check if record exists
+            $existing = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id]);
+            if (empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => ucfirst($type) . ' not found'
+                ], 404);
+            }
+            
+            $currentRecord = $existing[0];
+            
+            // Check for duplicate name (excluding current record)
+            $duplicateQuery = "SELECT id FROM {$table} WHERE LOWER(name) = LOWER(?) AND id != ?";
+            $duplicateParams = [$name, $id];
+            
+            // For cities and barangays, check duplicates within same parent
+            if ($type === 'city') {
+                $duplicateQuery .= " AND region_id = ?";
+                $duplicateParams[] = $currentRecord->region_id;
+            } elseif ($type === 'barangay') {
+                $duplicateQuery .= " AND city_id = ?";
+                $duplicateParams[] = $currentRecord->city_id;
+            }
+            
+            $duplicates = DB::select($duplicateQuery, $duplicateParams);
+            if (!empty($duplicates)) {
+                $parentContext = $type === 'city' ? ' in this region' : 
+                               ($type === 'barangay' ? ' in this city' : '');
+                return response()->json([
+                    'success' => false,
+                    'message' => "A {$type} with this name already exists{$parentContext}"
+                ], 422);
+            }
+            
+            // Update the record
+            DB::table($table)->where('id', $id)->update([
+                'name' => $name,
+                'description' => $description,
+                'updated_at' => now()
+            ]);
+            
+            // Get updated record
+            $updatedRecord = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => ucfirst($type) . ' updated successfully',
-                'data' => $location->fresh()
+                'data' => $updatedRecord
             ]);
             
         } catch (\Exception $e) {
-            DB::rollBack();
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update ' . $type,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    
-    /**
-     * Delete location by type
-     */
-    public function deleteLocation($type, $id, Request $request)
-    {
-        $validTypes = ['region', 'city', 'barangay'];
-        
-        if (!in_array($type, $validTypes)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Invalid location type'
-            ], 422);
-        }
-        
-        // Check if cascade delete is requested
-        $cascade = $request->query('cascade', 'false') === 'true';
-        
-        try {
-            DB::beginTransaction();
-            
-            switch ($type) {
-                case 'region':
-                    $region = Region::find($id);
-                    if (!$region) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Region not found'
-                        ], 404);
-                    }
-                    
-                    // Get counts for confirmation
-                    $cityCount = City::where('region_id', $id)->count();
-                    $barangayCount = Barangay::whereHas('city', function($query) use ($id) {
-                        $query->where('region_id', $id);
-                    })->count();
-                    
-                    if ($cityCount > 0 && !$cascade) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => "Cannot delete region '{$region->name}' that contains {$cityCount} cities and {$barangayCount} barangays.",
-                            'data' => [
-                                'can_cascade' => true,
-                                'city_count' => $cityCount,
-                                'barangay_count' => $barangayCount,
-                                'type' => 'region',
-                                'id' => $id,
-                                'name' => $region->name
-                            ]
-                        ], 422);
-                    }
-                    
-                    if ($cascade && $cityCount > 0) {
-                        // Delete all barangays in cities of this region
-                        Barangay::whereHas('city', function($query) use ($id) {
-                            $query->where('region_id', $id);
-                        })->delete();
-                        
-                        // Delete all cities in this region
-                        City::where('region_id', $id)->delete();
-                    }
-                    
-                    $region->delete();
-                    $message = $cascade && $cityCount > 0 ? 
-                        "Region '{$region->name}' and all its {$cityCount} cities and {$barangayCount} barangays deleted successfully" : 
-                        "Region '{$region->name}' deleted successfully";
-                    break;
-                    
-                case 'city':
-                    $city = City::with('region')->find($id);
-                    if (!$city) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'City not found'
-                        ], 404);
-                    }
-                    
-                    // Check if city has barangays
-                    $barangayCount = Barangay::where('city_id', $id)->count();
-                    if ($barangayCount > 0 && !$cascade) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => "Cannot delete city '{$city->name}' that contains {$barangayCount} barangays.",
-                            'data' => [
-                                'can_cascade' => true,
-                                'barangay_count' => $barangayCount,
-                                'type' => 'city',
-                                'id' => $id,
-                                'name' => $city->name
-                            ]
-                        ], 422);
-                    }
-                    
-                    if ($cascade && $barangayCount > 0) {
-                        // Delete all barangays in this city
-                        Barangay::where('city_id', $id)->delete();
-                    }
-                    
-                    $city->delete();
-                    $message = $cascade && $barangayCount > 0 ? 
-                        "City '{$city->name}' and all its {$barangayCount} barangays deleted successfully" : 
-                        "City '{$city->name}' deleted successfully";
-                    break;
-                    
-                case 'barangay':
-                    $barangay = Barangay::with('city.region')->find($id);
-                    if (!$barangay) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Barangay not found'
-                        ], 404);
-                    }
-                    
-                    $barangay->delete();
-                    $message = "Barangay '{$barangay->name}' deleted successfully";
-                    break;
-            }
-            
-            DB::commit();
-            
-            return response()->json([
-                'success' => true,
-                'message' => $message
-            ]);
-            
-        } catch (\Exception $e) {
-            DB::rollBack();
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete ' . $type,
-                'error' => $e->getMessage()
+                'message' => "Error updating {$type}: " . $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Generate unique code for location
+     * Delete location with cascade support
      */
-    private function generateCode($name, $type)
+    public function deleteLocation($type, $id, Request $request)
     {
-        $prefix = strtoupper(substr($type, 0, 1));
-        $nameSlug = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name));
-        $nameSlug = substr($nameSlug, 0, 10);
-        $timestamp = time();
-        
-        return $prefix . '_' . $nameSlug . '_' . $timestamp;
+        try {
+            // Validate type
+            $validTypes = ['region', 'city', 'barangay'];
+            if (!in_array($type, $validTypes)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Invalid location type. Must be region, city, or barangay'
+                ], 400);
+            }
+            
+            $table = $type === 'region' ? 'regions' : 
+                    ($type === 'city' ? 'cities' : 'barangays');
+            
+            // Check if record exists
+            $existing = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id]);
+            if (empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => ucfirst($type) . ' not found'
+                ], 404);
+            }
+            
+            $record = $existing[0];
+            $cascade = $request->query('cascade', false);
+            
+            DB::beginTransaction();
+            
+            try {
+                if ($type === 'region') {
+                    // Check for dependent cities
+                    $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1', [$id]);
+                    
+                    if (!empty($cities) && !$cascade) {
+                        // Count total barangays in all cities
+                        $barangayCount = 0;
+                        foreach ($cities as $city) {
+                            $barangays = DB::select('SELECT COUNT(*) as count FROM barangays WHERE city_id = ? AND is_active = 1', [$city->id]);
+                            $barangayCount += $barangays[0]->count ?? 0;
+                        }
+                        
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cannot delete region: contains active cities and barangays',
+                            'data' => [
+                                'can_cascade' => true,
+                                'type' => 'region',
+                                'name' => $record->name,
+                                'city_count' => count($cities),
+                                'barangay_count' => $barangayCount
+                            ]
+                        ], 422);
+                    }
+                    
+                    if ($cascade) {
+                        // Delete all barangays in cities of this region
+                        foreach ($cities as $city) {
+                            DB::table('barangays')->where('city_id', $city->id)->delete();
+                        }
+                        // Delete all cities in this region
+                        DB::table('cities')->where('region_id', $id)->delete();
+                    }
+                    
+                    // Delete the region
+                    DB::table('regions')->where('id', $id)->delete();
+                    
+                } elseif ($type === 'city') {
+                    // Check for dependent barangays
+                    $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1', [$id]);
+                    
+                    if (!empty($barangays) && !$cascade) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Cannot delete city: contains active barangays',
+                            'data' => [
+                                'can_cascade' => true,
+                                'type' => 'city',
+                                'name' => $record->name,
+                                'barangay_count' => count($barangays)
+                            ]
+                        ], 422);
+                    }
+                    
+                    if ($cascade) {
+                        // Delete all barangays in this city
+                        DB::table('barangays')->where('city_id', $id)->delete();
+                    }
+                    
+                    // Delete the city
+                    DB::table('cities')->where('id', $id)->delete();
+                    
+                } else { // barangay
+                    // Barangays have no dependents, safe to delete
+                    DB::table('barangays')->where('id', $id)->delete();
+                }
+                
+                DB::commit();
+                
+                $message = ucfirst($type) . ' deleted successfully';
+                if ($cascade) {
+                    $message .= ' (with all dependent locations)';
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => $message
+                ]);
+                
+            } catch (\Exception $e) {
+                DB::rollBack();
+                throw $e;
+            }
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => "Error deleting {$type}: " . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Get statistics - Simple version
+     */
+    public function getStatistics()
+    {
+        try {
+            $regions = DB::select('SELECT COUNT(*) as count FROM regions WHERE is_active = 1')[0]->count;
+            $cities = DB::select('SELECT COUNT(*) as count FROM cities WHERE is_active = 1')[0]->count;  
+            $barangays = DB::select('SELECT COUNT(*) as count FROM barangays WHERE is_active = 1')[0]->count;
+            
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'regions' => (int) $regions,
+                    'cities' => (int) $cities,
+                    'barangays' => (int) $barangays,
+                    'total' => (int) ($regions + $cities + $barangays)
+                ],
+                'source' => 'RAW_DATABASE_QUERIES'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error getting statistics: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
