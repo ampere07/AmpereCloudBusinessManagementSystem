@@ -1,10 +1,22 @@
 import apiClient from '../config/api';
 import { Location } from '../types/location';
 
+// Response interface
+interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
 export interface City {
   id: number;
   region_id: number;
   name: string;
+  code?: string;
+  description?: string;
+  is_active?: boolean;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export const getCities = async (): Promise<City[]> => {
@@ -16,15 +28,32 @@ export const getCities = async (): Promise<City[]> => {
       return locations.map(location => ({
         id: location.id,
         region_id: location.parentId || 0,
-        name: location.name
+        name: location.name,
+        description: location.description,
+        is_active: location.isActive
       }));
     }
     
     // Fallback to the legacy cities endpoint if no locations found
-    const response = await apiClient.get<City[]>('/cities');
-    return response.data;
-  } catch (error) {
+    console.log('Falling back to legacy app-cities endpoint');
+    const response = await apiClient.get<ApiResponse<City[]>>('/app-cities');
+    
+    console.log('Cities API response:', response.data);
+    
+    if (response.data.success && Array.isArray(response.data.data)) {
+      const cities = response.data.data;
+      console.log(`Successfully retrieved ${cities.length} cities from legacy endpoint`);
+      return cities;
+    }
+    
+    // Final fallback to simple cities endpoint
+    console.log('Falling back to simple cities endpoint');
+    const simpleResponse = await apiClient.get<City[]>('/cities');
+    return Array.isArray(simpleResponse.data) ? simpleResponse.data : [];
+    
+  } catch (error: any) {
     console.error('Error fetching cities:', error);
+    console.error('Error details:', error.response ? error.response.data : 'No response data');
     // Return empty array instead of throwing error for graceful degradation
     return [];
   }

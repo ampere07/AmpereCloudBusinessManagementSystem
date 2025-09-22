@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -9,11 +8,15 @@ class Region extends Model
 {
     use HasFactory;
     
+    protected $table = 'regions';
+    
     protected $fillable = [
-        'code',
         'name',
+        'code',
         'description',
-        'is_active'
+        'is_active',
+        'created_at',
+        'updated_at'
     ];
     
     protected $casts = [
@@ -22,12 +25,12 @@ class Region extends Model
     
     public function cities()
     {
-        return $this->hasMany(City::class);
+        return $this->hasMany(City::class, 'region_id', 'id');
     }
     
     public function activeCities()
     {
-        return $this->hasMany(City::class)->where('is_active', true);
+        return $this->hasMany(City::class, 'region_id', 'id')->where('is_active', true);
     }
     
     public function scopeActive($query)

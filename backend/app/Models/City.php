@@ -9,12 +9,16 @@ class City extends Model
 {
     use HasFactory;
     
+    protected $table = 'cities';
+    
     protected $fillable = [
+        'name',
         'region_id',
         'code',
-        'name',
         'description',
-        'is_active'
+        'is_active',
+        'created_at',
+        'updated_at'
     ];
     
     protected $casts = [
@@ -25,17 +29,17 @@ class City extends Model
     
     public function region()
     {
-        return $this->belongsTo(Region::class);
+        return $this->belongsTo(Region::class, 'region_id', 'id');
     }
     
     public function barangays()
     {
-        return $this->hasMany(Barangay::class);
+        return $this->hasMany(Barangay::class, 'city_id', 'id');
     }
     
     public function activeBarangays()
     {
-        return $this->hasMany(Barangay::class)->where('is_active', true);
+        return $this->hasMany(Barangay::class, 'city_id', 'id')->where('is_active', true);
     }
     
     public function scopeActive($query)

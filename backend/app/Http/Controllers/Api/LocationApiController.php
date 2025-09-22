@@ -290,6 +290,32 @@ class LocationApiController extends Controller
     }
 
     /**
+     * Get location statistics
+     */
+    public function getStatistics()
+    {
+        try {
+            $stats = [
+                'regions' => Region::active()->count(),
+                'cities' => City::active()->count(),
+                'barangays' => Barangay::active()->count(),
+                'total' => Region::active()->count() + City::active()->count() + Barangay::active()->count()
+            ];
+            
+            return response()->json([
+                'success' => true,
+                'data' => $stats
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch statistics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Update location by type
      */
     public function updateLocation($type, $id, Request $request)
@@ -578,32 +604,6 @@ class LocationApiController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to delete ' . $type,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
-    
-    /**
-     * Get location statistics
-     */
-    public function getStatistics()
-    {
-        try {
-            $stats = [
-                'regions' => Region::active()->count(),
-                'cities' => City::active()->count(),
-                'barangays' => Barangay::active()->count(),
-                'total' => Region::active()->count() + City::active()->count() + Barangay::active()->count()
-            ];
-            
-            return response()->json([
-                'success' => true,
-                'data' => $stats
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch statistics',
                 'error' => $e->getMessage()
             ], 500);
         }

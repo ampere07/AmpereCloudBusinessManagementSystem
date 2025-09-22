@@ -46,7 +46,7 @@ const LocationList: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [editingItem, setEditingItem] = useState<any>(null);
-  const [addType, setAddType] = useState<LocationType>('barangay');
+  const [addType, setAddType] = useState<LocationType>('region');
   const [idCounter, setIdCounter] = useState(1);
   
   // Add/Edit form states
@@ -438,7 +438,7 @@ const LocationList: React.FC = () => {
               <button
                 onClick={() => {
                   setEditingItem(null);
-                  setAddType('barangay');
+                  setAddType('region');
                   setFormData({ name: '', city: '', region: '', id: idCounter.toString() });
                   setShowAddPanel(true);
                 }}
