@@ -89,75 +89,81 @@ const ApplicationManagement: React.FC = () => {
   useEffect(() => {
     if (!locationDataLoaded) return;
     
-    const fetchApplications = async () => {
-      try {
-        setIsLoading(true);
-        const apiApplications = await getApplications();
-        
-        if (apiApplications && apiApplications.length > 0) {
-          // Transform API applications to match our interface
-          const transformedApplications: Application[] = apiApplications.map(app => {
-            const cityIdValue = app.city_id;
-            const convertedCityId = cityIdValue !== undefined && cityIdValue !== null && cityIdValue !== '' ? 
-                                   Number(cityIdValue) : null;
-            const convertedRegionId = app.region_id !== undefined && app.region_id !== null && app.region_id !== '' ?
-                                    Number(app.region_id) : null;
-            
-            // Calculate full address using the helper functions
-            const regionName = getRegionName(convertedRegionId);
-            const cityName = getCityName(convertedCityId);
-            const addressLine = app.address || '';
-            const fullAddress = `${regionName}, ${cityName}, ${addressLine}`;
-            
-            return {
-              id: app.id || '',
-              customerName: app.customer_name || '',
-              timestamp: app.timestamp || '',
-              address: app.address || '',
-              // Determine action based on status
-              action: app.status === 'pending' || app.status === 'new' ? 'Schedule' : 
-                     app.status === 'duplicate' ? 'Duplicate' : undefined,
-              location: app.location || '',
-              status: app.status,
-              cityId: convertedCityId,
-              regionId: convertedRegionId,
-              boroughId: app.borough_id !== undefined && app.borough_id !== null && app.borough_id !== '' ?
-                        Number(app.borough_id) : null,
-              villageId: app.village_id !== undefined && app.village_id !== null && app.village_id !== '' ?
-                        Number(app.village_id) : null,
-              addressLine: addressLine,
-              fullAddress: fullAddress,
-              createDate: app.create_date || '',
-              createTime: app.create_time || '',
-              email: app.email,
-              mobileNumber: app.mobile_number,
-              secondaryNumber: app.secondary_number,
-              visitDate: app.visit_date,
-              visitBy: app.visit_by,
-              visitWith: app.visit_with,
-              notes: app.notes,
-              lastModified: app.last_modified,
-              modifiedBy: app.modified_by
-            };
-          });
-          
-          setApplications(transformedApplications);
-        } else {
-          setApplications([]);
-        }
-        
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch applications:', err);
-        setError('Failed to load applications. Please try again.');
-        setApplications([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchApplications();
   }, [locationDataLoaded]);
+
+  // Function to fetch applications (extracted for reuse)
+  const fetchApplications = async () => {
+    try {
+      setIsLoading(true);
+      const apiApplications = await getApplications();
+      
+      if (apiApplications && apiApplications.length > 0) {
+        // Transform API applications to match our interface
+        const transformedApplications: Application[] = apiApplications.map(app => {
+          const cityIdValue = app.city_id;
+          const convertedCityId = cityIdValue !== undefined && cityIdValue !== null && cityIdValue !== '' ? 
+                                 Number(cityIdValue) : null;
+          const convertedRegionId = app.region_id !== undefined && app.region_id !== null && app.region_id !== '' ?
+                                  Number(app.region_id) : null;
+          
+          // Calculate full address using the helper functions
+          const regionName = getRegionName(convertedRegionId);
+          const cityName = getCityName(convertedCityId);
+          const addressLine = app.address || '';
+          const fullAddress = `${regionName}, ${cityName}, ${addressLine}`;
+          
+          return {
+            id: app.id || '',
+            customerName: app.customer_name || '',
+            timestamp: app.timestamp || '',
+            address: app.address || '',
+            // Determine action based on status
+            action: app.status === 'pending' || app.status === 'new' ? 'Schedule' : 
+                   app.status === 'duplicate' ? 'Duplicate' : undefined,
+            location: app.location || '',
+            status: app.status,
+            cityId: convertedCityId,
+            regionId: convertedRegionId,
+            boroughId: app.borough_id !== undefined && app.borough_id !== null && app.borough_id !== '' ?
+                      Number(app.borough_id) : null,
+            villageId: app.village_id !== undefined && app.village_id !== null && app.village_id !== '' ?
+                      Number(app.village_id) : null,
+            addressLine: addressLine,
+            fullAddress: fullAddress,
+            createDate: app.create_date || '',
+            createTime: app.create_time || '',
+            email: app.email,
+            mobileNumber: app.mobile_number,
+            secondaryNumber: app.secondary_number,
+            visitDate: app.visit_date,
+            visitBy: app.visit_by,
+            visitWith: app.visit_with,
+            notes: app.notes,
+            lastModified: app.last_modified,
+            modifiedBy: app.modified_by
+          };
+        });
+        
+        setApplications(transformedApplications);
+      } else {
+        setApplications([]);
+      }
+      
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch applications:', err);
+      setError('Failed to load applications. Please try again.');
+      setApplications([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle application refresh when status is updated
+  const handleApplicationUpdate = () => {
+    fetchApplications();
+  };
   
   // Generate location items with counts from cities data
   const locationItems: LocationItem[] = [
@@ -300,13 +306,28 @@ const ApplicationManagement: React.FC = () => {
                       >
                         <div className="p-4 flex justify-between items-start">
                           <div className="flex-1">
-                            <div className="flex justify-between">
+                            <div className="flex justify-between items-center">
                               <div className="text-white font-medium">{application.customerName}</div>
-                              {application.action && (
-                                <div className={`text-green-500 text-sm ${application.action === 'Duplicate' ? 'text-yellow-500' : ''}`}>
-                                  {application.action}
-                                </div>
-                              )}
+                              <div className="flex items-center space-x-2">
+                                {application.action && (
+                                  <div className={`text-green-500 text-xs px-2 py-1 rounded ${application.action === 'Duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' : 'bg-green-500 bg-opacity-10'}`}>
+                                    {application.action}
+                                  </div>
+                                )}
+                                {application.status && (
+                                  <div className={`text-xs px-2 py-1 rounded ${
+                                    application.status.toLowerCase() === 'no facility' ? 'text-red-400 bg-red-400 bg-opacity-10' :
+                                    application.status.toLowerCase() === 'cancelled' ? 'text-red-500 bg-red-500 bg-opacity-10' :
+                                    application.status.toLowerCase() === 'no slot' ? 'text-yellow-400 bg-yellow-400 bg-opacity-10' :
+                                    application.status.toLowerCase() === 'duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' :
+                                    application.status.toLowerCase() === 'in progress' ? 'text-blue-400 bg-blue-400 bg-opacity-10' :
+                                    application.status.toLowerCase() === 'completed' ? 'text-green-400 bg-green-400 bg-opacity-10' :
+                                    'text-gray-400 bg-gray-400 bg-opacity-10'
+                                  }`}>
+                                    {application.status}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                             <div className="text-gray-400 text-sm mt-1">
                               {application.createDate && application.createTime 
@@ -336,6 +357,7 @@ const ApplicationManagement: React.FC = () => {
           <ApplicationDetails 
             application={selectedApplication} 
             onClose={() => setSelectedApplication(null)}
+            onApplicationUpdate={handleApplicationUpdate}
           />
         </div>
       )}

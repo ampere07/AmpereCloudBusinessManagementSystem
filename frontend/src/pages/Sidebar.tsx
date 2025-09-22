@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, Package, CreditCard } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -31,9 +31,11 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       ]
     },
     { id: 'application-management', label: 'Application', icon: FileCheck },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'job-order', label: 'Job Order', icon: Wrench },
     { id: 'service-order', label: 'Service Order', icon: Wrench },
     { id: 'application-visit', label: 'Application Visit', icon: Map },
+    { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'logs', label: 'Logs', icon: FileText }
   ];
 

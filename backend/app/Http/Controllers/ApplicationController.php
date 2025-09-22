@@ -205,11 +205,17 @@ class ApplicationController extends Controller
         ]);
 
         $application = Application::findOrFail($id);
+        
+        // Add update timestamp when any field is modified
+        $validatedData['update_date'] = date('Y-m-d');
+        $validatedData['update_time'] = date('H:i:s');
+        
         $application->update($validatedData);
 
         return response()->json([
             'message' => 'Application updated successfully',
-            'application' => $application
+            'application' => $application,
+            'success' => true
         ]);
     }
 

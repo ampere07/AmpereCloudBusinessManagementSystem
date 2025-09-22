@@ -6,9 +6,11 @@ import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import GroupManagement from './GroupManagement';
 import ApplicationManagement from './ApplicationManagement';
+import Billing from './Billing';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
+import Inventory from './Inventory';
 import Logs from './Logs';
 
 interface DashboardProps {
@@ -30,12 +32,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <GroupManagement />;
       case 'application-management':
         return <ApplicationManagement />;
+      case 'billing':
+        return <Billing />;
       case 'job-order':
         return <JobOrder />;
       case 'service-order':
         return <ServiceOrder />;
       case 'application-visit':
         return <ApplicationVisit />;
+      case 'inventory':
+        return <Inventory />;
       case 'logs':
         return <Logs />;
       case 'dashboard':

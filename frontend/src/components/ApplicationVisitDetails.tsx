@@ -5,6 +5,9 @@ import {
 } from 'lucide-react';
 import { getApplication } from '../services/applicationService';
 import { updateApplicationVisit } from '../services/applicationVisitService';
+import ConfirmationModal from '../modals/MoveToJoModal';
+import JOAssignFormModal from '../modals/JOAssignFormModal';
+import { JobOrderData } from '../services/jobOrderService';
 
 interface ApplicationVisitDetailsProps {
   applicationVisit: {
@@ -46,6 +49,8 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const [applicationDetails, setApplicationDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
+  const [showJOAssignForm, setShowJOAssignForm] = useState(false);
 
   // Fetch associated application data
   useEffect(() => {
@@ -66,6 +71,22 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
 
     fetchApplicationData();
   }, [applicationVisit.application_id]);
+
+  const handleMoveToJO = () => {
+    setShowMoveConfirmation(true);
+  };
+
+  const handleConfirmMoveToJO = () => {
+    setShowMoveConfirmation(false);
+    setShowJOAssignForm(true);
+  };
+
+  const handleSaveJOForm = (formData: JobOrderData) => {
+    console.log('Job Order saved successfully:', formData);
+    console.log('Application Visit ID:', applicationVisit.id);
+    // Job order has already been saved by the modal
+    setShowJOAssignForm(false);
+  };
 
   // Format the scheduled date
   const formatDate = (dateStr: string | undefined) => {
@@ -118,7 +139,11 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           <button className="hover:text-white text-gray-400">
             <Trash2 size={16} />
           </button>
-          <button className="hover:text-white text-gray-400">
+          <button 
+            className="hover:text-white text-gray-400"
+            onClick={handleMoveToJO}
+            title="Move to Job Order"
+          >
             <ArrowRightToLine size={16} />
           </button>
           <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
@@ -336,6 +361,39 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           </div>
         </div>
       </div>
+
+      {/* Use the ConfirmationModal component */}
+      <ConfirmationModal
+        isOpen={showMoveConfirmation}
+        title="Confirm"
+        message="Are you sure you want to move this application to JO?"
+        confirmText="Move to JO"
+        cancelText="Cancel"
+        onConfirm={handleConfirmMoveToJO}
+        onCancel={() => setShowMoveConfirmation(false)}
+      />
+
+      {/* Use the JOAssignFormModal component */}
+      <JOAssignFormModal
+        isOpen={showJOAssignForm}
+        onClose={() => setShowJOAssignForm(false)}
+        onSave={handleSaveJOForm}
+        applicationData={{
+          id: applicationVisit.application_id,
+          first_name: applicationVisit.first_name,
+          middle_initial: applicationVisit.middle_initial,
+          last_name: applicationVisit.last_name,
+          email: applicationVisit.email_address,
+          mobile: applicationVisit.contact_number,
+          mobile_alt: applicationVisit.second_contact_number,
+          address_line: applicationVisit.address,
+          barangay: applicationVisit.barangay,
+          city: applicationVisit.city,
+          region: applicationVisit.region,
+          plan_id: applicationVisit.choose_plan,
+          landmark: applicationVisit.installation_landmark,
+        }}
+      />
     </div>
   );
 };

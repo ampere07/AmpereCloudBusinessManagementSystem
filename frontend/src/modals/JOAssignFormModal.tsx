@@ -518,26 +518,12 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <input
                   type="number"
                   step="0.01"
-                  value={formData.installationFee.toFixed(2)}
+                  min="0"
+                  value={formData.installationFee}
                   onChange={(e) => handleInputChange('installationFee', parseFloat(e.target.value) || 0)}
-                  className="flex-1 px-3 py-2 bg-transparent text-white focus:outline-none"
+                  className="flex-1 px-3 py-2 bg-transparent text-white focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                  placeholder="0.00"
                 />
-                <div className="flex">
-                  <button
-                    type="button"
-                    onClick={() => handleNumberChange('installationFee', false)}
-                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700"
-                  >
-                    <Minus size={16} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleNumberChange('installationFee', true)}
-                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700"
-                  >
-                    <Plus size={16} />
-                  </button>
-                </div>
               </div>
             </div>
 

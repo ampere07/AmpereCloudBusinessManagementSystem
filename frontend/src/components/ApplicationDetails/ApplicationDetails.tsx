@@ -4,7 +4,7 @@ import {
   ExternalLink, Mail, Edit, Newspaper, ArrowRightFromLine, Calendar, 
   Ban, XCircle, RotateCw, CheckCircle, Loader, Square
 } from 'lucide-react';
-import { getApplication } from '../../services/applicationService';
+import { getApplication, updateApplication } from '../../services/applicationService';
 import ConfirmationModal from '../../modals/MoveToJoModal';
 import JOAssignFormModal from '../../modals/JOAssignFormModal';
 import ApplicationVisitFormModal from '../../modals/ApplicationVisitFormModal';
@@ -29,15 +29,18 @@ interface ApplicationDetailsProps {
     mobileNumber?: string;
   };
   onClose: () => void;
+  onApplicationUpdate?: () => void;
 }
 
-const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, onClose }) => {
+const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, onClose, onApplicationUpdate }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [detailedApplication, setDetailedApplication] = useState<any>(null);
   const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
   const [showJOAssignForm, setShowJOAssignForm] = useState(false);
   const [showVisitForm, setShowVisitForm] = useState(false);
+  const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
+  const [pendingStatus, setPendingStatus] = useState<string>('');
 
   const handleMoveToJO = () => {
     setShowMoveConfirmation(true);
@@ -50,6 +53,45 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
 
   const handleScheduleVisit = () => {
     setShowVisitForm(true);
+  };
+
+  const handleStatusChange = (newStatus: string) => {
+    setPendingStatus(newStatus);
+    setShowStatusConfirmation(true);
+  };
+
+  const handleConfirmStatusChange = async () => {
+    try {
+      setLoading(true);
+      
+      // Call API to update application status
+      await updateApplication(application.id, { status: pendingStatus });
+      
+      // Refetch the application details from database to ensure we have the latest status
+      const updatedApplication = await getApplication(application.id);
+      setDetailedApplication(updatedApplication);
+      
+      setShowStatusConfirmation(false);
+      setPendingStatus('');
+      
+      // Call the callback to refresh the application list
+      if (onApplicationUpdate) {
+        onApplicationUpdate();
+      }
+      
+      // Show success message
+      alert(`Status updated to ${pendingStatus}`);
+    } catch (err: any) {
+      setError(`Failed to update status: ${err.message}`);
+      console.error('Status update error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelStatusChange = () => {
+    setShowStatusConfirmation(false);
+    setPendingStatus('');
   };
 
   const handleSaveJOForm = (formData: JobOrderData) => {
@@ -190,35 +232,55 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       
       {/* Action Buttons */}
       <div className="bg-gray-900 py-4 border-b border-gray-800 flex items-center justify-center space-x-8">
-        <button className="flex flex-col items-center text-center">
+        <button 
+          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+          onClick={() => handleStatusChange('No Facility')}
+          disabled={loading}
+        >
           <div className="bg-orange-600 p-3 rounded-full">
             <Ban className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">No Facility</span>
         </button>
         
-        <button className="flex flex-col items-center text-center">
+        <button 
+          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+          onClick={() => handleStatusChange('Cancelled')}
+          disabled={loading}
+        >
           <div className="bg-orange-600 p-3 rounded-full">
             <XCircle className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">Cancelled</span>
         </button>
         
-        <button className="flex flex-col items-center text-center">
+        <button 
+          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+          onClick={() => handleStatusChange('No Slot')}
+          disabled={loading}
+        >
           <div className="bg-orange-600 p-3 rounded-full">
             <RotateCw className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">No Slot</span>
         </button>
         
-        <button className="flex flex-col items-center text-center">
+        <button 
+          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+          onClick={() => handleStatusChange('Duplicate')}
+          disabled={loading}
+        >
           <div className="bg-orange-600 p-3 rounded-full">
             <Square className="text-white" size={24} />
           </div>
           <span className="text-xs mt-1 text-gray-300">Duplicate</span>
         </button>
         
-        <button className="flex flex-col items-center text-center">
+        <button 
+          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
+          onClick={() => handleStatusChange('In Progress')}
+          disabled={loading}
+        >
           <div className="bg-orange-600 p-3 rounded-full">
             <CheckCircle className="text-white" size={24} />
           </div>
@@ -237,7 +299,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
           <div className="flex flex-col items-center justify-center h-full">
             <div className="text-red-500 mb-4">{error}</div>
             <button 
-              onClick={() => window.location.reload()} 
+              onClick={() => {
+                setError(null);
+                window.location.reload();
+              }} 
               className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded">
               Retry
             </button>
@@ -396,6 +461,17 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         cancelText="Cancel"
         onConfirm={handleConfirmMoveToJO}
         onCancel={() => setShowMoveConfirmation(false)}
+      />
+
+      {/* Status Change Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showStatusConfirmation}
+        title="Confirm Status Change"
+        message={`Are you sure you want to change the status to "${pendingStatus}"?`}
+        confirmText="Change Status"
+        cancelText="Cancel"
+        onConfirm={handleConfirmStatusChange}
+        onCancel={handleCancelStatusChange}
       />
 
       {/* Use the JOAssignFormModal component */}
