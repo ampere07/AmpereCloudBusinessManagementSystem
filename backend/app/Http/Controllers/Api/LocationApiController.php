@@ -10,27 +10,35 @@ use Illuminate\Support\Facades\Validator;
 class LocationApiController extends Controller
 {
     /**
-     * Get all locations - Simple DB queries only
+     * Get current user email from session/auth (fallback for now)
+     */
+    private function getCurrentUser()
+    {
+        return 'ravenampere0123@gmail.com';
+    }
+
+    /**
+     * Get all locations - Using app_* tables
      */
     public function getAllLocations()
     {
         try {
-            // Use raw DB queries to avoid model issues
-            $regions = DB::select('SELECT * FROM regions WHERE is_active = 1 ORDER BY name');
+            // Use raw DB queries with app_regions table
+            $regions = DB::select('SELECT * FROM app_regions WHERE is_active = 1 ORDER BY name');
             
             $result = [];
             foreach ($regions as $region) {
                 $regionData = (array) $region;
                 
-                // Get cities for this region
-                $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$region->id]);
+                // Get cities for this region from app_cities
+                $cities = DB::select('SELECT * FROM app_cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$region->id]);
                 $regionData['active_cities'] = [];
                 
                 foreach ($cities as $city) {
                     $cityData = (array) $city;
                     
-                    // Get barangays for this city
-                    $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$city->id]);
+                    // Get barangays for this city from app_barangays
+                    $barangays = DB::select('SELECT * FROM app_barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$city->id]);
                     $cityData['active_barangays'] = array_map(function($b) { return (array) $b; }, $barangays);
                     
                     $regionData['active_cities'][] = $cityData;
@@ -42,7 +50,7 @@ class LocationApiController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $result,
-                'source' => 'RAW_DATABASE_QUERIES',
+                'source' => 'APP_TABLES_QUERIES',
                 'count' => count($result)
             ]);
             
@@ -62,17 +70,17 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Get regions - Simple version
+     * Get regions from app_regions table
      */
     public function getRegions()
     {
         try {
-            $regions = DB::select('SELECT * FROM regions WHERE is_active = 1 ORDER BY name');
+            $regions = DB::select('SELECT * FROM app_regions WHERE is_active = 1 ORDER BY name');
             
             return response()->json([
                 'success' => true,
                 'data' => $regions,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_REGIONS_TABLE'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -83,17 +91,17 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Get cities by region - Simple version
+     * Get cities by region from app_cities table
      */
     public function getCitiesByRegion($regionId)
     {
         try {
-            $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$regionId]);
+            $cities = DB::select('SELECT * FROM app_cities WHERE region_id = ? AND is_active = 1 ORDER BY name', [$regionId]);
             
             return response()->json([
                 'success' => true,
                 'data' => $cities,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_CITIES_TABLE'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -104,17 +112,17 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Get barangays by city - Simple version
+     * Get barangays by city from app_barangays table
      */
     public function getBarangaysByCity($cityId)
     {
         try {
-            $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$cityId]);
+            $barangays = DB::select('SELECT * FROM app_barangays WHERE city_id = ? AND is_active = 1 ORDER BY name', [$cityId]);
             
             return response()->json([
                 'success' => true,
                 'data' => $barangays,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_BARANGAYS_TABLE'
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -125,7 +133,7 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Add new region - Simple version
+     * Add new region to app_regions table
      */
     public function addRegion(Request $request)
     {
@@ -145,9 +153,11 @@ class LocationApiController extends Controller
 
             $name = $request->input('name');
             $description = $request->input('description', '');
+            $currentUser = $this->getCurrentUser();
+            $now = now();
             
-            // Check for duplicate
-            $existing = DB::select('SELECT id FROM regions WHERE LOWER(name) = LOWER(?)', [$name]);
+            // Check for duplicate in app_regions
+            $existing = DB::select('SELECT id FROM app_regions WHERE LOWER(name) = LOWER(?)', [$name]);
             if (!empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -155,28 +165,39 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Insert new region
+            // Insert new region into app_regions
             $code = 'R_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            $id = DB::table('regions')->insertGetId([
-                'code' => $code,
-                'name' => $name,
-                'description' => $description,
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            // Get available columns in app_regions
+            $columns = DB::select("SHOW COLUMNS FROM app_regions");
+            $columnNames = array_column($columns, 'Field');
             
-            $region = DB::select('SELECT * FROM regions WHERE id = ?', [$id])[0];
+            $insertData = [
+                'name' => $name,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now
+            ];
+            
+            if (in_array('code', $columnNames)) $insertData['code'] = $code;
+            if (in_array('description', $columnNames)) $insertData['description'] = $description;
+            if (in_array('modified_date', $columnNames)) $insertData['modified_date'] = $now;
+            if (in_array('modified_by', $columnNames)) $insertData['modified_by'] = $currentUser;
+            
+            $id = DB::table('app_regions')->insertGetId($insertData);
+            
+            $region = DB::select('SELECT * FROM app_regions WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'Region added successfully',
                 'data' => $region,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_REGIONS_TABLE'
             ], 201);
             
         } catch (\Exception $e) {
+            \Log::error('Region Store Error: ' . $e->getMessage());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Error adding region: ' . $e->getMessage()
@@ -185,7 +206,7 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Add new city - Simple version
+     * Add new city to app_cities table
      */
     public function addCity(Request $request)
     {
@@ -207,9 +228,11 @@ class LocationApiController extends Controller
             $regionId = $request->input('region_id');
             $name = $request->input('name');
             $description = $request->input('description', '');
+            $currentUser = $this->getCurrentUser();
+            $now = now();
             
-            // Check if region exists
-            $region = DB::select('SELECT id FROM regions WHERE id = ? AND is_active = 1', [$regionId]);
+            // Check if region exists in app_regions
+            $region = DB::select('SELECT id FROM app_regions WHERE id = ? AND is_active = 1', [$regionId]);
             if (empty($region)) {
                 return response()->json([
                     'success' => false,
@@ -217,8 +240,8 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Check for duplicate city in same region
-            $existing = DB::select('SELECT id FROM cities WHERE region_id = ? AND LOWER(name) = LOWER(?)', [$regionId, $name]);
+            // Check for duplicate city in same region in app_cities
+            $existing = DB::select('SELECT id FROM app_cities WHERE region_id = ? AND LOWER(name) = LOWER(?)', [$regionId, $name]);
             if (!empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -226,26 +249,35 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Insert new city
+            // Insert new city into app_cities
             $code = 'C_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            $id = DB::table('cities')->insertGetId([
-                'region_id' => $regionId,
-                'code' => $code,
-                'name' => $name,
-                'description' => $description,
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            // Get available columns in app_cities
+            $columns = DB::select("SHOW COLUMNS FROM app_cities");
+            $columnNames = array_column($columns, 'Field');
             
-            $city = DB::select('SELECT * FROM cities WHERE id = ?', [$id])[0];
+            $insertData = [
+                'region_id' => $regionId,
+                'name' => $name,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now
+            ];
+            
+            if (in_array('code', $columnNames)) $insertData['code'] = $code;
+            if (in_array('description', $columnNames)) $insertData['description'] = $description;
+            if (in_array('modified_date', $columnNames)) $insertData['modified_date'] = $now;
+            if (in_array('modified_by', $columnNames)) $insertData['modified_by'] = $currentUser;
+            
+            $id = DB::table('app_cities')->insertGetId($insertData);
+            
+            $city = DB::select('SELECT * FROM app_cities WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'City added successfully',
                 'data' => $city,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_CITIES_TABLE'
             ], 201);
             
         } catch (\Exception $e) {
@@ -257,7 +289,7 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Add new barangay - Simple version
+     * Add new barangay to app_barangays table
      */
     public function addBarangay(Request $request)
     {
@@ -279,9 +311,11 @@ class LocationApiController extends Controller
             $cityId = $request->input('city_id');
             $name = $request->input('name');
             $description = $request->input('description', '');
+            $currentUser = $this->getCurrentUser();
+            $now = now();
             
-            // Check if city exists
-            $city = DB::select('SELECT id FROM cities WHERE id = ? AND is_active = 1', [$cityId]);
+            // Check if city exists in app_cities
+            $city = DB::select('SELECT id FROM app_cities WHERE id = ? AND is_active = 1', [$cityId]);
             if (empty($city)) {
                 return response()->json([
                     'success' => false,
@@ -289,8 +323,8 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Check for duplicate barangay in same city
-            $existing = DB::select('SELECT id FROM barangays WHERE city_id = ? AND LOWER(name) = LOWER(?)', [$cityId, $name]);
+            // Check for duplicate barangay in same city in app_barangays
+            $existing = DB::select('SELECT id FROM app_barangays WHERE city_id = ? AND LOWER(name) = LOWER(?)', [$cityId, $name]);
             if (!empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -298,26 +332,35 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Insert new barangay
+            // Insert new barangay into app_barangays
             $code = 'B_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $name)) . '_' . time();
             
-            $id = DB::table('barangays')->insertGetId([
-                'city_id' => $cityId,
-                'code' => $code,
-                'name' => $name,
-                'description' => $description,
-                'is_active' => true,
-                'created_at' => now(),
-                'updated_at' => now()
-            ]);
+            // Get available columns in app_barangays
+            $columns = DB::select("SHOW COLUMNS FROM app_barangays");
+            $columnNames = array_column($columns, 'Field');
             
-            $barangay = DB::select('SELECT * FROM barangays WHERE id = ?', [$id])[0];
+            $insertData = [
+                'city_id' => $cityId,
+                'name' => $name,
+                'is_active' => true,
+                'created_at' => $now,
+                'updated_at' => $now
+            ];
+            
+            if (in_array('code', $columnNames)) $insertData['code'] = $code;
+            if (in_array('description', $columnNames)) $insertData['description'] = $description;
+            if (in_array('modified_date', $columnNames)) $insertData['modified_date'] = $now;
+            if (in_array('modified_by', $columnNames)) $insertData['modified_by'] = $currentUser;
+            
+            $id = DB::table('app_barangays')->insertGetId($insertData);
+            
+            $barangay = DB::select('SELECT * FROM app_barangays WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
                 'message' => 'Barangay added successfully',
                 'data' => $barangay,
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_BARANGAYS_TABLE'
             ], 201);
             
         } catch (\Exception $e) {
@@ -329,7 +372,7 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Update location (region, city, or barangay)
+     * Update location (region, city, or barangay) in app_* tables
      */
     public function updateLocation($type, $id, Request $request)
     {
@@ -349,6 +392,8 @@ class LocationApiController extends Controller
 
             $name = $request->input('name');
             $description = $request->input('description', '');
+            $currentUser = $this->getCurrentUser();
+            $now = now();
             
             // Validate type and table
             $validTypes = ['region', 'city', 'barangay'];
@@ -359,8 +404,8 @@ class LocationApiController extends Controller
                 ], 400);
             }
             
-            $table = $type === 'region' ? 'regions' : 
-                    ($type === 'city' ? 'cities' : 'barangays');
+            $table = $type === 'region' ? 'app_regions' : 
+                    ($type === 'city' ? 'app_cities' : 'app_barangays');
             
             // Check if record exists
             $existing = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id]);
@@ -396,12 +441,22 @@ class LocationApiController extends Controller
                 ], 422);
             }
             
-            // Update the record
-            DB::table($table)->where('id', $id)->update([
+            // Get available columns
+            $columns = DB::select("SHOW COLUMNS FROM {$table}");
+            $columnNames = array_column($columns, 'Field');
+            
+            // Build update data
+            $updateData = [
                 'name' => $name,
-                'description' => $description,
-                'updated_at' => now()
-            ]);
+                'updated_at' => $now
+            ];
+            
+            if (in_array('description', $columnNames)) $updateData['description'] = $description;
+            if (in_array('modified_date', $columnNames)) $updateData['modified_date'] = $now;
+            if (in_array('modified_by', $columnNames)) $updateData['modified_by'] = $currentUser;
+            
+            // Update the record
+            DB::table($table)->where('id', $id)->update($updateData);
             
             // Get updated record
             $updatedRecord = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id])[0];
@@ -421,7 +476,7 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Delete location with cascade support
+     * Delete location with cascade support from app_* tables
      */
     public function deleteLocation($type, $id, Request $request)
     {
@@ -435,8 +490,8 @@ class LocationApiController extends Controller
                 ], 400);
             }
             
-            $table = $type === 'region' ? 'regions' : 
-                    ($type === 'city' ? 'cities' : 'barangays');
+            $table = $type === 'region' ? 'app_regions' : 
+                    ($type === 'city' ? 'app_cities' : 'app_barangays');
             
             // Check if record exists
             $existing = DB::select("SELECT * FROM {$table} WHERE id = ?", [$id]);
@@ -454,14 +509,14 @@ class LocationApiController extends Controller
             
             try {
                 if ($type === 'region') {
-                    // Check for dependent cities
-                    $cities = DB::select('SELECT * FROM cities WHERE region_id = ? AND is_active = 1', [$id]);
+                    // Check for dependent cities in app_cities
+                    $cities = DB::select('SELECT * FROM app_cities WHERE region_id = ? AND is_active = 1', [$id]);
                     
                     if (!empty($cities) && !$cascade) {
                         // Count total barangays in all cities
                         $barangayCount = 0;
                         foreach ($cities as $city) {
-                            $barangays = DB::select('SELECT COUNT(*) as count FROM barangays WHERE city_id = ? AND is_active = 1', [$city->id]);
+                            $barangays = DB::select('SELECT COUNT(*) as count FROM app_barangays WHERE city_id = ? AND is_active = 1', [$city->id]);
                             $barangayCount += $barangays[0]->count ?? 0;
                         }
                         
@@ -480,20 +535,20 @@ class LocationApiController extends Controller
                     }
                     
                     if ($cascade) {
-                        // Delete all barangays in cities of this region
+                        // Delete all barangays in cities of this region from app_barangays
                         foreach ($cities as $city) {
-                            DB::table('barangays')->where('city_id', $city->id)->delete();
+                            DB::table('app_barangays')->where('city_id', $city->id)->delete();
                         }
-                        // Delete all cities in this region
-                        DB::table('cities')->where('region_id', $id)->delete();
+                        // Delete all cities in this region from app_cities
+                        DB::table('app_cities')->where('region_id', $id)->delete();
                     }
                     
-                    // Delete the region
-                    DB::table('regions')->where('id', $id)->delete();
+                    // Delete the region from app_regions
+                    DB::table('app_regions')->where('id', $id)->delete();
                     
                 } elseif ($type === 'city') {
-                    // Check for dependent barangays
-                    $barangays = DB::select('SELECT * FROM barangays WHERE city_id = ? AND is_active = 1', [$id]);
+                    // Check for dependent barangays in app_barangays
+                    $barangays = DB::select('SELECT * FROM app_barangays WHERE city_id = ? AND is_active = 1', [$id]);
                     
                     if (!empty($barangays) && !$cascade) {
                         DB::rollBack();
@@ -510,21 +565,21 @@ class LocationApiController extends Controller
                     }
                     
                     if ($cascade) {
-                        // Delete all barangays in this city
-                        DB::table('barangays')->where('city_id', $id)->delete();
+                        // Delete all barangays in this city from app_barangays
+                        DB::table('app_barangays')->where('city_id', $id)->delete();
                     }
                     
-                    // Delete the city
-                    DB::table('cities')->where('id', $id)->delete();
+                    // Delete the city from app_cities
+                    DB::table('app_cities')->where('id', $id)->delete();
                     
                 } else { // barangay
-                    // Barangays have no dependents, safe to delete
-                    DB::table('barangays')->where('id', $id)->delete();
+                    // Barangays have no dependents, safe to delete from app_barangays
+                    DB::table('app_barangays')->where('id', $id)->delete();
                 }
                 
                 DB::commit();
                 
-                $message = ucfirst($type) . ' deleted successfully';
+                $message = ucfirst($type) . ' permanently deleted from database';
                 if ($cascade) {
                     $message .= ' (with all dependent locations)';
                 }
@@ -548,14 +603,14 @@ class LocationApiController extends Controller
     }
 
     /**
-     * Get statistics - Simple version
+     * Get statistics from app_* tables
      */
     public function getStatistics()
     {
         try {
-            $regions = DB::select('SELECT COUNT(*) as count FROM regions WHERE is_active = 1')[0]->count;
-            $cities = DB::select('SELECT COUNT(*) as count FROM cities WHERE is_active = 1')[0]->count;  
-            $barangays = DB::select('SELECT COUNT(*) as count FROM barangays WHERE is_active = 1')[0]->count;
+            $regions = DB::select('SELECT COUNT(*) as count FROM app_regions WHERE is_active = 1')[0]->count ?? 0;
+            $cities = DB::select('SELECT COUNT(*) as count FROM app_cities WHERE is_active = 1')[0]->count ?? 0;  
+            $barangays = DB::select('SELECT COUNT(*) as count FROM app_barangays WHERE is_active = 1')[0]->count ?? 0;
             
             return response()->json([
                 'success' => true,
@@ -565,7 +620,7 @@ class LocationApiController extends Controller
                     'barangays' => (int) $barangays,
                     'total' => (int) ($regions + $cities + $barangays)
                 ],
-                'source' => 'RAW_DATABASE_QUERIES'
+                'source' => 'APP_TABLES_QUERIES'
             ]);
         } catch (\Exception $e) {
             return response()->json([

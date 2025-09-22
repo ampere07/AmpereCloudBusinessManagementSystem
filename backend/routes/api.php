@@ -285,6 +285,16 @@ Route::prefix('plans')->group(function () {
     Route::delete('/{id}/force', [\App\Http\Controllers\Api\PlanApiController::class, 'forceDelete']);
 });
 
+// Router Models Management Routes - Using modem_router_sn table
+Route::prefix('router-models')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\RouterModelApiController::class, 'getStatistics']);
+    Route::get('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'show']);
+    Route::put('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'update']);
+    Route::delete('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'destroy']);
+});
+
 // Basic Cities endpoint for simple data (fallback)
 Route::prefix('cities')->group(function () {
     Route::get('/', function () {

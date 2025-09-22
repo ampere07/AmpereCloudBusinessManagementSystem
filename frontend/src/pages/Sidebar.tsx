@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -37,6 +37,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'application-visit', label: 'Application Visit', icon: Map },
     { id: 'location-list', label: 'Location List', icon: MapPin },
     { id: 'plan-list', label: 'Plan List', icon: List },
+    { id: 'router-models', label: 'Router Models', icon: Router },
     { id: 'inventory', label: 'Inventory', icon: Package },
     { id: 'logs', label: 'Logs', icon: FileText }
   ];

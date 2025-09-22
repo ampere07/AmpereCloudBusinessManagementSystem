@@ -49,11 +49,7 @@ class PlanApiController extends Controller
             
             $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM app_plans';
             
-            // Add WHERE clause if is_active column exists
-            if (in_array('is_active', $columnNames)) {
-                $selectQuery .= ' WHERE is_active = 1';
-            }
-            
+            // Don't filter by is_active - show all records
             $selectQuery .= ' ORDER BY name';
             
             $plans = DB::select($selectQuery);
@@ -288,7 +284,7 @@ class PlanApiController extends Controller
     }
 
     /**
-     * Remove the specified plan from app_plans table
+     * HARD DELETE - Permanently remove the specified plan from app_plans table
      */
     public function destroy($id)
     {
@@ -302,26 +298,22 @@ class PlanApiController extends Controller
                 ], 404);
             }
             
-            // Get available columns
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
-            $columnNames = array_column($columns, 'Field');
+            $plan = $existing[0];
             
-            if (in_array('is_active', $columnNames)) {
-                // Soft delete - set is_active to false
-                $updateData = ['is_active' => false];
-                if (in_array('updated_at', $columnNames)) {
-                    $updateData['updated_at'] = now();
-                }
-                DB::table('app_plans')->where('id', $id)->update($updateData);
+            // HARD DELETE - permanently remove from database
+            $deleted = DB::table('app_plans')->where('id', $id)->delete();
+            
+            if ($deleted) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Plan permanently deleted from database'
+                ]);
             } else {
-                // Hard delete if no is_active column
-                DB::table('app_plans')->where('id', $id)->delete();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to delete plan from database'
+                ], 500);
             }
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Plan deleted successfully'
-            ]);
             
         } catch (\Exception $e) {
             return response()->json([
@@ -340,14 +332,13 @@ class PlanApiController extends Controller
             $columns = DB::select("SHOW COLUMNS FROM app_plans");
             $columnNames = array_column($columns, 'Field');
             
-            $whereClause = in_array('is_active', $columnNames) ? ' WHERE is_active = 1' : '';
-            
-            $totalPlans = DB::select("SELECT COUNT(*) as count FROM app_plans{$whereClause}")[0]->count ?? 0;
+            // Don't filter by is_active - count all records
+            $totalPlans = DB::select("SELECT COUNT(*) as count FROM app_plans")[0]->count ?? 0;
             
             if (in_array('price', $columnNames)) {
-                $avgPrice = DB::select("SELECT AVG(price) as avg_price FROM app_plans{$whereClause}")[0]->avg_price ?? 0;
-                $minPrice = DB::select("SELECT MIN(price) as min_price FROM app_plans{$whereClause}")[0]->min_price ?? 0;
-                $maxPrice = DB::select("SELECT MAX(price) as max_price FROM app_plans{$whereClause}")[0]->max_price ?? 0;
+                $avgPrice = DB::select("SELECT AVG(price) as avg_price FROM app_plans")[0]->avg_price ?? 0;
+                $minPrice = DB::select("SELECT MIN(price) as min_price FROM app_plans")[0]->min_price ?? 0;
+                $maxPrice = DB::select("SELECT MAX(price) as max_price FROM app_plans")[0]->max_price ?? 0;
             } else {
                 $avgPrice = $minPrice = $maxPrice = 0;
             }
@@ -355,7 +346,7 @@ class PlanApiController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'total_active_plans' => (int) $totalPlans,
+                    'total_plans' => (int) $totalPlans,
                     'average_price' => round($avgPrice, 2),
                     'min_price' => (float) $minPrice,
                     'max_price' => (float) $maxPrice
