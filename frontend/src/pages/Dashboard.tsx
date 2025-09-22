@@ -9,6 +9,7 @@ import ApplicationManagement from './ApplicationManagement';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
+import LocationList from './LocationList';
 import Logs from './Logs';
 
 interface DashboardProps {
@@ -36,6 +37,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <ServiceOrder />;
       case 'application-visit':
         return <ApplicationVisit />;
+      case 'location-list':
+        return <LocationList />;
       case 'logs':
         return <Logs />;
       case 'dashboard':

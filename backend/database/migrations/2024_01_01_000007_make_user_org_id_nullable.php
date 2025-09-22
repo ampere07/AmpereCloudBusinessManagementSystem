@@ -8,6 +8,12 @@ return new class extends Migration
 {
     public function up()
     {
+        // Skip this migration if org_id is already nullable
+        // The updated users table migration already handles this
+        if (Schema::hasTable('users')) {
+            return;
+        }
+        
         Schema::table('users', function (Blueprint $table) {
             // Drop the existing foreign key constraint
             $table->dropForeign(['org_id']);

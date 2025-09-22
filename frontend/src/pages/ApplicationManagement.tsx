@@ -4,6 +4,7 @@ import ApplicationDetails from '../components/ApplicationDetails';
 import { getApplications } from '../services/applicationService';
 import { getCities, City } from '../services/cityService';
 import { Application as ApiApplication } from '../types/application';
+import { locationEvents, LOCATION_EVENTS } from '../services/locationEvents';
 
 interface Application {
   id: string;
@@ -106,6 +107,28 @@ const ApplicationManagement: React.FC = () => {
     };
     
     fetchApplications();
+  }, []);
+  
+  // Listen for location updates to refresh city data
+  useEffect(() => {
+    const handleLocationUpdate = async () => {
+      try {
+        console.log('Location updated, refreshing cities...');
+        const citiesData = await getCities();
+        console.log('Updated cities:', citiesData);
+        setCities(citiesData || []);
+      } catch (err) {
+        console.error('Failed to refresh cities after location update:', err);
+      }
+    };
+
+    // Subscribe to location update events
+    locationEvents.on(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
+
+    // Cleanup subscription
+    return () => {
+      locationEvents.off(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
+    };
   }, []);
   
   // Generate location items with counts from cities data

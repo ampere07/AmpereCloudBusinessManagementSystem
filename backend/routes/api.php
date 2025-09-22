@@ -12,6 +12,7 @@ use App\Http\Controllers\LogsController;
 use App\Http\Controllers\ApplicationController;
 use App\Http\Controllers\JobOrderController;
 use App\Http\Controllers\ApplicationVisitController;
+use App\Http\Controllers\LocationController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -181,8 +182,8 @@ Route::prefix('logs')->middleware('ensure.database.tables')->group(function () {
     Route::delete('/clear', [LogsController::class, 'clear']);
 });
 
-// Applications Management Routes
-Route::prefix('applications')->middleware('ensure.database.tables')->group(function () {
+// Applications Management Routes - Temporarily removed middleware
+Route::prefix('applications')->group(function () {
     Route::get('/', [ApplicationController::class, 'index']);
     Route::post('/', [ApplicationController::class, 'store']);
     Route::get('/{id}', [ApplicationController::class, 'show']);
@@ -216,4 +217,50 @@ Route::prefix('application-visits')->middleware('ensure.database.tables')->group
     Route::put('/{id}', [ApplicationVisitController::class, 'update']);
     Route::delete('/{id}', [ApplicationVisitController::class, 'destroy']);
     Route::get('/application/{applicationId}', [ApplicationVisitController::class, 'getByApplication']);
+});
+
+// Location Management Routes
+Route::prefix('locations')->group(function () {
+    // Region routes
+    Route::get('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'getRegions']);
+    Route::post('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+    Route::get('/regions/{regionId}/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'getCitiesByRegion']);
+    
+    // City routes
+    Route::post('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+    Route::get('/cities/{cityId}/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'getBarangaysByCity']);
+    
+    // Barangay routes
+    Route::post('/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+    
+    // General location routes
+    Route::get('/all', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllLocations']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LocationApiController::class, 'getStatistics']);
+    Route::put('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+    Route::delete('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+    
+    // Legacy routes (keep for compatibility)
+    Route::get('/', [LocationController::class, 'index']);
+    Route::post('/', [LocationController::class, 'store']);
+    Route::get('/stats', [LocationController::class, 'getStats']);
+    Route::get('/type/{type}', [LocationController::class, 'getByType']);
+    Route::get('/parent/{parentId}', [LocationController::class, 'getChildren']);
+    Route::get('/{id}', [LocationController::class, 'show']);
+    Route::put('/{id}', [LocationController::class, 'update']);
+    Route::delete('/{id}', [LocationController::class, 'destroy']);
+    Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
+});
+
+// Cities/Geographic Data Routes
+Route::prefix('cities')->group(function () {
+    Route::get('/', function () {
+        // Return basic city data for Philippines regions
+        return response()->json([
+            ['id' => 1, 'region_id' => 1, 'name' => 'Binangonan'],
+            ['id' => 2, 'region_id' => 1, 'name' => 'Tagpos'],
+            ['id' => 3, 'region_id' => 1, 'name' => 'Tatala'],
+            ['id' => 4, 'region_id' => 1, 'name' => 'Pantok'],
+            ['id' => 5, 'region_id' => 1, 'name' => 'Manila']
+        ]);
+    });
 });
