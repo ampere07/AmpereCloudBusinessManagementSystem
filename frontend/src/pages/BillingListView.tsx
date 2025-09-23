@@ -1,38 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CreditCard, Search, Circle, X } from 'lucide-react';
+import BillingListViewDetails from '../components/BillingListViewDetails';
+import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
-import BillingDetails from '../components/BillingDetails';
-
-interface BillingRecord {
-  id: string;
-  applicationId: string;
-  customerName: string;
-  address: string;
-  status: 'Active' | 'Inactive';
-  balance: number;
-  onlineStatus: 'Online' | 'Offline';
-  cityId?: number | null;
-  regionId?: number | null;
-  timestamp?: string;
-  billingStatus?: string;
-  dateInstalled?: string;
-  contactNumber?: string;
-  emailAddress?: string;
-  plan?: string;
-  username?: string;
-  connectionType?: string;
-  routerModel?: string;
-  routerModemSN?: string;
-  lcpnap?: string;
-  port?: string;
-  vlan?: string;
-  billingDay?: number;
-  totalPaid?: number;
-  provider?: string;
-  lcp?: string;
-  nap?: string;
-}
 
 interface LocationItem {
   id: string;
@@ -50,138 +21,122 @@ const BillingListView: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Essential table columns - only show the most important ones initially
+  const [visibleColumns, setVisibleColumns] = useState([
+    'status', 'billingStatus', 'accountNo', 'dateInstalled', 'customerName',
+    'address', 'contactNumber', 'emailAddress', 'plan', 'balance'
+  ]);
+
+  // All available columns for the table
+  const allColumns = [
+    { key: 'status', label: 'Status', width: 'min-w-28' },
+    { key: 'billingStatus', label: 'Billing Status', width: 'min-w-28' },
+    { key: 'accountNo', label: 'Account No.', width: 'min-w-32' },
+    { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-28' },
+    { key: 'customerName', label: 'Full Name', width: 'min-w-40' },
+    { key: 'address', label: 'Address', width: 'min-w-56' },
+    { key: 'contactNumber', label: 'Contact Number', width: 'min-w-36' },
+    { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
+    { key: 'plan', label: 'Plan', width: 'min-w-40' },
+    { key: 'balance', label: 'Account Balance', width: 'min-w-32' },
+    { key: 'username', label: 'Username', width: 'min-w-32' },
+    { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
+    { key: 'routerModel', label: 'Router Model', width: 'min-w-32' },
+    { key: 'routerModemSN', label: 'Router/Modem SN', width: 'min-w-36' },
+    { key: 'lcpnap', label: 'LCPNAP', width: 'min-w-32' },
+    { key: 'port', label: 'PORT', width: 'min-w-28' },
+    { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
+    { key: 'billingDay', label: 'Billing Day', width: 'min-w-28' },
+    { key: 'totalPaid', label: 'Total Paid', width: 'min-w-28' },
+    { key: 'provider', label: 'Provider', width: 'min-w-24' }
+  ];
+
+  // Fetch location data
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchLocationData = async () => {
       try {
-        setIsLoading(true);
-        
         const [citiesData, regionsData] = await Promise.all([
-          getCities().catch(() => []),
-          getRegions().catch(() => [])
+          getCities(),
+          getRegions()
         ]);
-        
         setCities(citiesData || []);
         setRegions(regionsData || []);
-        
-        const sampleData: BillingRecord[] = [
-          {
-            id: '1',
-            applicationId: '202308029',
-            customerName: 'Joan S Vergara',
-            address: 'Block 78 Lot 16 Mabuhay Homes Phase 2A, Darangan, Binangonan, Rizal',
-            status: 'Active',
-            balance: 0,
-            onlineStatus: 'Online',
-            cityId: 1,
-            regionId: 1,
-            timestamp: '2023-08-02',
-            billingStatus: 'Active',
-            dateInstalled: '9/18/2025',
-            contactNumber: '9673808916',
-            emailAddress: 'franckiepernyra18@gmail.com',
-            plan: 'SwitchLite - P699',
-            username: 'vergarajp317251011',
-            connectionType: 'Fiber',
-            routerModel: 'UT-XPo48c-S',
-            routerModemSN: 'Sisco7992fffd',
-            lcpnap: 'LCP 195 NAP 00',
-            port: 'PORT 004',
-            vlan: '1000',
-            billingDay: 23,
-            totalPaid: 0,
-            provider: 'SWITCH',
-            lcp: 'LCP 195',
-            nap: 'NAP 00'
-          },
-          {
-            id: '2',
-            applicationId: '202308028',
-            customerName: 'Wesley U Aragones',
-            address: '75 C. Bolado Ave, Tatala, Binangonan, Rizal',
-            status: 'Active',
-            balance: 0,
-            onlineStatus: 'Offline',
-            cityId: 1,
-            regionId: 1,
-            timestamp: '2023-08-02',
-            billingStatus: 'Active',
-            dateInstalled: '9/18/2025',
-            contactNumber: '9359727692',
-            emailAddress: 'wesleyaragones07@gmail.com',
-            plan: 'SwitchLite - P699',
-            username: 'aragonesw918251332',
-            connectionType: 'Fiber',
-            routerModel: 'UT-XPo48c-S',
-            routerModemSN: 'Sisco7992ffb5',
-            lcpnap: 'LCP 113 NAP 00',
-            port: 'PORT 007',
-            vlan: '1000',
-            billingDay: 23,
-            totalPaid: 0,
-            provider: 'SWITCH',
-            lcp: 'LCP 113',
-            nap: 'NAP 00'
-          }
-        ];
-        
-        setBillingRecords(sampleData);
-        setError(null);
       } catch (err) {
-        console.error('Failed to fetch data:', err);
-        setError('Failed to load billing records. Please try again.');
-        setBillingRecords([]);
+        console.error('Failed to fetch location data:', err);
         setCities([]);
         setRegions([]);
+      }
+    };
+    
+    fetchLocationData();
+  }, []);
+
+  // Fetch billing data
+  useEffect(() => {
+    const fetchBillingData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getBillingRecords();
+        setBillingRecords(data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch billing records:', err);
+        setError('Failed to load billing records. Please try again.');
+        setBillingRecords([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchAllData();
+    fetchBillingData();
   }, []);
 
-  const getCityName = (cityId: number | null | undefined): string => {
-    if (!cityId) return 'Unknown City';
-    const city = cities.find(c => c.id === cityId);
-    return city ? city.name : `City ${cityId}`;
-  };
+  // Memoize city name lookup for performance
+  const getCityName = useMemo(() => {
+    const cityMap = new Map(cities.map(c => [c.id, c.name]));
+    return (cityId: number | null | undefined): string => {
+      if (!cityId) return 'Unknown City';
+      return cityMap.get(cityId) || `City ${cityId}`;
+    };
+  }, [cities]);
 
-  const locationItems: LocationItem[] = [
-    {
-      id: 'all',
-      name: 'All',
-      count: billingRecords.length
-    }
-  ];
-  
-  const cityNames = ['Angono', 'Binangonan', 'Cardona'];
-  cityNames.forEach((cityName) => {
-    const cityData = cities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
-    const cityCount = billingRecords.filter(record => 
-      cityData ? record.cityId === cityData.id : false
-    ).length;
+  // Memoize location items for performance
+  const locationItems: LocationItem[] = useMemo(() => {
+    const items: LocationItem[] = [
+      {
+        id: 'all',
+        name: 'All',
+        count: billingRecords.length
+      }
+    ];
     
-    locationItems.push({
-      id: cityData ? String(cityData.id) : cityName.toLowerCase(),
-      name: cityName,
-      count: cityCount
+    // Add cities with counts
+    cities.forEach((city) => {
+      const cityCount = billingRecords.filter(record => record.cityId === city.id).length;
+      items.push({
+        id: String(city.id),
+        name: city.name,
+        count: cityCount
+      });
     });
-  });
 
-  const filteredBillingRecords = billingRecords.filter(record => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           record.cityId === Number(selectedLocation) ||
-                           (selectedLocation === 'angono' && getCityName(record.cityId).toLowerCase() === 'angono') ||
-                           (selectedLocation === 'binangonan' && getCityName(record.cityId).toLowerCase() === 'binangonan') ||
-                           (selectedLocation === 'cardona' && getCityName(record.cityId).toLowerCase() === 'cardona');
-    
-    const matchesSearch = searchQuery === '' || 
-                         record.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.applicationId.includes(searchQuery);
-    
-    return matchesLocation && matchesSearch;
-  });
+    return items;
+  }, [cities, billingRecords]);
+
+  // Memoize filtered records for performance
+  const filteredBillingRecords = useMemo(() => {
+    return billingRecords.filter(record => {
+      const matchesLocation = selectedLocation === 'all' || 
+                             record.cityId === Number(selectedLocation);
+      
+      const matchesSearch = searchQuery === '' || 
+                           record.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           record.applicationId.includes(searchQuery);
+      
+      return matchesLocation && matchesSearch;
+    });
+  }, [billingRecords, selectedLocation, searchQuery]);
 
   const handleRowClick = (record: BillingRecord) => {
     setSelectedBilling(record);
@@ -190,6 +145,94 @@ const BillingListView: React.FC = () => {
   const handleCloseDetails = () => {
     setSelectedBilling(null);
   };
+
+  const handleRefresh = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBillingRecords();
+      setBillingRecords(data);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to refresh billing records:', err);
+      setError('Failed to refresh billing records. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const toggleColumn = (columnKey: string) => {
+    setVisibleColumns(prev => 
+      prev.includes(columnKey)
+        ? prev.filter(col => col !== columnKey)
+        : [...prev, columnKey]
+    );
+  };
+
+  const renderCellValue = (record: BillingRecord, columnKey: string) => {
+    switch (columnKey) {
+      case 'status':
+        return (
+          <div className="flex items-center space-x-2">
+            <Circle 
+              className={`h-3 w-3 ${
+                record.onlineStatus === 'Online' 
+                  ? 'text-green-400 fill-green-400' 
+                  : 'text-gray-400 fill-gray-400'
+              }`} 
+            />
+            <span className={`text-xs ${
+              record.onlineStatus === 'Online' 
+                ? 'text-green-400' 
+                : 'text-gray-400'
+            }`}>
+              {record.onlineStatus}
+            </span>
+          </div>
+        );
+      case 'billingStatus':
+        return record.billingStatus || 'Active';
+      case 'accountNo':
+        return <span className="text-red-400">{record.applicationId}</span>;
+      case 'dateInstalled':
+        return record.dateInstalled || '-';
+      case 'customerName':
+        return record.customerName;
+      case 'address':
+        return <span title={record.address}>{record.address}</span>;
+      case 'contactNumber':
+        return record.contactNumber || '-';
+      case 'emailAddress':
+        return record.emailAddress || '-';
+      case 'plan':
+        return record.plan || '-';
+      case 'balance':
+        return `₱ ${record.balance.toFixed(2)}`;
+      case 'username':
+        return record.username || '-';
+      case 'connectionType':
+        return record.connectionType || '-';
+      case 'routerModel':
+        return record.routerModel || '-';
+      case 'routerModemSN':
+        return record.routerModemSN || '-';
+      case 'lcpnap':
+        return record.lcpnap || '-';
+      case 'port':
+        return record.port || '-';
+      case 'vlan':
+        return record.vlan || '-';
+      case 'billingDay':
+        return record.billingDay || '-';
+      case 'totalPaid':
+        return `₱ ${record.totalPaid?.toFixed(2) || '0.00'}`;
+      case 'provider':
+        return record.provider || '-';
+      default:
+        return '-';
+    }
+  };
+
+  const displayedColumns = allColumns.filter(col => visibleColumns.includes(col.key));
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -242,6 +285,13 @@ const BillingListView: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+              >
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
           </div>
           
@@ -259,37 +309,26 @@ const BillingListView: React.FC = () => {
                 <div className="px-4 py-12 text-center text-red-400">
                   <p>{error}</p>
                   <button 
-                    onClick={() => window.location.reload()}
+                    onClick={handleRefresh}
                     className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">
                     Retry
                   </button>
                 </div>
               ) : (
-                <div className="overflow-x-scroll overflow-y-hidden">
+                <div className="overflow-x-auto overflow-y-hidden">
                   <table className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">Status</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">Billing Status</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-32 whitespace-nowrap">Account No.</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">Date Installed</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-40 whitespace-nowrap">Full Name</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-56 whitespace-nowrap">Address</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-36 whitespace-nowrap">Contact Number</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-48 whitespace-nowrap">Email Address</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-40 whitespace-nowrap">Plan</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-32 whitespace-nowrap">Account Balance</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-32 whitespace-nowrap">Username</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-36 whitespace-nowrap">Connection Type</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-32 whitespace-nowrap">Router Model</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-36 whitespace-nowrap">Router/Modem SN</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-32 whitespace-nowrap">LCPNAP</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">PORT</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-24 whitespace-nowrap">VLAN</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">Billing Day</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-28 whitespace-nowrap">Total Paid</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal border-r border-gray-700 bg-gray-800 min-w-24 whitespace-nowrap">Provider</th>
-                        <th className="text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 min-w-24 whitespace-nowrap">LCP</th>
+                        {displayedColumns.map((column, index) => (
+                          <th
+                            key={column.key}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${
+                              index < displayedColumns.length - 1 ? 'border-r border-gray-700' : ''
+                            }`}
+                          >
+                            {column.label}
+                          </th>
+                        ))}
                       </tr>
                     </thead>
                     <tbody>
@@ -302,49 +341,21 @@ const BillingListView: React.FC = () => {
                             }`}
                             onClick={() => handleRowClick(record)}
                           >
-                            <td className="py-4 px-3 border-r border-gray-800 whitespace-nowrap">
-                              <div className="flex items-center space-x-2">
-                                <Circle 
-                                  className={`h-3 w-3 ${
-                                    record.onlineStatus === 'Online' 
-                                      ? 'text-green-400 fill-green-400' 
-                                      : 'text-gray-400 fill-gray-400'
-                                  }`} 
-                                />
-                                <span className={`text-xs ${
-                                  record.onlineStatus === 'Online' 
-                                    ? 'text-green-400' 
-                                    : 'text-gray-400'
-                                }`}>
-                                  {record.onlineStatus}
-                                </span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.billingStatus || 'Active'}</td>
-                            <td className="py-4 px-3 text-red-400 border-r border-gray-800 whitespace-nowrap">{record.applicationId}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.dateInstalled || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.customerName}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap" title={record.address}>{record.address}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.contactNumber || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.emailAddress || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.plan || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">₱ {record.balance.toFixed(2)}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.username || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.connectionType || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.routerModel || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.routerModemSN || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.lcpnap || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.port || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.vlan || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.billingDay || '-'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">₱ {record.totalPaid?.toFixed(2) || '0.00'}</td>
-                            <td className="py-4 px-3 text-white border-r border-gray-800 whitespace-nowrap">{record.provider || '-'}</td>
-                            <td className="py-4 px-3 text-white whitespace-nowrap">{record.lcp || '-'}</td>
+                            {displayedColumns.map((column, index) => (
+                              <td
+                                key={column.key}
+                                className={`py-4 px-3 text-white whitespace-nowrap ${
+                                  index < displayedColumns.length - 1 ? 'border-r border-gray-800' : ''
+                                }`}
+                              >
+                                {renderCellValue(record, column.key)}
+                              </td>
+                            ))}
                           </tr>
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={21} className="px-4 py-12 text-center text-gray-400">
+                          <td colSpan={displayedColumns.length} className="px-4 py-12 text-center text-gray-400">
                             No billing records found matching your filters
                           </td>
                         </tr>
@@ -368,7 +379,7 @@ const BillingListView: React.FC = () => {
               <X size={20} />
             </button>
           </div>
-          <BillingDetails
+          <BillingListViewDetails
             billingRecord={selectedBilling}
             onlineStatusRecords={[]}
           />
