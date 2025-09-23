@@ -9,6 +9,7 @@ import ApplicationManagement from './ApplicationManagement';
 import Billing from './Billing';
 import BillingListView from './BillingListView';
 import TransactionList from './TransactionList';
+import TransactionsPendingList from './TransactionsPendingList';
 import PaymentPortal from './PaymentPortal';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
@@ -17,6 +18,8 @@ import LocationList from './LocationList';
 import PlanList from './PlanList';
 import RouterModelList from './RouterModelList';
 import Inventory from './Inventory';
+import ExpensesLog from './ExpensesLog';
+import DailyExpenses from './DailyExpenses';
 import Logs from './Logs';
 
 interface DashboardProps {
@@ -44,6 +47,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <BillingListView />;
       case 'transaction-list':
         return <TransactionList />;
+      case 'transactions-pending-list':
+        return <TransactionsPendingList />;
       case 'payment-portal':
         return <PaymentPortal />;
       case 'job-order':
@@ -60,6 +65,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <RouterModelList />;
       case 'inventory':
         return <Inventory />;
+      case 'expenses-log':
+        return <ExpensesLog />;
+      case 'daily-expenses':
+        return <DailyExpenses />;
       case 'logs':
         return <Logs />;
       case 'dashboard':

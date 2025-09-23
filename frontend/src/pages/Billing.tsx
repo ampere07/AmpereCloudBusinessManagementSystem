@@ -1,21 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { CreditCard, Search, Circle, X } from 'lucide-react';
+import BillingDetails from '../components/BillingDetails';
+import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
-import BillingDetails from '../components/BillingDetails';
-
-interface BillingRecord {
-  id: string;
-  applicationId: string;
-  customerName: string;
-  address: string;
-  status: 'Active' | 'Inactive';
-  balance: number;
-  onlineStatus: 'Online' | 'Offline';
-  cityId?: number | null;
-  regionId?: number | null;
-  timestamp?: string;
-}
 
 interface LocationItem {
   id: string;
@@ -33,104 +21,92 @@ const Billing: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Fetch location data
   useEffect(() => {
-    const fetchAllData = async () => {
+    const fetchLocationData = async () => {
       try {
-        setIsLoading(true);
-        
         const [citiesData, regionsData] = await Promise.all([
-          getCities().catch(() => []),
-          getRegions().catch(() => [])
+          getCities(),
+          getRegions()
         ]);
-        
         setCities(citiesData || []);
         setRegions(regionsData || []);
-        
-        const sampleData: BillingRecord[] = [
-          {
-            id: '1',
-            applicationId: '202308029',
-            customerName: 'Joan S Vergara',
-            address: 'Block 78 Lot 16 Mabuhay Homes Phase 2A, Darangan, Binangonan, Rizal',
-            status: 'Active',
-            balance: 0,
-            onlineStatus: 'Online',
-            cityId: 1,
-            regionId: 1,
-            timestamp: '2023-08-02'
-          },
-          {
-            id: '2',
-            applicationId: '202308028',
-            customerName: 'Wesley U Aragones',
-            address: '75 C. Bolado Ave, Tatala, Binangonan, Rizal',
-            status: 'Active',
-            balance: 0,
-            onlineStatus: 'Offline',
-            cityId: 1,
-            regionId: 1,
-            timestamp: '2023-08-02'
-          }
-        ];
-        
-        setBillingRecords(sampleData);
-        setError(null);
       } catch (err) {
-        console.error('Failed to fetch data:', err);
-        setError('Failed to load billing records. Please try again.');
-        setBillingRecords([]);
+        console.error('Failed to fetch location data:', err);
         setCities([]);
         setRegions([]);
+      }
+    };
+    
+    fetchLocationData();
+  }, []);
+
+  // Fetch billing data
+  useEffect(() => {
+    const fetchBillingData = async () => {
+      try {
+        setIsLoading(true);
+        const data = await getBillingRecords();
+        setBillingRecords(data);
+        setError(null);
+      } catch (err) {
+        console.error('Failed to fetch billing records:', err);
+        setError('Failed to load billing records. Please try again.');
+        setBillingRecords([]);
       } finally {
         setIsLoading(false);
       }
     };
     
-    fetchAllData();
+    fetchBillingData();
   }, []);
 
-  const getCityName = (cityId: number | null | undefined): string => {
-    if (!cityId) return 'Unknown City';
-    const city = cities.find(c => c.id === cityId);
-    return city ? city.name : `City ${cityId}`;
-  };
+  // Memoize city name lookup for performance
+  const getCityName = useMemo(() => {
+    const cityMap = new Map(cities.map(c => [c.id, c.name]));
+    return (cityId: number | null | undefined): string => {
+      if (!cityId) return 'Unknown City';
+      return cityMap.get(cityId) || `City ${cityId}`;
+    };
+  }, [cities]);
 
-  const locationItems: LocationItem[] = [
-    {
-      id: 'all',
-      name: 'All',
-      count: billingRecords.length
-    }
-  ];
-  
-  const cityNames = ['Angono', 'Binangonan', 'Cardona'];
-  cityNames.forEach((cityName) => {
-    const cityData = cities.find(c => c.name.toLowerCase() === cityName.toLowerCase());
-    const cityCount = billingRecords.filter(record => 
-      cityData ? record.cityId === cityData.id : false
-    ).length;
+  // Memoize location items for performance
+  const locationItems: LocationItem[] = useMemo(() => {
+    const items: LocationItem[] = [
+      {
+        id: 'all',
+        name: 'All',
+        count: billingRecords.length
+      }
+    ];
     
-    locationItems.push({
-      id: cityData ? String(cityData.id) : cityName.toLowerCase(),
-      name: cityName,
-      count: cityCount
+    // Add cities with counts
+    cities.forEach((city) => {
+      const cityCount = billingRecords.filter(record => record.cityId === city.id).length;
+      items.push({
+        id: String(city.id),
+        name: city.name,
+        count: cityCount
+      });
     });
-  });
 
-  const filteredBillingRecords = billingRecords.filter(record => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           record.cityId === Number(selectedLocation) ||
-                           (selectedLocation === 'angono' && getCityName(record.cityId).toLowerCase() === 'angono') ||
-                           (selectedLocation === 'binangonan' && getCityName(record.cityId).toLowerCase() === 'binangonan') ||
-                           (selectedLocation === 'cardona' && getCityName(record.cityId).toLowerCase() === 'cardona');
-    
-    const matchesSearch = searchQuery === '' || 
-                         record.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.applicationId.includes(searchQuery);
-    
-    return matchesLocation && matchesSearch;
-  });
+    return items;
+  }, [cities, billingRecords]);
+
+  // Memoize filtered records for performance
+  const filteredBillingRecords = useMemo(() => {
+    return billingRecords.filter(record => {
+      const matchesLocation = selectedLocation === 'all' || 
+                             record.cityId === Number(selectedLocation);
+      
+      const matchesSearch = searchQuery === '' || 
+                           record.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           record.applicationId.includes(searchQuery);
+      
+      return matchesLocation && matchesSearch;
+    });
+  }, [billingRecords, selectedLocation, searchQuery]);
 
   const handleRecordClick = (record: BillingRecord) => {
     setSelectedBilling(record);
@@ -138,6 +114,20 @@ const Billing: React.FC = () => {
 
   const handleCloseDetails = () => {
     setSelectedBilling(null);
+  };
+
+  const handleRefresh = async () => {
+    try {
+      setIsLoading(true);
+      const data = await getBillingRecords();
+      setBillingRecords(data);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to refresh billing records:', err);
+      setError('Failed to refresh billing records. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -191,6 +181,13 @@ const Billing: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+              >
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
           </div>
           
@@ -208,7 +205,7 @@ const Billing: React.FC = () => {
                 <div className="px-4 py-12 text-center text-red-400">
                   <p>{error}</p>
                   <button 
-                    onClick={() => window.location.reload()}
+                    onClick={handleRefresh}
                     className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">
                     Retry
                   </button>

@@ -442,7 +442,7 @@ const LocationList: React.FC = () => {
                   setFormData({ name: '', city: '', region: '', id: idCounter.toString() });
                   setShowAddPanel(true);
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
               >
                 <Plus className="h-4 w-4" />
                 Add

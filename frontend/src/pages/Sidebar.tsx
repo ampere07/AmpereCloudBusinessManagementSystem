@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -20,6 +20,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
 
   const menuItems: MenuItem[] = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'billing', label: 'Billing', icon: CreditCard },
     {
       id: 'users',
       label: 'Users',
@@ -31,10 +32,15 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       ]
     },
     { id: 'application-management', label: 'Application', icon: FileCheck },
-    { id: 'billing', label: 'Billing', icon: CreditCard },
     { id: 'job-order', label: 'Job Order', icon: Wrench },
     { id: 'service-order', label: 'Service Order', icon: Wrench },
     { id: 'application-visit', label: 'Application Visit', icon: Map },
+    { id: 'billing-list-view', label: 'Billing List View', icon: List },
+    { id: 'payment-portal', label: 'Payment Portal', icon: DollarSign },
+    { id: 'transaction-list', label: 'Transaction List', icon: Receipt },
+    { id: 'transactions-pending-list', label: 'Transactions Pending List', icon: Clock },
+    { id: 'expenses-log', label: 'Expenses Log', icon: FileBarChart },
+    { id: 'daily-expenses', label: 'Daily Expenses', icon: Calendar },
     { id: 'location-list', label: 'Location List', icon: MapPin },
     { id: 'plan-list', label: 'Plan List', icon: List },
     { id: 'router-models', label: 'Router Models', icon: Router },

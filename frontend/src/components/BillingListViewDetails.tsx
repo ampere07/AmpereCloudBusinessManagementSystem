@@ -13,12 +13,12 @@ interface OnlineStatusRecord {
   splynxId: string;
 }
 
-interface BillingDetailsProps {
+interface BillingListViewDetailsProps {
   billingRecord: BillingDetailRecord;
   onlineStatusRecords?: OnlineStatusRecord[];
 }
 
-const BillingDetails: React.FC<BillingDetailsProps> = ({
+const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
   billingRecord,
   onlineStatusRecords = []
 }) => {
@@ -570,4 +570,4 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
   );
 };
 
-export default BillingDetails;
+export default BillingListViewDetails;
