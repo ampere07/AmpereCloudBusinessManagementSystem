@@ -33,6 +33,32 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   const renderContent = () => {
     switch (activeSection) {
+      case 'customer-map':
+        return <div className="p-6 text-white">Customer Map - Coming Soon</div>;
+      case 'sales-agent-list':
+        return <div className="p-6 text-white">Sales Agent List - Coming Soon</div>;
+      case 'soa':
+        return <div className="p-6 text-white">SOA - Coming Soon</div>;
+      case 'invoice':
+        return <div className="p-6 text-white">Invoice - Coming Soon</div>;
+      case 'overdue':
+        return <div className="p-6 text-white">Overdue - Coming Soon</div>;
+      case 'dc-notice':
+        return <div className="p-6 text-white">DC Notice - Coming Soon</div>;
+      case 'discounts':
+        return <div className="p-6 text-white">Discounts - Coming Soon</div>;
+      case 'advanced-payment':
+        return <div className="p-6 text-white">Advanced Payment - Coming Soon</div>;
+      case 'staggered-payment':
+        return <div className="p-6 text-white">Staggered Payment - Coming Soon</div>;
+      case 'staggered-installation':
+        return <div className="p-6 text-white">Staggered Installation - Coming Soon</div>;
+      case 'mass-rebate':
+        return <div className="p-6 text-white">Mass Rebate - Coming Soon</div>;
+      case 'sms-blast':
+        return <div className="p-6 text-white">SMS Blast - Coming Soon</div>;
+      case 'sms-blast-logs':
+        return <div className="p-6 text-white">SMS Blast Logs - Coming Soon</div>;
       case 'user-management':
         return <UserManagement />;
       case 'organization-management':

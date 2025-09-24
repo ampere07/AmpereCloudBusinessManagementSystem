@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -34,13 +34,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'application-management', label: 'Application', icon: FileCheck },
     { id: 'job-order', label: 'Job Order', icon: Wrench },
     { id: 'service-order', label: 'Service Order', icon: Wrench },
-    { id: 'application-visit', label: 'Application Visit', icon: Map },
+    { id: 'application-visit', label: 'Application Visit', icon: MapPin },
     { id: 'billing-list-view', label: 'Billing List View', icon: List },
     { id: 'payment-portal', label: 'Payment Portal', icon: DollarSign },
     { id: 'transaction-list', label: 'Transaction List', icon: Receipt },
     { id: 'transactions-pending-list', label: 'Transactions Pending List', icon: Clock },
     { id: 'expenses-log', label: 'Expenses Log', icon: FileBarChart },
     { id: 'daily-expenses', label: 'Daily Expenses', icon: Calendar },
+    { id: 'customer-map', label: 'Customer Map', icon: Map },
+    { id: 'sales-agent-list', label: 'Sales Agent List', icon: UserCheck },
+    { id: 'soa', label: 'SOA', icon: FileText },
+    { id: 'invoice', label: 'Invoice', icon: Receipt },
+    { id: 'overdue', label: 'Overdue', icon: Clock },
+    { id: 'dc-notice', label: 'DC Notice', icon: AlertTriangle },
+    { id: 'discounts', label: 'Discounts', icon: Tag },
+    { id: 'advanced-payment', label: 'Advanced Payment', icon: CreditCard },
+    { id: 'staggered-payment', label: 'Staggered Payment', icon: Calendar },
+    { id: 'staggered-installation', label: 'Staggered Installation', icon: Calendar },
+    { id: 'mass-rebate', label: 'Mass Rebate', icon: DollarSign },
+    { id: 'sms-blast', label: 'SMS Blast', icon: MessageSquare },
+    { id: 'sms-blast-logs', label: 'SMS Blast Logs', icon: List },
     { id: 'location-list', label: 'Location List', icon: MapPin },
     { id: 'plan-list', label: 'Plan List', icon: List },
     { id: 'router-models', label: 'Router Models', icon: Router },
@@ -106,7 +119,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
 
   return (
     <div className={`${isCollapsed ? 'w-16' : 'w-64'} h-full bg-gray-800 border-r border-gray-600 flex flex-col transition-all duration-300`}>
-      <nav className="flex-1 py-4">
+      <nav className="flex-1 py-4 overflow-y-auto scrollbar-hide">
         {menuItems.map(item => renderMenuItem(item))}
       </nav>
       
