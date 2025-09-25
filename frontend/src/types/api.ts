@@ -135,3 +135,14 @@ export interface Application {
 export interface ApplicationsResponse {
   applications: Application[];
 }
+
+export interface SalesAgent {
+  id: number;
+  name: string;
+  email?: string;
+  mobile_number?: string;
+  territory?: string;
+  commission_rate?: number;
+  created_at: string;
+  updated_at: string;
+}

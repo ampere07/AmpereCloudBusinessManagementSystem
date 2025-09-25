@@ -40,7 +40,7 @@ interface ApplicationVisitDetailsProps {
     created_at?: string;
     updated_at?: string;
     application_status?: string;
-    [key: string]: any; // Allow any additional fields
+    [key: string]: any;
   };
   onClose: () => void;
 }

@@ -1,4 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import DCNotice from './DCNotice';
+import Discounts from './Discounts';
+import AdvancePayment from './AdvancePayment';
+import Overdue from './Overdue';
+import StaggeredPayment from './StaggeredPayment';
+import StaggeredInstallation from './StaggeredInstallation';
+import MassRebate from './MassRebate';
+import SMSBlast from './SMSBlast';
+import SMSBlastLogs from './SMSBlastLogs';
+import DisconnectionLogs from './DisconnectionLogs';
+import ReconnectionLogs from './ReconnectionLogs';
 import Sidebar from './Sidebar';
 import Header from './Header';
 import DashboardContent from '../components/DashboardContent';
@@ -21,6 +32,9 @@ import Inventory from './Inventory';
 import ExpensesLog from './ExpensesLog';
 import DailyExpenses from './DailyExpenses';
 import Logs from './Logs';
+import SalesAgentList from './SalesAgentList';
+import SOA from './SOA';
+import Invoice from './Invoice';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -31,34 +45,53 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
+  // Add effect to log the active section when it changes
+  useEffect(() => {
+    console.log('Active section changed to:', activeSection);
+  }, [activeSection]);
+
   const renderContent = () => {
     switch (activeSection) {
       case 'customer-map':
         return <div className="p-6 text-white">Customer Map - Coming Soon</div>;
       case 'sales-agent-list':
-        return <div className="p-6 text-white">Sales Agent List - Coming Soon</div>;
+        return <SalesAgentList />;
       case 'soa':
-        return <div className="p-6 text-white">SOA - Coming Soon</div>;
+        return <SOA />;
       case 'invoice':
-        return <div className="p-6 text-white">Invoice - Coming Soon</div>;
+        return <Invoice />;
       case 'overdue':
-        return <div className="p-6 text-white">Overdue - Coming Soon</div>;
+        return <Overdue />;
       case 'dc-notice':
-        return <div className="p-6 text-white">DC Notice - Coming Soon</div>;
+        return <DCNotice />;
       case 'discounts':
-        return <div className="p-6 text-white">Discounts - Coming Soon</div>;
+        return <Discounts />;
       case 'advanced-payment':
-        return <div className="p-6 text-white">Advanced Payment - Coming Soon</div>;
+        return <AdvancePayment />;
+      case 'advance-payment':
+        return <AdvancePayment />;
+
       case 'staggered-payment':
-        return <div className="p-6 text-white">Staggered Payment - Coming Soon</div>;
+        console.log('Loading StaggeredPayment component');
+        return <StaggeredPayment />;
       case 'staggered-installation':
-        return <div className="p-6 text-white">Staggered Installation - Coming Soon</div>;
+        console.log('Loading StaggeredInstallation component');
+        return <StaggeredInstallation />;
       case 'mass-rebate':
-        return <div className="p-6 text-white">Mass Rebate - Coming Soon</div>;
+        console.log('Loading MassRebate component');
+        return <MassRebate />;
       case 'sms-blast':
-        return <div className="p-6 text-white">SMS Blast - Coming Soon</div>;
+        console.log('Loading SMS Blast component');
+        return <SMSBlast />;
       case 'sms-blast-logs':
-        return <div className="p-6 text-white">SMS Blast Logs - Coming Soon</div>;
+        console.log('Loading SMS Blast Logs component');
+        return <SMSBlastLogs />;
+      case 'disconnected-logs':
+        console.log('Loading Disconnected Logs component');
+        return <DisconnectionLogs />;
+      case 'reconnection-logs':
+        console.log('Loading Reconnection Logs component');
+        return <ReconnectionLogs />;
       case 'user-management':
         return <UserManagement />;
       case 'organization-management':
