@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare, Settings } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -48,17 +48,26 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'overdue', label: 'Overdue', icon: Clock },
     { id: 'dc-notice', label: 'DC Notice', icon: AlertTriangle },
     { id: 'discounts', label: 'Discounts', icon: Tag },
-    { id: 'advanced-payment', label: 'Advanced Payment', icon: CreditCard },
+    { id: 'advance-payment', label: 'Advance Payment', icon: CreditCard },
     { id: 'staggered-payment', label: 'Staggered Payment', icon: Calendar },
     { id: 'staggered-installation', label: 'Staggered Installation', icon: Calendar },
     { id: 'mass-rebate', label: 'Mass Rebate', icon: DollarSign },
     { id: 'sms-blast', label: 'SMS Blast', icon: MessageSquare },
     { id: 'sms-blast-logs', label: 'SMS Blast Logs', icon: List },
-    { id: 'location-list', label: 'Location List', icon: MapPin },
-    { id: 'plan-list', label: 'Plan List', icon: List },
-    { id: 'router-models', label: 'Router Models', icon: Router },
-    { id: 'inventory', label: 'Inventory', icon: Package },
-    { id: 'logs', label: 'Logs', icon: FileText }
+    { id: 'disconnected-logs', label: 'Disconnected Logs', icon: AlertTriangle },
+    { id: 'reconnection-logs', label: 'Reconnection Logs', icon: FileBarChart },
+    {
+      id: 'configuration',
+      label: 'Configuration',
+      icon: Settings,
+      children: [
+        { id: 'location-list', label: 'Location List', icon: MapPin },
+        { id: 'plan-list', label: 'Plan List', icon: List },
+        { id: 'router-models', label: 'Router Models', icon: Router },
+        { id: 'inventory', label: 'Inventory', icon: Package },
+        { id: 'logs', label: 'Logs', icon: FileText }
+      ]
+    }
   ];
 
   const toggleExpanded = (itemId: string) => {
