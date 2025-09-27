@@ -1,157 +1,4 @@
-          ) : (
-            // Fields for Reschedule status
-            <>
-              {/* Modified By */}
-              <div className="space-y-2">
-                <label className="block">
-                  Modified By<span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  name="modified_by"
-                  value={formData.modified_by}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
-                  readOnly
-                />
-              </div>
-              
-              {/* Modified Date */}
-              <div className="space-y-2">
-                <label className="block">
-                  Modified Date<span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="text"
-                    name="modified_date"
-                    value={formData.modified_date}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white pr-10"
-                    readOnly
-                  />
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                    </svg>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Contract Link */}
-              <div className="space-y-2">
-                <label className="block">
-                  Contract Link
-                </label>
-                <input
-                  type="text"
-                  name="contract_link"
-                  value={formData.contract_link}
-                  onChange={handleInputChange}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
-                />
-              </div>
-              
-              {/* Contract Template */}
-              <div className="space-y-2">
-                <label className="block">
-                  Contract Template<span className="text-red-500">*</span>
-                </label>
-                <div className="flex items-center">
-                  <input
-                    type="number"
-                    name="contract_template"
-                    value={formData.contract_template}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
-                    readOnly
-                  />
-                  <div className="ml-2 flex flex-col">
-                    <button
-                      type="button"
-                      onClick={() => handleNumberChange("contract_template", formData.contract_template + 1)}
-                      className="bg-gray-700 hover:bg-gray-600 p-1 rounded-t-md"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-                      </svg>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleNumberChange("contract_template", Math.max(1, formData.contract_template - 1))}
-                      className="bg-gray-700 hover:bg-gray-600 p-1 rounded-b-md"
-                    >
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 12H6"></path>
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              {/* Assigned Email */}
-              <div className="space-y-2">
-                <label className="block">
-                  Assigned Email<span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="assigned_email"
-                    value={formData.assigned_email}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white appearance-none"
-                  >
-                    <option value="Office">Office</option>
-                    <option value="Technical">Technical</option>
-                    <option value="Billing">Billing</option>
-                    <option value="Support">Support</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                </div>
-                {errors.assigned_email && (
-                  <p className="text-red-500 text-sm flex items-center">
-                    <span className="inline-block w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center text-xs mr-2">!</span>
-                    {errors.assigned_email}
-                  </p>
-                )}
-              </div>
-              
-              {/* Status Remarks */}
-              <div className="space-y-2">
-                <label className="block">
-                  Status Remarks<span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <select
-                    name="status_remarks"
-                    value={formData.status_remarks}
-                    onChange={handleInputChange}
-                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white appearance-none"
-                  >
-                    <option value="">Select status remarks</option>
-                    <option value="Customer Request">Customer Request</option>
-                    <option value="Bad Weather">Bad Weather</option>
-                    <option value="Technician Unavailable">Technician Unavailable</option>
-                    <option value="Equipment Issue">Equipment Issue</option>
-                  </select>
-                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
-                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
-                    </svg>
-                  </div>
-                </div>
-                {errors.status_remarks && (
-                  <p className="text-red-500 text-sm flex items-center">
-                    <span className="inline-block w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center text-xs mr-2">!</span>
-                    {errors.status_remarks}
-                  </p>
-                )}
-              </div>
-            </>import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { X, Camera } from "lucide-react";
 import axios from "axios";
 
@@ -318,13 +165,18 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       if (!formData.status_remarks) {
         newErrors.status_remarks = "This entry is required";
       }
-    } else if (formData.onsite_status === "In Progress" || formData.onsite_status === "Reschedule") {
-      // Validate fields for "In Progress" or "Reschedule" status
+    } else if (formData.onsite_status === "In Progress") {
+      // Validate fields for "In Progress" status
+      if (!formData.assigned_email) {
+        newErrors.assigned_email = "This entry is required";
+      }
+    } else if (formData.onsite_status === "Reschedule") {
+      // Validate fields for "Reschedule" status
       if (!formData.assigned_email) {
         newErrors.assigned_email = "This entry is required";
       }
       
-      if (formData.onsite_status === "Reschedule" && !formData.status_remarks) {
+      if (!formData.status_remarks) {
         newErrors.status_remarks = "This entry is required";
       }
     }
@@ -541,7 +393,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
             )}
           </div>
           
-          {formData.onsite_status === "Done" ? (
+          {formData.onsite_status === "Done" && (
             // Fields for Done status
             <>
               {/* Signed Contract Image */}
@@ -558,7 +410,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                   />
                   {formData.signed_contract_image ? (
                     <div className="text-green-500">Image uploaded</div>
-                  ) : formData.onsite_status === "In Progress" ? (
+                  ) : (
                     <Camera className="text-gray-400" />
                   )}
                 </div>
@@ -692,7 +544,9 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                 )}
               </div>
             </>
-          ) : formData.onsite_status === "Failed" ? (
+          )}
+          
+          {formData.onsite_status === "Failed" && (
             // Fields for Failed status
             <>
               {/* Modified By */}
@@ -815,7 +669,9 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                 )}
               </div>
             </>
-          ) : (
+          )}
+          
+          {formData.onsite_status === "In Progress" && (
             // Fields for In Progress status
             <>
               {/* Modified By */}
@@ -933,6 +789,162 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                   <p className="text-red-500 text-sm flex items-center">
                     <span className="inline-block w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center text-xs mr-2">!</span>
                     {errors.assigned_email}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+          
+          {formData.onsite_status === "Reschedule" && (
+            // Fields for Reschedule status
+            <>
+              {/* Modified By */}
+              <div className="space-y-2">
+                <label className="block">
+                  Modified By<span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  name="modified_by"
+                  value={formData.modified_by}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                  readOnly
+                />
+              </div>
+              
+              {/* Modified Date */}
+              <div className="space-y-2">
+                <label className="block">
+                  Modified Date<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    name="modified_date"
+                    value={formData.modified_date}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white pr-10"
+                    readOnly
+                  />
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                    </svg>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Contract Link */}
+              <div className="space-y-2">
+                <label className="block">
+                  Contract Link
+                </label>
+                <input
+                  type="text"
+                  name="contract_link"
+                  value={formData.contract_link}
+                  onChange={handleInputChange}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                />
+              </div>
+              
+              {/* Contract Template */}
+              <div className="space-y-2">
+                <label className="block">
+                  Contract Template<span className="text-red-500">*</span>
+                </label>
+                <div className="flex items-center">
+                  <input
+                    type="number"
+                    name="contract_template"
+                    value={formData.contract_template}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white"
+                    readOnly
+                  />
+                  <div className="ml-2 flex flex-col">
+                    <button
+                      type="button"
+                      onClick={() => handleNumberChange("contract_template", formData.contract_template + 1)}
+                      className="bg-gray-700 hover:bg-gray-600 p-1 rounded-t-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
+                      </svg>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleNumberChange("contract_template", Math.max(1, formData.contract_template - 1))}
+                      className="bg-gray-700 hover:bg-gray-600 p-1 rounded-b-md"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18 12H6"></path>
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Assigned Email */}
+              <div className="space-y-2">
+                <label className="block">
+                  Assigned Email<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    name="assigned_email"
+                    value={formData.assigned_email}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white appearance-none"
+                  >
+                    <option value="Office">Office</option>
+                    <option value="Technical">Technical</option>
+                    <option value="Billing">Billing</option>
+                    <option value="Support">Support</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
+                {errors.assigned_email && (
+                  <p className="text-red-500 text-sm flex items-center">
+                    <span className="inline-block w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center text-xs mr-2">!</span>
+                    {errors.assigned_email}
+                  </p>
+                )}
+              </div>
+              
+              {/* Status Remarks */}
+              <div className="space-y-2">
+                <label className="block">
+                  Status Remarks<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    name="status_remarks"
+                    value={formData.status_remarks}
+                    onChange={handleInputChange}
+                    className="w-full bg-gray-800 border border-gray-700 rounded-lg p-3 text-white appearance-none"
+                  >
+                    <option value="">Select status remarks</option>
+                    <option value="Customer Request">Customer Request</option>
+                    <option value="Bad Weather">Bad Weather</option>
+                    <option value="Technician Unavailable">Technician Unavailable</option>
+                    <option value="Equipment Issue">Equipment Issue</option>
+                  </select>
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7"></path>
+                    </svg>
+                  </div>
+                </div>
+                {errors.status_remarks && (
+                  <p className="text-red-500 text-sm flex items-center">
+                    <span className="inline-block w-5 h-5 bg-red-500 rounded-full text-white flex items-center justify-center text-xs mr-2">!</span>
+                    {errors.status_remarks}
                   </p>
                 )}
               </div>
