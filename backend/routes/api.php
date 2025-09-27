@@ -308,3 +308,39 @@ Route::prefix('cities')->group(function () {
         ]);
     });
 });
+
+// Service Orders Management Routes
+Route::prefix('service-orders')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
+});
+
+// Also add underscore version for compatibility
+Route::prefix('service_orders')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
+});
+
+// Billing Details API Routes
+Route::prefix('billing-details')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'destroy']);
+});
+
+// Also add underscore version for compatibility
+Route::prefix('billing_details')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'destroy']);
+});

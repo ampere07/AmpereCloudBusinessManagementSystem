@@ -86,9 +86,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       secondContactNumber: initialSecondContact,
       email: applicationData?.email || '',
       address: applicationData?.address_line || applicationData?.address || '',
-      barangay: '',
-      city: '',
-      region: '',
+      barangay: applicationData?.barangay_id ? applicationData.barangay_id.toString() : '',
+      city: applicationData?.city_id ? applicationData.city_id.toString() : '',
+      region: applicationData?.region_id ? applicationData.region_id.toString() : '',
       choosePlan: 'SwitchConnect - P799',
       remarks: '',
       assignedEmail: '',
@@ -273,16 +273,57 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
-    if (!formData.contactNumber.trim()) newErrors.contactNumber = 'Contact Number is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
-    if (!formData.barangay.trim()) newErrors.barangay = 'Barangay is required';
-    if (!formData.region.trim()) newErrors.region = 'Region is required';
-    if (!formData.choosePlan.trim()) newErrors.choosePlan = 'Plan is required';
-    if (!formData.assignedEmail.trim()) newErrors.assignedEmail = 'Assigned Email is required';
-    if (!formData.scheduledDate.trim()) newErrors.scheduledDate = 'Scheduled Date is required';
+    // Required fields validation
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First Name is required';
+    }
+    
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last Name is required';
+    }
+    
+    if (!formData.contactNumber.trim()) {
+      newErrors.contactNumber = 'Contact Number is required';
+    } else if (!/^[0-9+\-\s()]+$/.test(formData.contactNumber.trim())) {
+      newErrors.contactNumber = 'Please enter a valid contact number';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    
+    if (!formData.barangay.trim()) {
+      newErrors.barangay = 'Barangay is required';
+    }
+    
+    if (!formData.region.trim()) {
+      newErrors.region = 'Region is required';
+    }
+    
+    if (!formData.choosePlan.trim()) {
+      newErrors.choosePlan = 'Plan is required';
+    }
+    
+    if (!formData.assignedEmail.trim()) {
+      newErrors.assignedEmail = 'Assigned Email is required';
+    }
+    
+    if (!formData.scheduledDate.trim()) {
+      newErrors.scheduledDate = 'Scheduled Date is required';
+    } else {
+      // Validate that the scheduled date is not in the past
+      const scheduledDateTime = new Date(formData.scheduledDate);
+      const now = new Date();
+      if (scheduledDateTime < now) {
+        newErrors.scheduledDate = 'Scheduled date cannot be in the past';
+      }
+    }
     
     // Automatically set visitBy to assignedEmail if empty
     if (!formData.visitBy && formData.assignedEmail) {
@@ -304,29 +345,40 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   };
 
   const mapFormDataToVisitData = (applicationId: string): ApplicationVisitData => {
+    // Find region, city, barangay names from IDs for display purposes
+    const regionName = formData.region ? regions.find(r => r.id.toString() === formData.region)?.name || '' : '';
+    const cityName = formData.city ? cities.find(c => c.id.toString() === formData.city)?.name || '' : '';
+    const barangayName = formData.barangay ? barangays.find(b => b.id.toString() === formData.barangay)?.name || '' : '';
+    
+    // Ensure scheduled date is properly formatted
+    const scheduledDate = formData.scheduledDate || getTomorrow();
+    
     return {
       Application_ID: applicationId,
-      First_Name: formData.firstName,
-      Last_Name: formData.lastName,
-      Middle_Initial: formData.middleInitial,
-      Contact_Number: formData.contactNumber,
-      Second_Contact_Number: formData.secondContactNumber,
-      Email_Address: formData.email,
-      Address: formData.address,
-      Barangay: formData.barangay,
-      City: formData.city,
-      Region: formData.region,
+      First_Name: formData.firstName.trim(),
+      Last_Name: formData.lastName.trim(),
+      Middle_Initial: formData.middleInitial ? formData.middleInitial.trim() : null,
+      Contact_Number: formData.contactNumber.trim(),
+      Second_Contact_Number: formData.secondContactNumber ? formData.secondContactNumber.trim() : null,
+      Email_Address: formData.email.trim(),
+      Address: formData.address.trim(),
+      Barangay: barangayName || null,
+      Barangay_ID: formData.barangay || null,
+      City: cityName || null,
+      City_ID: formData.city || null,
+      Region: regionName || null,
+      Region_ID: formData.region || null,
       Choose_Plan: formData.choosePlan,
-      Visit_Notes: formData.remarks, // Use remarks as Visit_Notes
-      Installation_Landmark: formData.remarks, // Also use remarks as Installation_Landmark
+      Visit_Notes: formData.remarks ? formData.remarks.trim() : null,
+      Installation_Landmark: formData.remarks ? formData.remarks.trim() : null,
       Assigned_Email: formData.assignedEmail,
-      Scheduled_Date: formData.scheduledDate,
+      Scheduled_Date: scheduledDate,
       Visit_By: formData.visitBy || formData.assignedEmail,
-      Visit_With: formData.visitWith !== 'Other' ? formData.visitWith : undefined,
-      Visit_With_Other: formData.visitWith === 'Other' ? formData.visitWithOther : undefined,
+      Visit_With: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : null,
+      Visit_With_Other: formData.visitWith === 'Other' ? (formData.visitWithOther ? formData.visitWithOther.trim() : null) : null,
       Visit_Type: formData.visitType,
       Status: formData.status,
-      Location: `${formData.city}, ${formData.region}`,
+      Location: (cityName && regionName) ? `${cityName}, ${regionName}` : null,
       Created_By: formData.createdBy,
       Modified_By: formData.modifiedBy
     };
@@ -341,7 +393,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     
     if (!isValid) {
       console.log('Form validation failed. Errors:', errors);
-      // Display error message to user
       alert('Please fill in all required fields before saving.');
       return;
     }
@@ -354,34 +405,61 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
     setLoading(true);
     try {
+      // Prepare visit data with proper validation and defaults
       const visitData = mapFormDataToVisitData(applicationData.id);
-      console.log('Creating application visit with data:', visitData);
       
-      // Ensure visitBy is set
+      // Ensure all critical fields are populated
       if (!visitData.Visit_By && visitData.Assigned_Email) {
         visitData.Visit_By = visitData.Assigned_Email;
       }
       
-      // Log the data being sent to the API
-      console.log('Second Contact Number:', formData.secondContactNumber);
-      console.log('Visit By:', visitData.Visit_By);
-      console.log('Assigned Email:', visitData.Assigned_Email);
+      if (!visitData.Scheduled_Date) {
+        visitData.Scheduled_Date = getTomorrow();
+      }
+      
+      // Validate required fields one more time before API call
+      if (!visitData.Application_ID || !visitData.First_Name || !visitData.Last_Name || 
+          !visitData.Contact_Number || !visitData.Email_Address || !visitData.Address || 
+          !visitData.Assigned_Email || !visitData.Scheduled_Date) {
+        throw new Error('Required fields are missing. Please check your form data.');
+      }
+      
+      console.log('Final data being sent to API:', JSON.stringify(visitData, null, 2));
       
       // Call the API to create the visit
-      console.log('About to call createApplicationVisit API...');
       const result = await createApplicationVisit(visitData);
       console.log('Application visit created successfully:', result);
       
-      // Show success message
-      alert('Visit scheduled successfully!');
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to create application visit');
+      }
+      
+      // Show success message with more details
+      console.log('Visit scheduled successfully with ID:', result.data?.id || result.data?.ID);
+      alert(`Visit scheduled successfully!\n\nScheduled for: ${new Date(visitData.Scheduled_Date).toLocaleString()}\nTechnician: ${visitData.Assigned_Email}`);
+      
+      // Reset form errors to show clean state
+      setErrors({});
       
       // Pass the created visit data back to parent
       onSave(visitData);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating application visit:', error);
-      // Show error message to the user
-      alert(`Failed to schedule visit: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      alert(`Failed to schedule visit: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -678,6 +756,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                   />
                   <Calendar className="absolute right-3 top-2.5 text-gray-400" size={20} />
                 </div>
+                {errors.scheduledDate && <p className="text-red-500 text-xs mt-1">{errors.scheduledDate}</p>}
               </div>
 
               {/* Visit By */}

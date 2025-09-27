@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Search, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { FileText, Search } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
 import { getApplications } from '../services/applicationService';
 import { getCities, City } from '../services/cityService';
@@ -32,6 +32,15 @@ interface Application {
   notes?: string;
   lastModified?: string;
   modifiedBy?: string;
+  // Additional fields from the database
+  firstName?: string;
+  middleInitial?: string;
+  lastName?: string;
+  landmark?: string;
+  nearestLandmark1?: string;
+  nearestLandmark2?: string;
+  planId?: string | number;
+  promoId?: string | number;
 }
 
 interface LocationItem {
@@ -39,6 +48,8 @@ interface LocationItem {
   name: string;
   count: number;
 }
+
+type DisplayMode = 'card';
 
 const ApplicationManagement: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
@@ -98,6 +109,7 @@ const ApplicationManagement: React.FC = () => {
     try {
       setIsLoading(true);
       const apiApplications = await getApplications();
+      console.log('Fetched applications:', apiApplications);
       
       if (apiApplications && apiApplications.length > 0) {
         // Transform API applications to match our interface
@@ -111,14 +123,14 @@ const ApplicationManagement: React.FC = () => {
           // Calculate full address using the helper functions
           const regionName = getRegionName(convertedRegionId);
           const cityName = getCityName(convertedCityId);
-          const addressLine = app.address || '';
+          const addressLine = app.address_line || app.address || '';
           const fullAddress = `${regionName}, ${cityName}, ${addressLine}`;
           
           return {
             id: app.id || '',
-            customerName: app.customer_name || '',
-            timestamp: app.timestamp || '',
-            address: app.address || '',
+            customerName: app.customer_name || `${app.first_name || ''} ${app.middle_initial || ''} ${app.last_name || ''}`.trim(),
+            timestamp: app.timestamp || (app.create_date && app.create_time ? `${app.create_date} ${app.create_time}` : ''),
+            address: addressLine,
             // Determine action based on status
             action: app.status === 'pending' || app.status === 'new' ? 'Schedule' : 
                    app.status === 'duplicate' ? 'Duplicate' : undefined,
@@ -135,19 +147,30 @@ const ApplicationManagement: React.FC = () => {
             createDate: app.create_date || '',
             createTime: app.create_time || '',
             email: app.email,
-            mobileNumber: app.mobile_number,
-            secondaryNumber: app.secondary_number,
+            mobileNumber: app.mobile_number || app.mobile,
+            secondaryNumber: app.secondary_number || app.mobile_alt,
             visitDate: app.visit_date,
             visitBy: app.visit_by,
             visitWith: app.visit_with,
             notes: app.notes,
-            lastModified: app.last_modified,
-            modifiedBy: app.modified_by
+            lastModified: app.last_modified || app.update_date,
+            modifiedBy: app.modified_by,
+            // Add additional fields directly from the database
+            firstName: app.first_name,
+            middleInitial: app.middle_initial,
+            lastName: app.last_name,
+            landmark: app.landmark,
+            nearestLandmark1: app.nearest_landmark1,
+            nearestLandmark2: app.nearest_landmark2,
+            planId: app.plan_id,
+            promoId: app.promo_id
           };
         });
         
         setApplications(transformedApplications);
+        console.log('Transformed applications:', transformedApplications);
       } else {
+        console.log('No applications found');
         setApplications([]);
       }
       
@@ -188,46 +211,52 @@ const ApplicationManagement: React.FC = () => {
     };
   }, []);
   
-  // Generate location items with counts from cities data
-  const locationItems: LocationItem[] = [
-    {
-      id: 'all',
-      name: 'All',
-      count: applications.length
-    }
-  ];
-  
-  // Add all cities from the database
-  if (cities.length > 0) {
-    cities.forEach(city => {
-      // Count applications that match this city ID
-      const cityCount = applications.filter(app => 
-        app.cityId === city.id
-      ).length;
-      
-      // Add city to location items
-      locationItems.push({
-        id: String(city.id),
-        name: city.name,
-        count: cityCount
+  // Generate location items with counts from cities data - memoized for performance
+  const locationItems: LocationItem[] = useMemo(() => {
+    const items: LocationItem[] = [
+      {
+        id: 'all',
+        name: 'All',
+        count: applications.length
+      }
+    ];
+    
+    // Add all cities from the database
+    if (cities.length > 0) {
+      cities.forEach(city => {
+        // Count applications that match this city ID
+        const cityCount = applications.filter(app => 
+          app.cityId === city.id
+        ).length;
+        
+        // Add city to location items
+        items.push({
+          id: String(city.id),
+          name: city.name,
+          count: cityCount
+        });
       });
-    });
-  }
+    }
+    
+    return items;
+  }, [cities, applications]);
 
-  // Filter applications based on location and search query
-  const filteredApplications = applications.filter(application => {
-    // Apply location filter
-    const matchesLocation = selectedLocation === 'all' || 
-                           application.cityId === Number(selectedLocation);
-    
-    // Apply search query filter
-    const matchesSearch = searchQuery === '' || 
-                         application.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         application.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (application.timestamp && application.timestamp.includes(searchQuery));
-    
-    return matchesLocation && matchesSearch;
-  });
+  // Filter applications based on location and search query - memoized for performance
+  const filteredApplications = useMemo(() => {
+    return applications.filter(application => {
+      // Apply location filter
+      const matchesLocation = selectedLocation === 'all' || 
+                             application.cityId === Number(selectedLocation);
+      
+      // Apply search query filter
+      const matchesSearch = searchQuery === '' || 
+                           application.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           application.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (application.timestamp && application.timestamp.includes(searchQuery));
+      
+      return matchesLocation && matchesSearch;
+    });
+  }, [applications, selectedLocation, searchQuery]);
 
   const handleRowClick = (application: Application) => {
     setSelectedApplication(application);
@@ -295,12 +324,19 @@ const ApplicationManagement: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
+              <button
+                onClick={() => fetchApplications()}
+                disabled={isLoading}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+              >
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
           </div>
           
           {/* Applications List Container */}
           <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto pb-4">
+            <div className="h-full overflow-y-auto">
               {isLoading ? (
                 <div className="px-4 py-12 text-center text-gray-400">
                   <div className="animate-pulse flex flex-col items-center">
@@ -318,55 +354,58 @@ const ApplicationManagement: React.FC = () => {
                     Retry
                   </button>
                 </div>
-              ) : (
-                <div className="divide-y divide-gray-800">
-                  {filteredApplications.length > 0 ? (
-                    filteredApplications.map((application) => (
-                      <div 
-                        key={application.id} 
-                        className={`hover:bg-gray-800 cursor-pointer ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
-                        onClick={() => handleRowClick(application)}
-                      >
-                        <div className="p-4 flex justify-between items-start">
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center">
-                              <div className="text-white font-medium">{application.customerName}</div>
-                              <div className="flex items-center space-x-2">
-                                {application.action && (
-                                  <div className={`text-green-500 text-xs px-2 py-1 rounded ${application.action === 'Duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' : 'bg-green-500 bg-opacity-10'}`}>
-                                    {application.action}
-                                  </div>
-                                )}
-                                {application.status && (
-                                  <div className={`text-xs px-2 py-1 rounded ${
-                                    application.status.toLowerCase() === 'no facility' ? 'text-red-400 bg-red-400 bg-opacity-10' :
-                                    application.status.toLowerCase() === 'cancelled' ? 'text-red-500 bg-red-500 bg-opacity-10' :
-                                    application.status.toLowerCase() === 'no slot' ? 'text-yellow-400 bg-yellow-400 bg-opacity-10' :
-                                    application.status.toLowerCase() === 'duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' :
-                                    application.status.toLowerCase() === 'in progress' ? 'text-blue-400 bg-blue-400 bg-opacity-10' :
-                                    application.status.toLowerCase() === 'completed' ? 'text-green-400 bg-green-400 bg-opacity-10' :
-                                    'text-gray-400 bg-gray-400 bg-opacity-10'
-                                  }`}>
-                                    {application.status}
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                            <div className="text-gray-400 text-sm mt-1">
-                              {application.createDate && application.createTime 
-                                ? `${application.createDate} ${application.createTime} | `
-                                : ''}
-                              {getRegionName(application.regionId)}, {getCityName(application.cityId)}, {application.addressLine || application.address || 'No address'}
-                            </div>
+              ) : filteredApplications.length > 0 ? (
+                <div className="space-y-0">
+                  {filteredApplications.map((application) => (
+                    <div
+                      key={application.id}
+                      onClick={() => handleRowClick(application)}
+                      className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="text-white font-medium text-sm mb-1 uppercase">
+                            {application.customerName || `${application.firstName || ''} ${application.middleInitial || ''} ${application.lastName || ''}`.trim()}
+                          </div>
+                          <div className="text-gray-400 text-xs">
+                            {application.createDate && application.createTime 
+                              ? `${application.createDate} ${application.createTime}` 
+                              : application.timestamp || 'Not specified'}
+                            {' | '}
+                            {[
+                              application.fullAddress || application.address,
+                              getRegionName(application.regionId)
+                            ].filter(Boolean).join(', ')}
                           </div>
                         </div>
+                        <div className="flex flex-col items-end space-y-1 ml-4 flex-shrink-0">
+                          {application.status && (
+                            <div className={`text-xs px-2 py-1 rounded ${
+                              application.status.toLowerCase() === 'schedule' ? 'text-green-400 bg-green-400 bg-opacity-10' :
+                              application.status.toLowerCase() === 'no facility' ? 'text-red-400 bg-red-400 bg-opacity-10' :
+                              application.status.toLowerCase() === 'cancelled' ? 'text-red-500 bg-red-500 bg-opacity-10' :
+                              application.status.toLowerCase() === 'no slot' ? 'text-yellow-400 bg-yellow-400 bg-opacity-10' :
+                              application.status.toLowerCase() === 'duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' :
+                              application.status.toLowerCase() === 'in progress' ? 'text-blue-400 bg-blue-400 bg-opacity-10' :
+                              application.status.toLowerCase() === 'completed' ? 'text-green-400 bg-green-400 bg-opacity-10' :
+                              'text-orange-400 bg-orange-400 bg-opacity-10'
+                            }`}>
+                              {application.status}
+                            </div>
+                          )}
+                          {application.action && (
+                            <div className={`text-xs px-2 py-1 rounded ${application.action === 'Duplicate' ? 'text-yellow-500 bg-yellow-500 bg-opacity-10' : 'bg-green-500 bg-opacity-10 text-green-500'}`}>
+                              {application.action}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    ))
-                  ) : (
-                    <div className="px-4 py-12 text-center text-gray-400">
-                      No applications found matching your filters
                     </div>
-                  )}
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-gray-400">
+                  No applications found matching your filters
                 </div>
               )}
             </div>

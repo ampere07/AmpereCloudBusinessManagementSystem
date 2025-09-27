@@ -35,7 +35,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'job-order', label: 'Job Order', icon: Wrench },
     { id: 'service-order', label: 'Service Order', icon: Wrench },
     { id: 'application-visit', label: 'Application Visit', icon: MapPin },
-    { id: 'billing-list-view', label: 'Billing List View', icon: List },
     { id: 'payment-portal', label: 'Payment Portal', icon: DollarSign },
     { id: 'transaction-list', label: 'Transaction List', icon: Receipt },
     { id: 'transactions-pending-list', label: 'Transactions Pending List', icon: Clock },

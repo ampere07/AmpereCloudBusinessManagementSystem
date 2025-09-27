@@ -5,33 +5,42 @@ interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
+  count?: number;
+  table?: string;
+  debug?: any;
+  columns?: string[];
 }
 
 export interface ApplicationVisitData {
   Application_ID: string;
   Scheduled_Date: string;
   Visit_By: string;
-  Visit_With?: string;
-  Visit_With_Other?: string;
+  Visit_With?: string | null;
+  Visit_With_Other?: string | null;
   Visit_Type: string;
-  Visit_Notes?: string;
+  Visit_Notes?: string | null;
   Status: string;
   First_Name: string;
-  Middle_Initial?: string;
+  Middle_Initial?: string | null;
   Last_Name: string;
   Contact_Number: string;
-  Second_Contact_Number?: string;
+  Second_Contact_Number?: string | null;
   Email_Address: string;
   Address: string;
-  Location: string;
-  Barangay?: string;
-  City?: string;
-  Region?: string;
+  Location: string | null;
+  Barangay?: string | null;
+  Barangay_ID?: string | null;
+  City?: string | null;
+  City_ID?: string | null;
+  Region?: string | null;
+  Region_ID?: string | null;
   Choose_Plan?: string;
-  Installation_Landmark?: string;
+  Installation_Landmark?: string | null;
   Assigned_Email?: string;
   Created_By: string;
   Modified_By: string;
+  id?: string; // Optional ID field for response
+  ID?: string; // Optional ID field for response (Laravel convention)
 }
 
 export const createApplicationVisit = async (visitData: ApplicationVisitData) => {
@@ -60,16 +69,45 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
 export const getApplicationVisits = async (applicationId: string) => {
   try {
     console.log(`Fetching application visits for applicationId: ${applicationId}`);
-    const response = await apiClient.get<ApiResponse<ApplicationVisitData[]>>(`/application-visits/application/${applicationId}`);
+    const response = await apiClient.get<ApiResponse<any[]>>(`/application-visits/application/${applicationId}`);
+    
+    // Log the complete response for debugging
     console.log('API response received for application visits:', {
       success: response.data.success,
-      dataLength: response.data.data?.length || 0,
-      sample: response.data.data?.length ? response.data.data[0] : 'No data'
+      count: response.data.count || (response.data.data?.length || 0),
+      table: response.data.table || 'unknown',
+      sample: response.data.data?.length ? response.data.data[0] : 'No data',
+      columns: response.data.columns || []
     });
-    return response.data;
-  } catch (error) {
+    
+    // Verify data structure and return the response
+    if (response.data && response.data.data) {
+      return response.data;
+    } else {
+      console.warn('Unexpected API response structure:', response.data);
+      // Return a standardized response structure
+      return {
+        success: false,
+        data: [],
+        message: 'Invalid response format from API'
+      };
+    }
+  } catch (error: any) {
     console.error('Error fetching application visits:', error);
-    throw error;
+    // Provide more detailed error info
+    console.error('Error details:', {
+      message: error.message,
+      response: error.response?.data || 'No response data',
+      status: error.response?.status || 'No status code'
+    });
+    
+    // Return an error response instead of throwing
+    return {
+      success: false,
+      data: [],
+      message: `API Error: ${error.message}` + 
+              (error.response?.data?.error ? ` - ${error.response.data.error}` : '')
+    };
   }
 };
 

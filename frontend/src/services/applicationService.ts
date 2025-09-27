@@ -11,13 +11,14 @@ interface ApplicationResponse {
 export const getApplications = async (): Promise<Application[]> => {
   try {
     const response = await apiClient.get<ApplicationResponse>('/applications');
+    console.log('Application API response:', response.data);
     
     if (response.data && response.data.applications && Array.isArray(response.data.applications) && response.data.applications.length > 0) {
       return response.data.applications.map(app => ({
         id: app.id || '',
         customer_name: app.customer_name || '',
         timestamp: app.timestamp || '',
-        address: app.address || '',
+        address: app.address || app.address_line || '',
         status: app.status || '',
         location: app.location || '',
         city_id: app.city_id || '',
@@ -27,10 +28,20 @@ export const getApplications = async (): Promise<Application[]> => {
         create_date: app.create_date || '',
         create_time: app.create_time || '',
         email: app.email || '',
-        mobile_number: app.mobile_number || '',
-        secondary_number: app.secondary_number || ''
+        mobile_number: app.mobile_number || app.mobile || '',
+        secondary_number: app.secondary_number || app.mobile_alt || '',
+        first_name: app.first_name || '',
+        middle_initial: app.middle_initial || '',
+        last_name: app.last_name || '',
+        plan_id: app.plan_id || '',
+        promo_id: app.promo_id || '',
+        landmark: app.landmark || '',
+        nearest_landmark1: app.nearest_landmark1 || '',
+        nearest_landmark2: app.nearest_landmark2 || ''
       }));
     } else {
+      // Log if no applications were found
+      console.log('No applications found in API response');
       return [];
     }
   } catch (error) {
