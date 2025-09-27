@@ -51,11 +51,43 @@ class Application extends Model
     ];
     
     /**
+     * Get the region associated with the application
+     */
+    public function region()
+    {
+        return $this->belongsTo(Region::class, 'region_id');
+    }
+    
+    /**
+     * Get the city associated with the application
+     */
+    public function city()
+    {
+        return $this->belongsTo(City::class, 'city_id');
+    }
+    
+    /**
+     * Get the borough/barangay associated with the application
+     */
+    public function barangay()
+    {
+        return $this->belongsTo(Barangay::class, 'borough_id');
+    }
+    
+    /**
+     * Get the plan associated with the application
+     */
+    public function plan()
+    {
+        return $this->belongsTo(AppPlan::class, 'plan_id');
+    }
+    
+    /**
      * Get full customer name
      */
     public function getFullNameAttribute()
     {
-        return trim($this->first_name . ' ' . $this->middle_initial . ' ' . $this->last_name);
+        return trim($this->first_name . ' ' . ($this->middle_initial ? $this->middle_initial . ' ' : '') . $this->last_name);
     }
     
     /**

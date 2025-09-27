@@ -3,33 +3,7 @@ import { FileText, Search, ChevronDown } from 'lucide-react';
 import JobOrderDetails from '../components/JobOrderDetails';
 import { getJobOrders } from '../services/jobOrderService';
 import { getCities, City } from '../services/cityService';
-
-interface JobOrder {
-  id: string;
-  Timestamp?: string;
-  First_Name?: string;
-  Middle_Initial?: string;
-  Last_Name?: string;
-  Address?: string;
-  Onsite_Status?: string;
-  Billing_Status?: string;
-  Status_Remarks?: string;
-  Assigned_Email?: string;
-  Contract_Template?: string;
-  Billing_Day?: string;
-  Installation_Fee?: string | number;
-  Modified_By?: string;
-  Modified_Date?: string;
-  Contact_Number?: string;
-  Second_Contact_Number?: string;
-  Email_Address?: string;
-  Referred_By?: string;
-  City?: string;
-  Choose_Plan?: string;
-  Contract_Link?: string;
-  Username?: string;
-  Installation_Landmark?: string;
-}
+import { JobOrder } from '../types/jobOrder';
 
 interface LocationItem {
   id: string;
@@ -37,7 +11,7 @@ interface LocationItem {
   count: number;
 }
 
-const JobOrder: React.FC = () => {
+const JobOrderPage: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedJobOrder, setSelectedJobOrder] = useState<JobOrder | null>(null);
@@ -47,7 +21,7 @@ const JobOrder: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   // Format date function
-  const formatDate = (dateStr?: string): string => {
+  const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return 'Not scheduled';
     try {
       return new Date(dateStr).toLocaleString();
@@ -57,10 +31,9 @@ const JobOrder: React.FC = () => {
   };
   
   // Format price function
-  const formatPrice = (price?: string | number): string => {
-    if (!price) return '₱0.00';
-    const numPrice = typeof price === 'string' ? parseFloat(price) : price;
-    return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const formatPrice = (price?: number | null): string => {
+    if (price === null || price === undefined || price === 0) return '₱0.00';
+    return `₱${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   // Fetch data from API
@@ -80,8 +53,8 @@ const JobOrder: React.FC = () => {
         }
         setCities(citiesData);
         
-        // Fetch job orders data
-        console.log('Fetching job orders...');
+        // Fetch job orders data from job_orders table
+        console.log('Fetching job orders from job_orders table...');
         const response = await getJobOrders();
         console.log('Job Orders API Response:', response);
         
@@ -94,11 +67,29 @@ const JobOrder: React.FC = () => {
             console.log('City field example:', response.data[0].City);
           }
           
-          // Map the response data to include id field
-          const processedOrders = response.data.map((order, index) => ({
-            id: String(order.Application_ID || index), // Use Application_ID or index as fallback
-            ...order
-          }));
+          // Ensure each record has a proper ID and process any field mappings needed
+          const processedOrders: JobOrder[] = response.data.map((order, index) => {
+            // Create a unique ID if none exists
+            const id = order.id || order.JobOrder_ID || String(index);
+            
+            // Make sure all expected fields are present with proper types
+            return {
+              ...order,
+              id: id,
+              // Ensure these fields exist even if null
+              Onsite_Status: order.Onsite_Status || null,
+              Billing_Status: order.Billing_Status || null,
+              Status_Remarks: order.Status_Remarks || null,
+              Installation_Fee: order.Installation_Fee !== undefined ? 
+                Number(order.Installation_Fee) : null,
+              // Add any other critical fields that should always be available
+              Assigned_Email: order.Assigned_Email || null,
+              Contract_Template: order.Contract_Template || null,
+              Billing_Day: order.Billing_Day || null,
+              Modified_By: order.Modified_By || 'System',
+              Modified_Date: order.Modified_Date || null
+            };
+          });
           
           setJobOrders(processedOrders);
           console.log('Job orders data processed successfully');
@@ -178,9 +169,26 @@ const JobOrder: React.FC = () => {
     
     return matchesLocation && matchesSearch;
   });
+
+  // Get column headers for display (always show these even when no data)
+  // These should match exactly with the job_orders table columns shown in the images
+  const tableColumns = [
+    { id: 'timestamp', label: 'Timestamp', width: 'whitespace-nowrap' },
+    { id: 'fullName', label: 'Full Name of Client', width: 'whitespace-nowrap' },
+    { id: 'address', label: 'Full Address of Client', width: 'whitespace-nowrap min-w-[180px]' },
+    { id: 'onsiteStatus', label: 'Onsite Status', width: 'whitespace-nowrap' },
+    { id: 'billingStatus', label: 'Billing Status', width: 'whitespace-nowrap' },
+    { id: 'statusRemarks', label: 'Status Remarks', width: '' },
+    { id: 'assignedEmail', label: 'Assigned Email', width: '' },
+    { id: 'contractTemplate', label: 'Contract Template', width: 'whitespace-nowrap' },
+    { id: 'billingDay', label: 'Billing Day', width: 'whitespace-nowrap' },
+    { id: 'installationFee', label: 'Installation Fee', width: 'whitespace-nowrap' },
+    { id: 'modifiedBy', label: 'Modified By', width: 'whitespace-nowrap' },
+    { id: 'modifiedDate', label: 'Modified Date', width: 'whitespace-nowrap' }
+  ];
   
   // Status text color component
-  const StatusText = ({ status, type }: { status?: string, type: 'onsite' | 'billing' }) => {
+  const StatusText = ({ status, type }: { status?: string | null, type: 'onsite' | 'billing' }) => {
     if (!status) return <span className="text-gray-400">Unknown</span>;
     
     let textColor = '';
@@ -244,12 +252,58 @@ const JobOrder: React.FC = () => {
         <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
           <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
           <p className="text-gray-300 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
-          >
-            Retry
-          </button>
+          <div className="flex flex-col space-y-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+            
+            {/* Always show the table structure even when there's an error */}
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700 text-sm">
+                <thead className="bg-gray-800 sticky top-0">
+                  <tr>
+                    {tableColumns.map(column => (
+                      <th 
+                        key={column.id}
+                        scope="col" 
+                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
+                      >
+                        <div className="flex items-center">
+                          {column.label}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-900 divide-y divide-gray-800">
+                  <tr>
+                    <td colSpan={tableColumns.length} className="px-4 py-12 text-center text-red-400">
+                      Error loading job orders. Please try again.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-4 p-4 bg-gray-900 rounded overflow-auto max-h-48">
+              <pre className="text-xs text-gray-400 whitespace-pre-wrap">
+                {error.includes("SQLSTATE") ? (
+                  <>
+                    <span className="text-red-400">Database Error:</span>
+                    <br />
+                    {error.includes("Table") ? "Table name mismatch - check the database schema" : error}
+                    <br /><br />
+                    <span className="text-yellow-400">Suggestion:</span>
+                    <br />
+                    Verify that the table 'job_orders' exists in your database.
+                  </>
+                ) : error}
+              </pre>
+            </div>
+          </div>
         </div>
       </div>
     );
@@ -324,48 +378,17 @@ const JobOrder: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-700 text-sm">
                 <thead className="bg-gray-800 sticky top-0">
                   <tr>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      <div className="flex items-center">
-                        Timestamp
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      <div className="flex items-center">
-                        Full Name of Client
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap w-48">
-                      <div className="flex items-center">
-                        Full Address of Client
-                      </div>
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Onsite Status
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Billing Status
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Status Remarks
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Assigned Email
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Contract Template
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Billing Day
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Installation Fee
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified By
-                    </th>
-                    <th scope="col" className="px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified Date
-                    </th>
+                    {tableColumns.map(column => (
+                      <th 
+                        key={column.id}
+                        scope="col" 
+                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
+                      >
+                        <div className="flex items-center">
+                          {column.label}
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
@@ -416,7 +439,7 @@ const JobOrder: React.FC = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={12} className="px-4 py-12 text-center text-gray-400">
+                      <td colSpan={tableColumns.length} className="px-4 py-12 text-center text-gray-400">
                         {jobOrders.length > 0
                           ? 'No job orders found matching your filters'
                           : 'No job orders found. Create your first job order.'}
@@ -443,4 +466,4 @@ const JobOrder: React.FC = () => {
   );
 };
 
-export default JobOrder;
+export default JobOrderPage;

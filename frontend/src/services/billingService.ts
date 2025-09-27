@@ -108,105 +108,110 @@ axiosInstance.interceptors.request.use((config) => {
 
 export const getBillingRecords = async (): Promise<BillingRecord[]> => {
   try {
-    const response = await axiosInstance.get<BillingApiResponse>('/billing');
+    // Call the actual billing-details API endpoint
+    const response = await axiosInstance.get<any>('/billing-details');
     const responseData = response.data;
-    return responseData?.data || (responseData as any) || [];
+    
+    // Map the API response to the expected BillingRecord format
+    if (responseData?.data && Array.isArray(responseData.data)) {
+      return responseData.data.map((item: any) => ({
+        id: item.Account_No,
+        applicationId: item.Account_No,
+        customerName: item.Full_Name || '',
+        address: item.Address || '',
+        status: item.Status || 'Inactive',
+        balance: parseFloat(item.Account_Balance) || 0,
+        onlineStatus: item.Status === 'Active' ? 'Online' : 'Offline',
+        cityId: null,
+        regionId: null,
+        timestamp: item.Modified_Date || '',
+        billingStatus: item.Billing_Status || '',
+        dateInstalled: item.Date_Installed || '',
+        contactNumber: item.Contact_Number || '',
+        emailAddress: item.Email_Address || '',
+        plan: item.Plan || '',
+        username: item.Username || '',
+        connectionType: item.Connection_Type || '',
+        routerModel: item.Router_Model || '',
+        routerModemSN: item.Router_Modem_SN || '',
+        lcpnap: item.LCPNAP || '',
+        port: item.PORT || '',
+        vlan: item.VLAN || '',
+        billingDay: item.Billing_Day || 0,
+        totalPaid: 0, // Not directly available from the API
+        provider: item.Provider || '',
+        lcp: item.LCP || '',
+        nap: item.NAP || '',
+        modifiedBy: item.Modified_By || '',
+        modifiedDate: item.Modified_Date || '',
+        barangay: item.Barangay || '',
+        city: item.City || '',
+        region: item.Region || ''
+      }));
+    }
+    
+    return [];
   } catch (error) {
     console.error('Error fetching billing records:', error);
-    
-    // Return sample data for development
-    return [
-      {
-        id: '1',
-        applicationId: '202308029',
-        customerName: 'Joan S Vergara',
-        address: 'Block 78 Lot 16 Mabuhay Homes Phase 2A, Darangan, Binangonan, Rizal',
-        status: 'Active',
-        balance: 0,
-        onlineStatus: 'Online',
-        cityId: 1,
-        regionId: 1,
-        timestamp: '2023-08-02',
-        billingStatus: 'Active',
-        dateInstalled: '9/18/2025',
-        contactNumber: '9673808916',
-        emailAddress: 'franckiepernyra18@gmail.com',
-        plan: 'SwitchLite - P699',
-        username: 'vergarajp317251011',
-        connectionType: 'Fiber',
-        routerModel: 'UT-XPo48c-S',
-        routerModemSN: 'Sisco7992fffd',
-        lcpnap: 'LCP 195 NAP 00',
-        port: 'PORT 004',
-        vlan: '1000',
-        billingDay: 23,
-        totalPaid: 0,
-        provider: 'SWITCH',
-        lcp: 'LCP 195',
-        nap: 'NAP 001',
-        modifiedBy: 'AppSheet',
-        modifiedDate: '9/18/2025 4:10:44 PM',
-        barangay: 'Darangan',
-        city: 'Binangonan',
-        region: 'Rizal'
-      },
-      {
-        id: '2',
-        applicationId: '202308028',
-        customerName: 'Wesley U Aragones',
-        address: '75 C. Bolado Ave, Tatala, Binangonan, Rizal',
-        status: 'Active',
-        balance: 0,
-        onlineStatus: 'Offline',
-        cityId: 1,
-        regionId: 1,
-        timestamp: '2023-08-02',
-        billingStatus: 'Active',
-        dateInstalled: '9/18/2025',
-        contactNumber: '9359727692',
-        emailAddress: 'wesleyaragones07@gmail.com',
-        plan: 'SwitchLite - P699',
-        username: 'aragonesw918251332',
-        connectionType: 'Fiber',
-        routerModel: 'UT-XPo48c-S',
-        routerModemSN: 'Sisco7992ffb5',
-        lcpnap: 'LCP 113 NAP 00',
-        port: 'PORT 007',
-        vlan: '1000',
-        billingDay: 23,
-        totalPaid: 0,
-        provider: 'SWITCH',
-        lcp: 'LCP 113',
-        nap: 'NAP 00',
-        modifiedBy: 'AppSheet',
-        modifiedDate: '9/18/2025 4:10:44 PM',
-        barangay: 'Tatala',
-        city: 'Binangonan',
-        region: 'Rizal'
-      }
-    ];
+    return [];
   }
 };
 
 export const getBillingRecordDetails = async (id: string): Promise<BillingDetailRecord | null> => {
   try {
-    const response = await axiosInstance.get<BillingDetailApiResponse>(`/billing/${id}`);
+    // Call the actual billing-details API endpoint for a specific record
+    const response = await axiosInstance.get<any>(`/billing-details/${id}`);
     const responseData = response.data;
-    return responseData?.data || (responseData as any) || null;
-  } catch (error) {
-    console.error('Error fetching billing record details:', error);
     
-    // Return sample detailed data for development
-    const records = await getBillingRecords();
-    const record = records.find(r => r.id === id);
-    if (record) {
+    if (responseData?.data) {
+      const item = responseData.data;
+      // Map the API response to the expected BillingDetailRecord format
+      const basicRecord: BillingRecord = {
+        id: item.Account_No,
+        applicationId: item.Account_No,
+        customerName: item.Full_Name || '',
+        address: item.Address || '',
+        status: item.Status || 'Inactive',
+        balance: parseFloat(item.Account_Balance) || 0,
+        onlineStatus: item.Status === 'Active' ? 'Online' : 'Offline',
+        cityId: null,
+        regionId: null,
+        timestamp: item.Modified_Date || '',
+        billingStatus: item.Billing_Status || '',
+        dateInstalled: item.Date_Installed || '',
+        contactNumber: item.Contact_Number || '',
+        emailAddress: item.Email_Address || '',
+        plan: item.Plan || '',
+        username: item.Username || '',
+        connectionType: item.Connection_Type || '',
+        routerModel: item.Router_Model || '',
+        routerModemSN: item.Router_Modem_SN || '',
+        lcpnap: item.LCPNAP || '',
+        port: item.PORT || '',
+        vlan: item.VLAN || '',
+        billingDay: item.Billing_Day || 0,
+        totalPaid: 0, // Not directly available from the API
+        provider: item.Provider || '',
+        lcp: item.LCP || '',
+        nap: item.NAP || '',
+        modifiedBy: item.Modified_By || '',
+        modifiedDate: item.Modified_Date || '',
+        barangay: item.Barangay || '',
+        city: item.City || '',
+        region: item.Region || ''
+      };
+      
+      // Add additional details specific to BillingDetailRecord
       return {
-        ...record,
-        lcpnapport: 'LCP 195 NAP 001 PORT 004',
-        usageType: 'Regular Browsing',
-        referredBy: 'Vilma S. Divinagracia',
-        secondContactNumber: '9336424625',
-        referrersAccountNumber: '',
+        ...basicRecord,
+        lcpnapport: item.LCPNAPPORT || '',
+        usageType: item.Usage_Type || '',
+        referredBy: item.Referred_By || '',
+        secondContactNumber: item.Second_Contact_Number || '',
+        referrersAccountNumber: item.Referrers_Account_Number || '',
+        group: item.Group || '',
+        mikrotikId: item.MIKROTIK_ID || '',
+        // Add additional placeholders for UI components
         relatedInvoices: 'Related Invoices (0)',
         relatedStatementOfAccount: 'Related Statement of Account...',
         relatedDiscounts: 'Related Discounts (0)',
@@ -220,36 +225,69 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         relatedChangeDueLogs: 'Related Change Due Logs (0)',
         relatedTransactions: 'Related Transactions',
         relatedDetailsUpdateLogs: 'Related Details Update Logs (0)',
-        computedAddress: 'Block 78 Lot 16 Mabuhay Home...',
-        computedStatus: 'Active | P 0',
+        computedAddress: item.Address ? (item.Address.length > 25 ? `${item.Address.substring(0, 25)}...` : item.Address) : '',
+        computedStatus: `${item.Status || 'Inactive'} | P ${parseFloat(item.Account_Balance) || 0}`,
         relatedAdvancedPayments: 'Related Advanced Payments (0)',
         relatedPaymentPortalLogs: 'Related Payment Portal Logs (0)',
         relatedInventoryLogs: 'Related Inventory Logs (0)',
-        computedAccountNo: '202308029 | Joan S Vergara | Bl...',
+        computedAccountNo: `${item.Account_No} | ${item.Full_Name || ''}${item.Address ? (' | ' + item.Address.substring(0, 10) + '...') : ''}`,
         relatedOnlineStatus: 'Related Online Status (1)',
-        group: 'SwitchLite',
-        mikrotikId: '*2063',
-        sessionIP: '10.99.161.63',
+        sessionIP: item.IP || '',
         relatedBorrowedLogs: 'Related Borrowed Logs (0)',
         relatedPlanChangeLogs: 'Related Plan Change Logs (0)',
         relatedServiceChargeLogs: 'Related Service Charge Logs (0)',
         relatedAdjustedAccountLogs: 'Related Adjusted Account Log...',
-        referralContactNo: '9332273769',
+        referralContactNo: '',
         relatedSecurityDeposits: 'Related Security Deposits (0)',
         relatedApprovedTransactions: 'Related Approved Transaction...',
         relatedAttachments: '',
         logs: 'Logs (0)'
       };
     }
+    
+    return null;
+  } catch (error) {
+    console.error('Error fetching billing record details:', error);
     return null;
   }
 };
 
 export const updateBillingRecord = async (id: string, data: Partial<BillingDetailRecord>): Promise<BillingDetailRecord | null> => {
   try {
-    const response = await axiosInstance.put<BillingDetailApiResponse>(`/billing/${id}`, data);
-    const responseData = response.data;
-    return responseData?.data || (responseData as any) || null;
+    // Map the frontend data format to the backend data format
+    const backendData = {
+      // Map only the fields that can be updated
+      Full_Name: data.customerName,
+      Contact_Number: data.contactNumber,
+      Email_Address: data.emailAddress,
+      Address: data.address,
+      Plan: data.plan,
+      Provider: data.provider,
+      Account_Balance: data.balance,
+      Username: data.username,
+      Connection_Type: data.connectionType,
+      Router_Model: data.routerModel,
+      Router_Modem_SN: data.routerModemSN,
+      LCP: data.lcp,
+      NAP: data.nap,
+      PORT: data.port,
+      VLAN: data.vlan,
+      LCPNAP: data.lcpnap,
+      Status: data.status,
+      Billing_Status: data.billingStatus,
+      Billing_Day: data.billingDay,
+      Group: data.group,
+      MIKROTIK_ID: data.mikrotikId,
+      Usage_Type: data.usageType,
+      Referred_By: data.referredBy,
+      Second_Contact_Number: data.secondContactNumber,
+      Referrers_Account_Number: data.referrersAccountNumber
+    };
+    
+    const response = await axiosInstance.put<any>(`/billing-details/${id}`, backendData);
+    
+    // After successful update, retrieve the updated record
+    return getBillingRecordDetails(id);
   } catch (error) {
     console.error('Error updating billing record:', error);
     throw error;
@@ -258,9 +296,46 @@ export const updateBillingRecord = async (id: string, data: Partial<BillingDetai
 
 export const createBillingRecord = async (data: Partial<BillingDetailRecord>): Promise<BillingDetailRecord | null> => {
   try {
-    const response = await axiosInstance.post<BillingDetailApiResponse>('/billing', data);
-    const responseData = response.data;
-    return responseData?.data || (responseData as any) || null;
+    // Map the frontend data format to the backend data format
+    const backendData = {
+      Account_No: data.applicationId,
+      Full_Name: data.customerName,
+      Contact_Number: data.contactNumber,
+      Email_Address: data.emailAddress,
+      Address: data.address,
+      Plan: data.plan,
+      Provider: data.provider,
+      Account_Balance: data.balance,
+      Username: data.username,
+      Connection_Type: data.connectionType,
+      Router_Model: data.routerModel,
+      Router_Modem_SN: data.routerModemSN,
+      LCP: data.lcp,
+      NAP: data.nap,
+      PORT: data.port,
+      VLAN: data.vlan,
+      LCPNAP: data.lcpnap,
+      Status: data.status,
+      Billing_Status: data.billingStatus,
+      Billing_Day: data.billingDay,
+      Group: data.group,
+      MIKROTIK_ID: data.mikrotikId,
+      Usage_Type: data.usageType,
+      Referred_By: data.referredBy,
+      Second_Contact_Number: data.secondContactNumber,
+      Referrers_Account_Number: data.referrersAccountNumber,
+      Date_Installed: new Date().toISOString(),
+      Modified_Date: new Date().toISOString(),
+      Modified_By: 'System'
+    };
+    
+    const response = await axiosInstance.post<any>('/billing-details', backendData);
+    
+    if (response.data.status === 'success' && response.data.data) {
+      return getBillingRecordDetails(response.data.data.Account_No);
+    }
+    
+    return null;
   } catch (error) {
     console.error('Error creating billing record:', error);
     throw error;
@@ -269,7 +344,7 @@ export const createBillingRecord = async (data: Partial<BillingDetailRecord>): P
 
 export const deleteBillingRecord = async (id: string): Promise<boolean> => {
   try {
-    await axiosInstance.delete(`/billing/${id}`);
+    await axiosInstance.delete(`/billing-details/${id}`);
     return true;
   } catch (error) {
     console.error('Error deleting billing record:', error);

@@ -15,6 +15,7 @@ class ApplicationController extends Controller
     public function index()
     {
         try {
+            // Explicitly fetch from the app_applications table
             $applications = Application::all();
             
             // Debug information
@@ -25,8 +26,8 @@ class ApplicationController extends Controller
             $formattedApplications = $applications->map(function ($app) {
                 return [
                     'id' => (string)$app->id,
-                    'customer_name' => trim($app->first_name . ' ' . $app->middle_initial . ' ' . $app->last_name),
-                    'timestamp' => $app->create_date ? date('m/d/Y H:i:s', strtotime($app->create_date . ' ' . $app->create_time)) : null,
+                    'customer_name' => $app->getFullNameAttribute(), // Use the accessor method
+                    'timestamp' => $app->getFormattedTimestampAttribute(), // Use the accessor method
                     'address' => $app->address_line,
                     'status' => $app->status,
                     'location' => $this->getLocationName($app->region_id, $app->city_id),
@@ -48,7 +49,8 @@ class ApplicationController extends Controller
                 'applications' => $formattedApplications,
                 'debug' => [
                     'count' => $count,
-                    'first_app' => $firstApp ? $firstApp->toArray() : null
+                    'first_app' => $firstApp ? $firstApp->toArray() : null,
+                    'table' => $applications->first() ? $applications->first()->getTable() : null
                 ]
             ]);
         } catch (\Exception $e) {
@@ -67,19 +69,42 @@ class ApplicationController extends Controller
      */
     private function getLocationName($regionId, $cityId)
     {
-        // Map region/city IDs to location names - you should enhance this
-        // with actual database lookups in a production environment
-        
-        if ($cityId == 1) {
-            return 'binangonan';
-        } elseif ($cityId == 2) {
-            return 'tagpos';
-        } elseif ($cityId == 3) {
-            return 'tatala';
-        } elseif ($cityId == 4) {
-            return 'pantok';
-        } else {
-            return 'binangonan';
+        // Use actual database lookups for region and city names
+        try {
+            $city = \App\Models\City::find($cityId);
+            $region = \App\Models\Region::find($regionId);
+            
+            $locationParts = [];
+            if ($region) {
+                $locationParts[] = $region->name;
+            }
+            
+            if ($city) {
+                $locationParts[] = $city->name;
+            }
+            
+            if (count($locationParts) > 0) {
+                return implode(', ', $locationParts);
+            }
+            
+            // Fallback to hardcoded values if needed
+            if ($cityId == 1) {
+                return 'binangonan';
+            } elseif ($cityId == 2) {
+                return 'tagpos';
+            } elseif ($cityId == 3) {
+                return 'tatala';
+            } elseif ($cityId == 4) {
+                return 'pantok';
+            } else {
+                return 'binangonan';
+            }
+        } catch (\Exception $e) {
+            // Log the error
+            \Illuminate\Support\Facades\Log::error('Failed to get location name: ' . $e->getMessage());
+            
+            // Return a default value
+            return 'Unknown Location';
         }
     }
 
