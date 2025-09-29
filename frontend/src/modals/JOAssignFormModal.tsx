@@ -213,43 +213,110 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       return String(value);
     };
 
+    // Create proper timestamp format for database
+    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const formattedTimestamp = formData.timestamp ? 
+      new Date(formData.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
+      currentTimestamp;
+    const modifiedTimestamp = formData.modifiedDate ? 
+      new Date(formData.modifiedDate).toISOString().slice(0, 19).replace('T', ' ') : 
+      currentTimestamp;
+
     return {
+      // Primary identifiers
       Application_ID: applicationId,
-      Timestamp: formData.timestamp || new Date().toISOString(),
-      Email_Address: toNullIfEmpty(formData.email),
-      Referred_By: toNullIfEmpty(formData.referredBy),
+      
+      // Timestamps
+      Timestamp: formattedTimestamp,
+      Modified_Date: modifiedTimestamp,
+      
+      // Personal Information
       First_Name: formData.firstName.trim(),
       Middle_Initial: toNullIfEmpty(formData.middleInitial),
       Last_Name: formData.lastName.trim(),
       Contact_Number: formData.contactNumber.trim(),
+      Email_Address: toNullIfEmpty(formData.email),
       Applicant_Email_Address: toNullIfEmpty(formData.email),
+      
+      // Address Information
       Address: formData.address.trim(),
       Location: `${formData.city}, ${formData.region}`,
       Barangay: toNullIfEmpty(formData.barangay),
       City: toNullIfEmpty(formData.city),
       Region: toNullIfEmpty(formData.region),
+      Installation_Landmark: toNullIfEmpty(formData.installationLandmark),
+      
+      // Service Information
       Choose_Plan: formData.choosePlan,
-      Remarks: toNullIfEmpty(formData.remarks),
-      Installation_Fee: formData.installationFee || 0,
+      
+      // Contract and Billing
       Contract_Template: toNullIfEmptyOrZero(formData.contractTemplate),
+      Installation_Fee: formData.installationFee || 0,
       Billing_Day: formData.billingDay,
+      Preferred_Day: toNullIfEmpty(formData.billingDay), // Use billing day as preferred day initially
+      
+      // Status Information
       Status: formData.status,
       Onsite_Status: formData.onsiteStatus,
+      
+      // Assignment and Tracking
       Assigned_Email: toNullIfEmpty(formData.assignedEmail),
+      Referred_By: toNullIfEmpty(formData.referredBy),
       Modified_By: formData.modifiedBy,
-      Modified_Date: formData.modifiedDate,
-      Installation_Landmark: toNullIfEmpty(formData.installationLandmark),
-      // Optional fields that may be added later
+      
+      // Remarks and Notes
+      Remarks: toNullIfEmpty(formData.remarks),
+      JO_Remarks: toNullIfEmpty(formData.remarks), // Map remarks to JO_Remarks as well
+      
+      // Technical fields - initialize as null, can be updated later
       Modem_Router_SN: null,
+      Router_Model: null,
       LCP: null,
       NAP: null,
       PORT: null,
       VLAN: null,
       LCPNAP: null,
+      LCPNAPPORT: null,
       Username: null,
+      IP: null,
+      
+      // Visit tracking fields - initialize as null
       Visit_By: null,
       Visit_With: null,
-      Visit_With_Other: null
+      Visit_With_Other: null,
+      Verified_By: null,
+      
+      // Image and document fields - initialize as null
+      Setup_Image: null,
+      Speedtest_Image: null,
+      Client_Signature: null,
+      Signed_Contract_Image: null,
+      Box_Reading_Image: null,
+      Router_Reading_Image: null,
+      House_Front_Picture: null,
+      
+      // Additional fields - initialize as null
+      StartTimeStamp: null,
+      EndTimeStamp: null,
+      Duration: null,
+      Date_Installed: null,
+      Billing_Status: null,
+      Connection_Type: null,
+      Usage_Type: null,
+      Renter: null,
+      Installation: null,
+      Port: null,
+      Label: null,
+      Image: null,
+      Second: null,
+      Account_No: null,
+      Account_Number: null,
+      Coordinates: null,
+      Referrers: null,
+      Contract_Link: null,
+      Second_Contact_Number: null,
+      Status_Remarks: null,
+      Onsite_Remarks: null
     };
   };
 

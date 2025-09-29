@@ -9,71 +9,98 @@ class JobOrder extends Model
     protected $table = 'job_orders';
     
     protected $fillable = [
+        // Primary identifiers
         'Application_ID',
+        
+        // Timestamps
         'Timestamp',
-        'Email_Address',
-        'Referred_By',
+        'StartTimeStamp',
+        'EndTimeStamp',
+        'Duration',
+        'Date_Installed',
+        'Modified_Date',
+        
+        // Personal Information
         'First_Name',
         'Middle_Initial',
         'Last_Name',
         'Contact_Number',
+        'Second_Contact_Number',
+        'Email_Address',
         'Applicant_Email_Address',
+        
+        // Address Information
         'Address',
         'Location',
         'Barangay',
         'City',
         'Region',
+        'Installation_Landmark',
+        'Coordinates',
+        
+        // Service Information
         'Choose_Plan',
-        'Remarks',
-        'Installation_Fee',
+        'Connection_Type',
+        'Usage_Type',
+        'Username',
+        
+        // Contract and Billing
         'Contract_Template',
+        'Contract_Link',
+        'Installation_Fee',
         'Billing_Day',
         'Preferred_Day',
-        'JO_Remarks',
-        'Status',
-        'Verified_By',
+        'Billing_Status',
+        
+        // Technical Information
         'Modem_Router_SN',
+        'Router_Model',
         'LCP',
         'NAP',
         'PORT',
         'VLAN',
-        'Username',
+        'LCPNAP',
+        'LCPNAPPORT',
+        'Port',
+        'Label',
+        'IP',
+        
+        // Status Information
+        'Status',
+        'Onsite_Status',
+        
+        // Assignment and Tracking
+        'Assigned_Email',
         'Visit_By',
         'Visit_With',
         'Visit_With_Other',
-        'Onsite_Status',
-        'Onsite_Remarks',
+        'Referred_By',
+        'Verified_By',
         'Modified_By',
-        'Modified_Date',
-        'Contract_Link',
-        'Connection_Type',
-        'Assigned_Email',
+        
+        // Remarks and Notes
+        'Remarks',
+        'JO_Remarks',
+        'Status_Remarks',
+        'Onsite_Remarks',
+        
+        // Images and Documents
         'Setup_Image',
         'Speedtest_Image',
-        'StartTimeStamp',
-        'EndTimeStamp',
-        'Duration',
-        'LCPNAP',
-        'Billing_Status',
-        'Router_Model',
-        'Date_Installed',
         'Client_Signature',
-        'IP',
         'Signed_Contract_Image',
         'Box_Reading_Image',
         'Router_Reading_Image',
-        'Username_Status',
-        'LCPNAPPORT',
-        'Usage_Type',
-        'Renter',
-        'Installation_Landmark',
-        'Status_Remarks',
-        'Port_Label_Image',
-        'Second_Contact_Number',
-        'Account_No',
-        'Address_Coordinates',
-        'Referrers_Account_Number',
         'House_Front_Picture',
+        'Image',
+        
+        // Additional Fields
+        'Renter',
+        'Installation',
+        'Second',
+        'Account_No',
+        'Account_Number',
+        'Referrers',
     ];
 
     protected $dates = [
