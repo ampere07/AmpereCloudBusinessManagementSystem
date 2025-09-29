@@ -8,12 +8,29 @@ class ApplicationVisit extends Model
 {
     protected $table = 'application_visit';
     
+    // Disable Laravel's automatic timestamps since we use custom fields
+    public $timestamps = false;
+    
     /**
      * The primary key for the model.
      *
      * @var string
      */
-    protected $primaryKey = 'ID'; // Using the Pascal_Case column name
+    protected $primaryKey = 'ID';
+    
+    /**
+     * The "type" of the auto-incrementing ID.
+     *
+     * @var string
+     */
+    protected $keyType = 'string';
+    
+    /**
+     * Indicates if the IDs are auto-incrementing.
+     *
+     * @var bool
+     */
+    public $incrementing = false;
     
     protected $fillable = [
         'ID',
@@ -35,6 +52,9 @@ class ApplicationVisit extends Model
         'Installation_Landmark',
         'Second_Contact_Number',
         'Assigned_Email',
+        'Image_1',
+        'Image_2',
+        'Image_3',
         'Visit_By',
         'Visit_With',
         'Visit_With_Other',
@@ -44,27 +64,14 @@ class ApplicationVisit extends Model
         'Modified_By',
         'Modified_Date',
         'Status_Remarks',
+        'Referrers_Account_Number',
         'Application_ID',
-        'barangay_id',
-        'city_id',
-        'region_id',
-        'Scheduled_Date',
-        'Visit_Type',
-        'Visit_Notes',
-        'Status'
+        'House_Front_Picture'
     ];
     
-    protected $dates = [
-        'created_at',
-        'updated_at',
-        'Scheduled_Date',
-        'Modified_Date'
-    ];
+    protected $dates = [];
     
-    protected $casts = [
-        'Scheduled_Date' => 'datetime',
-        'Modified_Date' => 'datetime'
-    ];
+    protected $casts = [];
     
     /**
      * Get the application that owns the visit

@@ -1,9 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown } from 'lucide-react';
+import { X } from 'lucide-react';
 import { createApplicationVisit, ApplicationVisitData } from '../services/applicationVisitService';
-import { getRegions, getCitiesByRegion, getBarangaysByCity } from '../services/cityService';
-import { Location } from '../types/location';
-import { locationEvents, LOCATION_EVENTS } from '../services/locationEvents';
 
 interface ApplicationVisitFormModalProps {
   isOpen: boolean;
@@ -27,7 +24,6 @@ interface VisitFormData {
   choosePlan: string;
   remarks: string;
   assignedEmail: string;
-  scheduledDate: string;
   visitBy: string;
   visitWith: string;
   visitWithOther: string;
@@ -51,48 +47,45 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         applicationData,
         mobile_alt: applicationData.mobile_alt,
         secondaryNumber: applicationData.secondaryNumber,
-        properties: Object.keys(applicationData || {})
+        properties: Object.keys(applicationData || {}),
+        region: applicationData.Region || applicationData.region,
+        city: applicationData.City || applicationData.city,
+        barangay: applicationData.Barangay || applicationData.barangay
       });
     }
   }, [isOpen, applicationData]);
   
-  // Get tomorrow's date for default scheduling
-  const getTomorrow = () => {
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    tomorrow.setHours(9, 0, 0, 0);
-    return tomorrow.toISOString().slice(0, 16); // Format as YYYY-MM-DDTHH:MM
-  };
 
   const [formData, setFormData] = useState<VisitFormData>(() => {
     // Capture initial values of second contact number with extended logging
     const initialSecondContact = applicationData?.mobile_alt ||
-                                applicationData?.secondaryNumber ||
+                                applicationData?.Secondary_Mobile_Number ||
+                                applicationData?.secondary_number ||
                                 applicationData?.second_contact_number ||
                                 '';
                                 
     console.log('DEBUG - Initial second contact values:', {
       mobile_alt: applicationData?.mobile_alt,
-      secondaryNumber: applicationData?.secondaryNumber,
+      Secondary_Mobile_Number: applicationData?.Secondary_Mobile_Number,
+      secondary_number: applicationData?.secondary_number,
       second_contact_number: applicationData?.second_contact_number,
       initialSecondContact
     });
     
     return {
-      firstName: applicationData?.first_name || '',
-      middleInitial: applicationData?.middle_initial || '',
-      lastName: applicationData?.last_name || '',
-      contactNumber: applicationData?.mobile || applicationData?.mobileNumber || applicationData?.mobile_number || '',
+      firstName: applicationData?.First_Name || applicationData?.first_name || '',
+      middleInitial: applicationData?.Middle_Initial || applicationData?.middle_initial || '',
+      lastName: applicationData?.Last_Name || applicationData?.last_name || '',
+      contactNumber: applicationData?.Mobile_Number || applicationData?.mobile || applicationData?.mobile_number || '',
       secondContactNumber: initialSecondContact,
-      email: applicationData?.email || '',
-      address: applicationData?.address_line || applicationData?.address || '',
-      barangay: applicationData?.barangay_id ? applicationData.barangay_id.toString() : '',
-      city: applicationData?.city_id ? applicationData.city_id.toString() : '',
-      region: applicationData?.region_id ? applicationData.region_id.toString() : '',
-      choosePlan: 'SwitchConnect - P799',
+      email: applicationData?.Email_Address || applicationData?.email || '',
+      address: applicationData?.Installation_Address || applicationData?.address_line || applicationData?.address || '',
+      barangay: applicationData?.Barangay || applicationData?.barangay || '',
+      city: applicationData?.City || applicationData?.city || '',
+      region: applicationData?.Region || applicationData?.region || '',
+      choosePlan: applicationData?.Desired_Plan || 'SwitchConnect - P799',
       remarks: '',
       assignedEmail: '',
-      scheduledDate: getTomorrow(),
       visitBy: '',
       visitWith: 'None',
       visitWithOther: '',
@@ -104,116 +97,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     };
   });
 
-  // Location states
-  const [regions, setRegions] = useState<Location[]>([]);
-  const [cities, setCities] = useState<Location[]>([]);
-  const [barangays, setBarangays] = useState<Location[]>([]);
-  const [loadingLocations, setLoadingLocations] = useState(true);
-
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-
-  // Load regions when component mounts
-  useEffect(() => {
-    const loadRegions = async () => {
-      try {
-        setLoadingLocations(true);
-        const regionsData = await getRegions();
-        setRegions(regionsData);
-      } catch (error) {
-        console.error('Error loading regions:', error);
-      } finally {
-        setLoadingLocations(false);
-      }
-    };
-
-    if (isOpen) {
-      loadRegions();
-    }
-  }, [isOpen]);
-
-  // Load cities when region changes
-  useEffect(() => {
-    const loadCities = async () => {
-      if (formData.region) {
-        try {
-          const regionId = parseInt(formData.region);
-          const citiesData = await getCitiesByRegion(regionId);
-          setCities(citiesData);
-          // Clear city and barangay selections when region changes
-          setFormData(prev => ({ ...prev, city: '', barangay: '' }));
-          setBarangays([]);
-        } catch (error) {
-          console.error('Error loading cities:', error);
-          setCities([]);
-        }
-      } else {
-        setCities([]);
-        setBarangays([]);
-      }
-    };
-
-    loadCities();
-  }, [formData.region]);
-
-  // Load barangays when city changes
-  useEffect(() => {
-    const loadBarangays = async () => {
-      if (formData.city) {
-        try {
-          const cityId = parseInt(formData.city);
-          const barangaysData = await getBarangaysByCity(cityId);
-          setBarangays(barangaysData);
-          // Clear barangay selection when city changes
-          setFormData(prev => ({ ...prev, barangay: '' }));
-        } catch (error) {
-          console.error('Error loading barangays:', error);
-          setBarangays([]);
-        }
-      } else {
-        setBarangays([]);
-      }
-    };
-
-    loadBarangays();
-  }, [formData.city]);
-
-  // Listen for location updates from other components
-  useEffect(() => {
-    const handleLocationUpdate = async () => {
-      if (isOpen) {
-        // Reload all location data when locations are updated
-        try {
-          const regionsData = await getRegions();
-          setRegions(regionsData);
-          
-          // If a region is selected, reload its cities
-          if (formData.region) {
-            const regionId = parseInt(formData.region);
-            const citiesData = await getCitiesByRegion(regionId);
-            setCities(citiesData);
-            
-            // If a city is selected, reload its barangays
-            if (formData.city) {
-              const cityId = parseInt(formData.city);
-              const barangaysData = await getBarangaysByCity(cityId);
-              setBarangays(barangaysData);
-            }
-          }
-        } catch (error) {
-          console.error('Error reloading location data:', error);
-        }
-      }
-    };
-
-    // Subscribe to location update events
-    locationEvents.on(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
-
-    // Cleanup subscription
-    return () => {
-      locationEvents.off(LOCATION_EVENTS.LOCATIONS_UPDATED, handleLocationUpdate);
-    };
-  }, [isOpen, formData.region, formData.city]);
 
   // Update form data when applicationData changes
   useEffect(() => {
@@ -222,7 +107,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       console.log('DEBUG - Application data loaded:', applicationData);
       console.log('DEBUG - Second contact fields:', {
         mobile_alt: applicationData.mobile_alt,
-        secondaryNumber: applicationData.secondaryNumber,
+        Secondary_Mobile_Number: applicationData.Secondary_Mobile_Number,
+        secondary_number: applicationData.secondary_number,
         second_contact_number: applicationData.second_contact_number,
         // Log all properties to find the correct one
         allProps: Object.keys(applicationData)
@@ -231,7 +117,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       setFormData(prev => {
         // Get second contact number from any available field
         const secondContact = applicationData.mobile_alt || 
-                             applicationData.secondaryNumber || 
+                             applicationData.Secondary_Mobile_Number || 
                              applicationData.secondary_number || 
                              applicationData.second_contact_number || 
                              '';
@@ -240,14 +126,17 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         
         return {
           ...prev,
-          firstName: applicationData.first_name || prev.firstName,
-          middleInitial: applicationData.middle_initial || prev.middleInitial,
-          lastName: applicationData.last_name || prev.lastName,
-          contactNumber: applicationData.mobile || applicationData.mobileNumber || applicationData.mobile_number || prev.contactNumber,
+          firstName: applicationData.First_Name || applicationData.first_name || prev.firstName,
+          middleInitial: applicationData.Middle_Initial || applicationData.middle_initial || prev.middleInitial,
+          lastName: applicationData.Last_Name || applicationData.last_name || prev.lastName,
+          contactNumber: applicationData.Mobile_Number || applicationData.mobile || applicationData.mobile_number || prev.contactNumber,
           secondContactNumber: secondContact,
-          email: applicationData.email || prev.email,
-          address: applicationData.address_line || applicationData.address || prev.address,
-          region: applicationData.region_id || prev.region
+          email: applicationData.Email_Address || applicationData.email || prev.email,
+          address: applicationData.Installation_Address || applicationData.address_line || applicationData.address || prev.address,
+          barangay: applicationData.Barangay || applicationData.barangay || prev.barangay,
+          city: applicationData.City || applicationData.city || prev.city,
+          region: applicationData.Region || applicationData.region || prev.region,
+          choosePlan: applicationData.Desired_Plan || prev.choosePlan
         };
       });
     }
@@ -314,17 +203,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       newErrors.assignedEmail = 'Assigned Email is required';
     }
     
-    if (!formData.scheduledDate.trim()) {
-      newErrors.scheduledDate = 'Scheduled Date is required';
-    } else {
-      // Validate that the scheduled date is not in the past
-      const scheduledDateTime = new Date(formData.scheduledDate);
-      const now = new Date();
-      if (scheduledDateTime < now) {
-        newErrors.scheduledDate = 'Scheduled date cannot be in the past';
-      }
-    }
-    
     // Automatically set visitBy to assignedEmail if empty
     if (!formData.visitBy && formData.assignedEmail) {
       setFormData(prev => ({
@@ -345,14 +223,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   };
 
   const mapFormDataToVisitData = (applicationId: string): ApplicationVisitData => {
-    // Find region, city, barangay names from IDs for display purposes
-    const regionName = formData.region ? regions.find(r => r.id.toString() === formData.region)?.name || '' : '';
-    const cityName = formData.city ? cities.find(c => c.id.toString() === formData.city)?.name || '' : '';
-    const barangayName = formData.barangay ? barangays.find(b => b.id.toString() === formData.barangay)?.name || '' : '';
-    
-    // Ensure scheduled date is properly formatted
-    const scheduledDate = formData.scheduledDate || getTomorrow();
-    
     return {
       Application_ID: applicationId,
       First_Name: formData.firstName.trim(),
@@ -362,23 +232,18 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       Second_Contact_Number: formData.secondContactNumber ? formData.secondContactNumber.trim() : null,
       Email_Address: formData.email.trim(),
       Address: formData.address.trim(),
-      Barangay: barangayName || null,
-      Barangay_ID: formData.barangay || null,
-      City: cityName || null,
-      City_ID: formData.city || null,
-      Region: regionName || null,
-      Region_ID: formData.region || null,
+      Barangay: formData.barangay || null,
+      City: formData.city || null,
+      Region: formData.region || null,
       Choose_Plan: formData.choosePlan,
       Visit_Notes: formData.remarks ? formData.remarks.trim() : null,
       Installation_Landmark: formData.remarks ? formData.remarks.trim() : null,
       Assigned_Email: formData.assignedEmail,
-      Scheduled_Date: scheduledDate,
       Visit_By: formData.visitBy || formData.assignedEmail,
       Visit_With: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : null,
       Visit_With_Other: formData.visitWith === 'Other' ? (formData.visitWithOther ? formData.visitWithOther.trim() : null) : null,
       Visit_Type: formData.visitType,
-      Status: formData.status,
-      Location: (cityName && regionName) ? `${cityName}, ${regionName}` : null,
+      Visit_Status: formData.status,
       Created_By: formData.createdBy,
       Modified_By: formData.modifiedBy
     };
@@ -397,7 +262,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       return;
     }
     
-    if (!applicationData?.id) {
+    if (!applicationData?.id && !applicationData?.Application_ID) {
       console.error('No application ID available');
       alert('Missing application ID. Cannot save visit.');
       return;
@@ -405,22 +270,21 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
     setLoading(true);
     try {
+      // Use either id or Application_ID
+      const applicationId = applicationData.id || applicationData.Application_ID;
+      
       // Prepare visit data with proper validation and defaults
-      const visitData = mapFormDataToVisitData(applicationData.id);
+      const visitData = mapFormDataToVisitData(applicationId);
       
       // Ensure all critical fields are populated
       if (!visitData.Visit_By && visitData.Assigned_Email) {
         visitData.Visit_By = visitData.Assigned_Email;
       }
       
-      if (!visitData.Scheduled_Date) {
-        visitData.Scheduled_Date = getTomorrow();
-      }
-      
       // Validate required fields one more time before API call
       if (!visitData.Application_ID || !visitData.First_Name || !visitData.Last_Name || 
           !visitData.Contact_Number || !visitData.Email_Address || !visitData.Address || 
-          !visitData.Assigned_Email || !visitData.Scheduled_Date) {
+          !visitData.Assigned_Email) {
         throw new Error('Required fields are missing. Please check your form data.');
       }
       
@@ -434,9 +298,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         throw new Error(result.message || 'Failed to create application visit');
       }
       
-      // Show success message with more details
-      console.log('Visit scheduled successfully with ID:', result.data?.id || result.data?.ID);
-      alert(`Visit scheduled successfully!\n\nScheduled for: ${new Date(visitData.Scheduled_Date).toLocaleString()}\nTechnician: ${visitData.Assigned_Email}`);
+      // Show success message
+      console.log('Visit created successfully with ID:', result.data?.id || result.data?.ID);
+      alert(`Visit created successfully!\n\nTechnician: ${visitData.Assigned_Email}`);
       
       // Reset form errors to show clean state
       setErrors({});
@@ -578,10 +442,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                 onChange={(e) => handleInputChange('secondContactNumber', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
               />
-              {/* Debug value */}
-              <div className="hidden">
-                Debug: {JSON.stringify({secondContactNumber: formData.secondContactNumber, applicationDataMobileAlt: applicationData?.mobile_alt})}
-              </div>
             </div>
 
             {/* Applicant Email Address */}
@@ -612,77 +472,47 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
             </div>
 
-            {/* Barangay */}
+            {/* Barangay - Now using value from application table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Barangay<span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={formData.barangay}
-                  onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                  disabled={!formData.city || barangays.length === 0}
-                >
-                  <option value="">Select Barangay</option>
-                  {barangays.map((barangay) => (
-                    <option key={barangay.id} value={barangay.id.toString()}>
-                      {barangay.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
-              {!formData.city && <p className="text-gray-400 text-xs mt-1">Select a city first</p>}
+              <input
+                type="text"
+                value={formData.barangay}
+                onChange={(e) => handleInputChange('barangay', e.target.value)}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                placeholder="From application data"
+              />
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
             </div>
 
-            {/* City */}
+            {/* City - Now using value from application table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 City
               </label>
-              <div className="relative">
-                <select
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                  disabled={!formData.region || cities.length === 0}
-                >
-                  <option value="">Select City</option>
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.id.toString()}>
-                      {city.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
-              {!formData.region && <p className="text-gray-400 text-xs mt-1">Select a region first</p>}
+              <input
+                type="text"
+                value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                placeholder="From application data"
+              />
             </div>
 
-            {/* Region */}
+            {/* Region - Now using value from application table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Region<span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={formData.region}
-                  onChange={(e) => handleInputChange('region', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                  disabled={loadingLocations}
-                >
-                  <option value="">Select Region</option>
-                  {regions.map((region) => (
-                    <option key={region.id} value={region.id.toString()}>
-                      {region.name}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
-              {loadingLocations && <p className="text-gray-400 text-xs mt-1">Loading regions...</p>}
+              <input
+                type="text"
+                value={formData.region}
+                onChange={(e) => handleInputChange('region', e.target.value)}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                placeholder="From application data"
+              />
               {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
             </div>
 
@@ -691,18 +521,15 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choose Plan<span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={formData.choosePlan}
-                  onChange={(e) => handleInputChange('choosePlan', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                >
-                  <option value="SwitchConnect - P799">SwitchConnect - P799</option>
-                  <option value="SwitchConnect - P999">SwitchConnect - P999</option>
-                  <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
+              <select
+                value={formData.choosePlan}
+                onChange={(e) => handleInputChange('choosePlan', e.target.value)}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+              >
+                <option value="SwitchConnect - P799">SwitchConnect - P799</option>
+                <option value="SwitchConnect - P999">SwitchConnect - P999</option>
+                <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
+              </select>
               {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
             </div>
 
@@ -724,68 +551,25 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Assigned Email<span className="text-red-500">*</span>
               </label>
-              <div className="relative">
-                <select
-                  value={formData.assignedEmail}
-                  onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                >
-                  <option value="">Select Assigned Email</option>
-                  <option value="tech1@ampere.com">tech1@ampere.com</option>
-                  <option value="tech2@ampere.com">tech2@ampere.com</option>
-                  <option value="tech3@ampere.com">tech3@ampere.com</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
-              </div>
+              <select
+                value={formData.assignedEmail}
+                onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+              >
+                <option value="">Select Assigned Email</option>
+                <option value="tech1@ampere.com">tech1@ampere.com</option>
+                <option value="tech2@ampere.com">tech2@ampere.com</option>
+                <option value="tech3@ampere.com">tech3@ampere.com</option>
+              </select>
               {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
             </div>
 
-            {/* Visit Information - Hidden from view but included in form */}
-            <div className="hidden">
-              {/* Scheduled Date */}
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Scheduled Date & Time<span className="text-red-500">*</span>
-                </label>
-                <div className="relative">
-                  <input
-                    type="datetime-local"
-                    value={formData.scheduledDate}
-                    onChange={(e) => handleInputChange('scheduledDate', e.target.value)}
-                    className={`w-full px-3 py-2 bg-gray-800 border ${errors.scheduledDate ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
-                  />
-                  <Calendar className="absolute right-3 top-2.5 text-gray-400" size={20} />
-                </div>
-                {errors.scheduledDate && <p className="text-red-500 text-xs mt-1">{errors.scheduledDate}</p>}
-              </div>
 
-              {/* Visit By */}
-              <div>
-                <input
-                  type="hidden"
-                  value={formData.assignedEmail} // Use the same value as assigned email
-                  onChange={(e) => handleInputChange('visitBy', e.target.value)}
-                />
-              </div>
 
-              {/* Visit Type */}
-              <div>
-                <input
-                  type="hidden"
-                  value={formData.visitType}
-                  onChange={(e) => handleInputChange('visitType', e.target.value)}
-                />
-              </div>
-
-              {/* Status */}
-              <div>
-                <input
-                  type="hidden"
-                  value={formData.status}
-                  onChange={(e) => handleInputChange('status', e.target.value)}
-                />
-              </div>
-            </div>
+            {/* Hidden fields for form completion */}
+            <input type="hidden" value={formData.visitBy || formData.assignedEmail} />
+            <input type="hidden" value={formData.visitType} />
+            <input type="hidden" value={formData.status} />
           </div>
         </div>
       </div>

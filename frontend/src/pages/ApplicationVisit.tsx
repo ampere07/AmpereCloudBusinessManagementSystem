@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
-import { getApplicationVisits } from '../services/applicationVisitService';
+import { getAllApplicationVisits } from '../services/applicationVisitService';
 import { getApplication } from '../services/applicationService';
 
 // Interfaces for application visit data
@@ -70,7 +70,7 @@ const ApplicationVisit: React.FC = () => {
         console.log('Fetching application visits...');
         
         // Get all application visit data
-        const response = await getApplicationVisits('all');
+        const response = await getAllApplicationVisits();
         console.log('API Response:', response);
         
         if (!response.success) {
@@ -85,48 +85,56 @@ const ApplicationVisit: React.FC = () => {
             console.log('First item example:', response.data[0]);
           }
           
-          // Map the API response to our interface
+          // Map the API response to our interface using actual database columns
           const visits: ApplicationVisit[] = response.data.map((visit: any) => {
-            // Simplified mapping - only using ID since that's all that's available from database
+            // Log the raw visit data to see what we're working with
+            console.log('Raw visit data from API:', visit);
+            
             const mappedVisit = {
-              id: visit.id ? String(visit.id) : '',
-              // Set default values for required fields in the UI
-              application_id: 'N/A',
-              scheduled_date: 'N/A',
-              visit_by: 'N/A',
-              visit_with: '',
-              visit_with_other: '',
-              visit_type: 'Initial Visit',
-              visit_status: 'Scheduled',
-              visit_remarks: '',
-              status_remarks: '',
-              referred_by: '',
-              visit_notes: '',
-              first_name: 'N/A',
-              middle_initial: '',
-              last_name: 'N/A',
-              contact_number: 'N/A',
-              second_contact_number: '',
-              email_address: 'N/A',
-              address: 'N/A',
-              location: 'N/A',
-              barangay: '',
-              city: '',
-              region: '',
-              choose_plan: '',
-              installation_landmark: '',
-              assigned_email: '',
-              modified_by: '',
-              modified_date: '',
-              created_at: '',
-              updated_at: '',
-              application_status: 'Pending',
+              id: visit.ID || visit.id || '',
+              application_id: visit.Application_ID || '',
+              scheduled_date: visit.Timestamp || visit.created_at || '',
+              visit_by: visit.Visit_By || '',
+              visit_with: visit.Visit_With || '',
+              visit_with_other: visit.Visit_With_Other || '',
+              visit_type: 'Initial Visit', // Not in database, keeping default
+              visit_status: visit.Visit_Status || 'Scheduled',
+              visit_remarks: visit.Visit_Remarks || '',
+              status_remarks: visit.Status_Remarks || '',
+              referred_by: visit.Referred_By || '',
+              visit_notes: visit.Remarks || '',
+              first_name: visit.First_Name || '',
+              middle_initial: visit.Middle_Initial || '',
+              last_name: visit.Last_Name || '',
+              contact_number: visit.Contact_Number || '',
+              second_contact_number: visit.Second_Contact_Number || '',
+              email_address: visit.Email_Address || visit.Applicant_Email_Address || '',
+              address: visit.Address || '',
+              location: visit.Location || '',
+              barangay: visit.Barangay || '',
+              city: visit.City || '',
+              region: visit.Region || '',
+              choose_plan: visit.Choose_Plan || '',
+              installation_landmark: visit.Installation_Landmark || '',
+              assigned_email: visit.Assigned_Email || '',
+              modified_by: visit.Modified_By || '',
+              modified_date: visit.Modified_Date || '',
+              created_at: visit.Timestamp || visit.created_at || '',
+              updated_at: visit.updated_at || visit.Modified_Date || '',
+              application_status: visit.Application_Status || 'Pending',
             };
             
-            // Log any mapping issues for debugging
-            if (visit.id && !mappedVisit.id) {
-              console.warn('ID mapping issue:', { originalId: visit.id, mappedId: mappedVisit.id });
-            }
+            // Log the mapped result to compare
+            console.log('Mapped visit result:', {
+              originalId: visit.ID || visit.id,
+              mappedId: mappedVisit.id,
+              originalFirstName: visit.First_Name,
+              mappedFirstName: mappedVisit.first_name,
+              originalVisitStatus: visit.Visit_Status,
+              mappedVisitStatus: mappedVisit.visit_status,
+              originalAddress: visit.Address,
+              mappedAddress: mappedVisit.address
+            });
             
             return mappedVisit;
           });
