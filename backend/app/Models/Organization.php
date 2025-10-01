@@ -13,6 +13,7 @@ class Organization extends Model
     protected $table = 'organizations';
     public $timestamps = true;
 
+
     protected $fillable = [
         'organization_name',
         'address',
