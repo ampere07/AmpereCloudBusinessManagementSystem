@@ -19,6 +19,9 @@ class JobOrderController extends Controller
     public function index(): JsonResponse
     {
         try {
+            // Log that we're accessing the job_orders table
+            \Log::info('Accessing job_orders table');
+            
             $jobOrders = JobOrder::with([
                 'application',
                 'modemRouterSN',
@@ -30,15 +33,33 @@ class JobOrderController extends Controller
                 'lcpnap'
             ])->get();
 
+            // Log the count of job orders found
+            \Log::info('Found ' . $jobOrders->count() . ' job orders in database');
+            
+            // Check if we got any job orders
+            if ($jobOrders->isEmpty()) {
+                \Log::info('No job orders found in database');
+            } else {
+                // Log the first job order for debugging
+                \Log::info('First job order example:', $jobOrders->first()->toArray());
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $jobOrders,
+                'table' => 'job_orders',
+                'count' => $jobOrders->count()
             ]);
         } catch (\Exception $e) {
+            \Log::error('Error fetching job orders: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch job orders',
                 'error' => $e->getMessage(),
+                'file' => $e->getFile() . ':' . $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ], 500);
         }
     }

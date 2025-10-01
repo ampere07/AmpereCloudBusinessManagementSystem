@@ -22,21 +22,32 @@ const OrganizationManagement: React.FC = () => {
   const loadOrganizations = async () => {
     setLoading(true);
     try {
+      console.log('Loading organizations...');
       const response = await organizationService.getAllOrganizations();
+      console.log('Organizations API response:', response);
       
       if (response.success && response.data) {
+        console.log('Organizations data:', response.data);
         setOrganizations(response.data);
+      } else {
+        console.error('API returned success=false or no data:', response);
       }
     } catch (error: any) {
       console.error('Failed to load organizations:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
     } finally {
       setLoading(false);
     }
   };
 
   const filteredOrganizations = organizations.filter(org =>
-    org.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    org.org_type.toLowerCase().includes(searchTerm.toLowerCase())
+    org.organization_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (org.address && org.address.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (org.email_address && org.email_address.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalItems = filteredOrganizations.length;
@@ -96,7 +107,7 @@ const OrganizationManagement: React.FC = () => {
 
   const handleOrganizationUpdated = (updatedOrg: Organization) => {
     setOrganizations(prev => prev.map(org => 
-      org.org_id === updatedOrg.org_id ? updatedOrg : org
+      org.id === updatedOrg.id ? updatedOrg : org
     ));
     setEditingOrg(null);
   };
@@ -113,10 +124,10 @@ const OrganizationManagement: React.FC = () => {
     if (!deletingOrg) return;
 
     try {
-      const response = await organizationService.deleteOrganization(deletingOrg.org_id);
+      const response = await organizationService.deleteOrganization(deletingOrg.id);
       
       if (response.success) {
-        setOrganizations(prev => prev.filter(org => org.org_id !== deletingOrg.org_id));
+        setOrganizations(prev => prev.filter(org => org.id !== deletingOrg.id));
         setDeletingOrg(null);
       } else {
         const errorMessage = response.message || 'Failed to delete organization';
@@ -156,7 +167,7 @@ const OrganizationManagement: React.FC = () => {
           <div className="flex justify-between items-center mb-8">
             <input
               type="text"
-              placeholder="Search organizations by name or type..."
+              placeholder="Search organizations by name, address, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-100 w-80"
@@ -180,7 +191,9 @@ const OrganizationManagement: React.FC = () => {
                   <thead>
                     <tr className="">
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Name</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Type</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Address</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Contact Number</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Created</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Updated</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Actions</th>
@@ -189,18 +202,24 @@ const OrganizationManagement: React.FC = () => {
                   <tbody>
                     {currentOrganizations.length === 0 ? (
                       <tr>
-                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                        <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
                           No organizations found
                         </td>
                       </tr>
                     ) : (
                       currentOrganizations.map((org: Organization) => (
-                        <tr key={org.org_id} className="border-b border-gray-700 hover:bg-gray-750">
+                        <tr key={org.id} className="border-b border-gray-700 hover:bg-gray-750">
                           <td className="px-4 py-4 text-sm text-white font-medium">
-                            {org.org_name}
+                            {org.organization_name}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {org.org_type}
+                            {org.address || '-'}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {org.contact_number || '-'}
+                          </td>
+                          <td className="px-4 py-4 text-sm text-gray-300">
+                            {org.email_address || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
                             {new Date(org.created_at).toLocaleDateString()}
@@ -321,7 +340,7 @@ const OrganizationManagement: React.FC = () => {
                 Confirm Delete Organization
               </h3>
               <p className="text-gray-300 mb-6">
-                Are you sure you want to delete organization "{deletingOrg.org_name}"? This action cannot be undone.
+                Are you sure you want to delete organization "{deletingOrg.organization_name}"? This action cannot be undone.
               </p>
               <div className="flex gap-4">
                 <button

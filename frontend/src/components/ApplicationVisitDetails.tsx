@@ -7,6 +7,7 @@ import { getApplication } from '../services/applicationService';
 import { updateApplicationVisit } from '../services/applicationVisitService';
 import ConfirmationModal from '../modals/MoveToJoModal';
 import JOAssignFormModal from '../modals/JOAssignFormModal';
+import ApplicationVisitStatusModal from '../modals/ApplicationVisitStatusModal';
 import { JobOrderData } from '../services/jobOrderService';
 
 interface ApplicationVisitDetailsProps {
@@ -51,6 +52,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const [error, setError] = useState<string | null>(null);
   const [showMoveConfirmation, setShowMoveConfirmation] = useState(false);
   const [showJOAssignForm, setShowJOAssignForm] = useState(false);
+  const [showEditStatusModal, setShowEditStatusModal] = useState(false);
+  const [currentVisitData, setCurrentVisitData] = useState(applicationVisit);
+
+  // Update current visit data when applicationVisit prop changes
+  useEffect(() => {
+    setCurrentVisitData(applicationVisit);
+  }, [applicationVisit]);
 
   // Fetch associated application data
   useEffect(() => {
@@ -88,6 +96,19 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     setShowJOAssignForm(false);
   };
 
+  const handleEditVisit = () => {
+    setShowEditStatusModal(true);
+  };
+
+  const handleSaveEditedVisit = (updatedVisit: any) => {
+    console.log('Visit details updated successfully:', updatedVisit);
+    // Update the current visit data with the new information
+    setCurrentVisitData({ ...currentVisitData, ...updatedVisit });
+    setShowEditStatusModal(false);
+    // You might want to trigger a refresh of the parent component here
+    // or call a callback prop to notify the parent of the update
+  };
+
   // Format the scheduled date
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return 'Not scheduled';
@@ -100,7 +121,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
 
   // Create full name from components
   const getFullName = () => {
-    return `${applicationVisit.first_name || ''} ${applicationVisit.middle_initial || ''} ${applicationVisit.last_name || ''}`.trim();
+    return `${currentVisitData.first_name || ''} ${currentVisitData.middle_initial || ''} ${currentVisitData.last_name || ''}`.trim();
   };
 
   // Handle status update
@@ -108,13 +129,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     try {
       setLoading(true);
       await updateApplicationVisit(applicationVisit.id, { 
-        Status: newStatus,
+        Visit_Status: newStatus,
         Modified_By: 'current_user@ampere.com' // In real app, this would be the logged-in user
         // The modified_date will be handled by the server
       });
       
       // Update local state to reflect the change
-      applicationVisit.visit_status = newStatus;
+      setCurrentVisitData({ ...currentVisitData, visit_status: newStatus });
       
       // Show success message
       alert(`Status updated to ${newStatus}`);
@@ -146,9 +167,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           >
             <ArrowRightToLine size={16} />
           </button>
-          <button className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center">
+          <button 
+            className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center"
+            onClick={handleEditVisit}
+            title="Edit Visit Details"
+          >
             <Edit size={16} className="mr-1" />
-            <span>Visit Status</span>
+            <span>Edit Visit</span>
           </button>
           <button className="hover:text-white text-gray-400"><ArrowLeft size={16} /></button>
           <button className="hover:text-white text-gray-400"><ArrowRight size={16} /></button>
@@ -211,13 +236,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         <div className="mx-auto py-1 px-4 bg-gray-950">
           <div className="space-y-1">
             <div className="flex border-b border-gray-800 py-2">
-              <div className="w-40 text-gray-400 text-sm">Application ID</div>
-              <div className="text-white flex-1">{applicationVisit.application_id}</div>
+              <div className="w-40 text-gray-400 text-sm">Timestamp</div>
+              <div className="text-white flex-1">{formatDate(currentVisitData.created_at) || 'Not available'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
-              <div className="w-40 text-gray-400 text-sm">Scheduled Date</div>
-              <div className="text-white flex-1">{formatDate(applicationVisit.scheduled_date)}</div>
+              <div className="w-40 text-gray-400 text-sm">Referred By</div>
+              <div className="text-white flex-1">{currentVisitData.referred_by || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
@@ -228,7 +253,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Contact Number</div>
               <div className="text-white flex-1 flex items-center">
-                {applicationVisit.contact_number || applicationDetails?.mobile_number || 'Not provided'}
+                {currentVisitData.contact_number || applicationDetails?.mobile_number || 'Not provided'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Phone size={16} />
                 </button>
@@ -241,8 +266,8 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Second Contact Number</div>
               <div className="text-white flex-1 flex items-center">
-                {applicationVisit.second_contact_number || applicationDetails?.secondary_number || 'Not provided'}
-                {applicationVisit.second_contact_number && (
+                {currentVisitData.second_contact_number || applicationDetails?.secondary_number || 'Not provided'}
+                {currentVisitData.second_contact_number && (
                   <>
                     <button className="text-gray-400 hover:text-white ml-2">
                       <Phone size={16} />
@@ -258,7 +283,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Email Address</div>
               <div className="text-white flex-1 flex items-center">
-                {applicationVisit.email_address || applicationDetails?.email || 'Not provided'}
+                {currentVisitData.email_address || applicationDetails?.email || 'Not provided'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Mail size={16} />
                 </button>
@@ -267,16 +292,16 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Address</div>
-              <div className="text-white flex-1">{applicationVisit.address || 'Not provided'}</div>
+              <div className="text-white flex-1">{currentVisitData.address || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Location</div>
               <div className="text-white flex-1">
                 {[
-                  applicationVisit.barangay, 
-                  applicationVisit.city, 
-                  applicationVisit.region
+                  currentVisitData.barangay, 
+                  currentVisitData.city, 
+                  currentVisitData.region
                 ].filter(Boolean).join(', ') || 'Location not specified'}
               </div>
             </div>
@@ -284,7 +309,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Chosen Plan</div>
               <div className="text-white flex-1 flex items-center">
-                {applicationVisit.choose_plan || 'Not specified'}
+                {currentVisitData.choose_plan || 'Not specified'}
                 <button className="ml-2 text-gray-400">
                   <Info size={16} />
                 </button>
@@ -293,45 +318,45 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Landmark</div>
-              <div className="text-white flex-1">{applicationVisit.installation_landmark || 'Not provided'}</div>
+              <div className="text-white flex-1">{currentVisitData.installation_landmark || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit By</div>
-              <div className="text-white flex-1">{applicationVisit.visit_by || 'Not assigned'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_by || 'Not assigned'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit With</div>
               <div className="text-white flex-1">
-                {applicationVisit.visit_with === 'Other' 
-                  ? (applicationVisit.visit_with_other || 'Other (not specified)') 
-                  : (applicationVisit.visit_with || 'None')}
+                {currentVisitData.visit_with === 'Other' 
+                  ? (currentVisitData.visit_with_other || 'Other (not specified)') 
+                  : (currentVisitData.visit_with || 'None')}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Type</div>
-              <div className="text-white flex-1">{applicationVisit.visit_type || 'Initial Visit'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_type || 'Initial Visit'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Status</div>
-              <div className={`text-${applicationVisit.visit_status?.toLowerCase() === 'completed' ? 'green' : 'orange'}-500 flex-1`}>
-                {applicationVisit.visit_status || 'Scheduled'}
+              <div className={`text-${currentVisitData.visit_status?.toLowerCase() === 'completed' ? 'green' : 'orange'}-500 flex-1`}>
+                {currentVisitData.visit_status || 'Scheduled'}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Notes</div>
-              <div className="text-white flex-1">{applicationVisit.visit_notes || 'No notes'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_notes || 'No notes'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Assigned Email</div>
               <div className="text-white flex-1 flex items-center">
-                {applicationVisit.assigned_email || 'Not assigned'}
-                {applicationVisit.assigned_email && (
+                {currentVisitData.assigned_email || 'Not assigned'}
+                {currentVisitData.assigned_email && (
                   <button className="ml-2 text-gray-400">
                     <Mail size={16} />
                   </button>
@@ -341,21 +366,21 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Application Status</div>
-              <div className={`text-${applicationVisit.application_status?.toLowerCase() === 'approved' ? 'green' : 'yellow'}-500 flex-1`}>
-                {applicationVisit.application_status || applicationDetails?.status || 'Pending'}
+              <div className={`text-${currentVisitData.application_status?.toLowerCase() === 'approved' ? 'green' : 'yellow'}-500 flex-1`}>
+                {currentVisitData.application_status || applicationDetails?.status || 'Pending'}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Modified By</div>
-              <div className="text-white flex-1">{applicationVisit.modified_by || 'Not modified'}</div>
+              <div className="text-white flex-1">{currentVisitData.modified_by || 'Not modified'}</div>
             </div>
             
             <div className="flex py-2">
               <div className="w-40 text-gray-400 text-sm">Modified Date</div>
               <div className="text-white flex-1">
-                {applicationVisit.modified_date || 
-                 (applicationVisit.updated_at ? new Date(applicationVisit.updated_at).toLocaleString() : 'Not modified')}
+                {currentVisitData.modified_date || 
+                 (currentVisitData.updated_at ? new Date(currentVisitData.updated_at).toLocaleString() : 'Not modified')}
               </div>
             </div>
           </div>
@@ -379,19 +404,49 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         onClose={() => setShowJOAssignForm(false)}
         onSave={handleSaveJOForm}
         applicationData={{
-          id: applicationVisit.application_id,
-          first_name: applicationVisit.first_name,
-          middle_initial: applicationVisit.middle_initial,
-          last_name: applicationVisit.last_name,
-          email: applicationVisit.email_address,
-          mobile: applicationVisit.contact_number,
-          mobile_alt: applicationVisit.second_contact_number,
-          address_line: applicationVisit.address,
-          barangay: applicationVisit.barangay,
-          city: applicationVisit.city,
-          region: applicationVisit.region,
-          plan_id: applicationVisit.choose_plan,
-          landmark: applicationVisit.installation_landmark,
+          id: currentVisitData.application_id,
+          first_name: currentVisitData.first_name,
+          middle_initial: currentVisitData.middle_initial,
+          last_name: currentVisitData.last_name,
+          email: currentVisitData.email_address,
+          mobile: currentVisitData.contact_number,
+          mobile_alt: currentVisitData.second_contact_number,
+          address_line: currentVisitData.address,
+          barangay: currentVisitData.barangay,
+          city: currentVisitData.city,
+          region: currentVisitData.region,
+          plan_id: currentVisitData.choose_plan,
+          landmark: currentVisitData.installation_landmark,
+        }}
+      />
+
+      {/* Use the ApplicationVisitStatusModal component */}
+      <ApplicationVisitStatusModal
+        isOpen={showEditStatusModal}
+        onClose={() => setShowEditStatusModal(false)}
+        onSave={handleSaveEditedVisit}
+        visitData={{
+          id: currentVisitData.id,
+          first_name: currentVisitData.first_name,
+          middle_initial: currentVisitData.middle_initial,
+          last_name: currentVisitData.last_name,
+          contact_number: currentVisitData.contact_number,
+          second_contact_number: currentVisitData.second_contact_number,
+          email_address: currentVisitData.email_address,
+          address: currentVisitData.address,
+          barangay: currentVisitData.barangay,
+          city: currentVisitData.city,
+          region: currentVisitData.region,
+          choose_plan: currentVisitData.choose_plan,
+          visit_remarks: currentVisitData.visit_remarks,
+          status_remarks: currentVisitData.status_remarks,
+          visit_notes: currentVisitData.visit_notes,
+          assigned_email: currentVisitData.assigned_email,
+          visit_by: currentVisitData.visit_by,
+          visit_with: currentVisitData.visit_with,
+          visit_with_other: currentVisitData.visit_with_other,
+          application_status: currentVisitData.application_status,
+          visit_status: currentVisitData.visit_status
         }}
       />
     </div>

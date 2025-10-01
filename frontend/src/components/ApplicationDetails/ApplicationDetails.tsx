@@ -312,47 +312,64 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
             <div className="space-y-0">
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Referred by:</div>
-                <div className="text-white flex-1">{detailedApplication?.source || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.referred_by || detailedApplication?.Referred_by || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Status</div>
-                <div className="text-green-500 flex-1">{detailedApplication?.status || application.action || 'None'}</div>
+                <div className="text-green-500 flex-1">{detailedApplication?.status || detailedApplication?.Status || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Timestamp</div>
                 <div className="text-white flex-1">
-                  {detailedApplication?.create_date && detailedApplication?.create_time 
-                    ? `${detailedApplication.create_date} ${detailedApplication.create_time}` 
-                    : application.timestamp || 'None'}
+                  {detailedApplication?.timestamp || detailedApplication?.Timestamp || 'None'}
                 </div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Full Name</div>
                 <div className="text-white flex-1">
-                  {[detailedApplication?.first_name, detailedApplication?.middle_initial, detailedApplication?.last_name].filter(Boolean).join(' ') || application.customerName || 'None'}
+                  {detailedApplication?.customer_name || 
+                   [detailedApplication?.first_name || detailedApplication?.First_Name, 
+                    detailedApplication?.middle_initial || detailedApplication?.Middle_Initial, 
+                    detailedApplication?.last_name || detailedApplication?.Last_Name].filter(Boolean).join(' ') || 
+                   application.customerName || 'None'}
                 </div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Full Address</div>
                 <div className="text-white flex-1">
-                  {application.fullAddress || detailedApplication?.address_line || application.address || 'No address'}
+                  {application.fullAddress || detailedApplication?.address_line || detailedApplication?.Installation_Address || application.address || 'No address'}
                 </div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
+                <div className="w-40 text-gray-400 text-sm">Landmark</div>
+                <div className="text-white flex-1">{detailedApplication?.landmark || detailedApplication?.Landmark || 'None'}</div>
+              </div>
+              
+              <div className="flex py-3 border-b border-gray-800">
+                <div className="w-40 text-gray-400 text-sm">First Nearest Landmark</div>
+                <div className="text-white flex-1">{detailedApplication?.first_nearest_landmark || detailedApplication?.First_Nearest_landmark || 'None'}</div>
+              </div>
+              
+              <div className="flex py-3 border-b border-gray-800">
+                <div className="w-40 text-gray-400 text-sm">Second Nearest Landmark</div>
+                <div className="text-white flex-1">{detailedApplication?.second_nearest_landmark || detailedApplication?.Second_Nearest_landmark || 'None'}</div>
+              </div>
+              
+              <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Email Address</div>
-                <div className="text-white flex-1">{detailedApplication?.email || application.email || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.email || detailedApplication?.Email_Address || application.email || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Mobile Number</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.mobile || application.mobileNumber || 'None'}</span>
-                  {(detailedApplication?.mobile || application.mobileNumber) && (
+                  <span>{detailedApplication?.mobile || detailedApplication?.Mobile_Number || application.mobileNumber || 'None'}</span>
+                  {(detailedApplication?.mobile || detailedApplication?.Mobile_Number || application.mobileNumber) && (
                     <div>
                       <button className="text-gray-400 hover:text-white ml-2">
                         <Phone size={16} />
@@ -368,8 +385,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Second Mobile Number</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.secondary_number || detailedApplication?.mobile_alt || 'None'}</span>
-                  {(detailedApplication?.secondary_number || detailedApplication?.mobile_alt) && (
+                  <span>{detailedApplication?.secondary_number || detailedApplication?.mobile_alt || detailedApplication?.Secondary_Mobile_Number || 'None'}</span>
+                  {(detailedApplication?.secondary_number || detailedApplication?.mobile_alt || detailedApplication?.Secondary_Mobile_Number) && (
                     <div>
                       <button className="text-gray-400 hover:text-white ml-2">
                         <Phone size={16} />
@@ -385,8 +402,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Desired Plan</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.plan_id || 'None'}</span>
-                  {detailedApplication?.plan_id && (
+                  <span>{detailedApplication?.desired_plan || detailedApplication?.Desired_Plan || detailedApplication?.plan || 'None'}</span>
+                  {(detailedApplication?.desired_plan || detailedApplication?.Desired_Plan || detailedApplication?.plan) && (
                     <button className="text-gray-400 hover:text-white">
                       <Info size={16} />
                     </button>
@@ -394,14 +411,14 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               </div>
               
-              {detailedApplication?.gov_id_primary && (
+              {(detailedApplication?.gov_id_primary || detailedApplication?.Government_Valid_ID) && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">Government Valid ID</div>
                   <div className="text-white flex-1 flex justify-between items-center truncate">
-                    <span className="truncate">{detailedApplication.gov_id_primary}</span>
+                    <span className="truncate">{detailedApplication.gov_id_primary || detailedApplication.Government_Valid_ID}</span>
                     <button 
                       className="text-gray-400 hover:text-white"
-                      onClick={() => window.open(detailedApplication.gov_id_primary)}
+                      onClick={() => window.open(detailedApplication.gov_id_primary || detailedApplication.Government_Valid_ID)}
                     >
                       <ExternalLink size={16} />
                     </button>
@@ -409,7 +426,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               )}
               
-              {detailedApplication?.primary_consent && (
+              {(detailedApplication?.terms_agreement || detailedApplication?.I_agree_to_the_terms_and_conditions) && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">I agree to the terms and conditions</div>
                   <div className="text-white flex-1">Yes, I Agree</div>
@@ -419,8 +436,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">User Email</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.email || application.email || 'None'}</span>
-                  {(detailedApplication?.email || application.email) && (
+                  <span>{detailedApplication?.email || detailedApplication?.Email_Address || application.email || 'None'}</span>
+                  {(detailedApplication?.email || detailedApplication?.Email_Address || application.email) && (
                     <button className="text-gray-400 hover:text-white">
                       <Mail size={16} />
                     </button>
@@ -428,14 +445,14 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               </div>
               
-              {detailedApplication?.house_front_pic && (
+              {(detailedApplication?.house_front_pic || detailedApplication?.House_Front_Picture) && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">House Front Picture</div>
                   <div className="text-white flex-1 flex justify-between items-center truncate">
-                    <span className="truncate">{detailedApplication.house_front_pic}</span>
+                    <span className="truncate">{detailedApplication.house_front_pic || detailedApplication.House_Front_Picture}</span>
                     <button 
                       className="text-gray-400 hover:text-white"
-                      onClick={() => window.open(detailedApplication.house_front_pic)}
+                      onClick={() => window.open(detailedApplication.house_front_pic || detailedApplication.House_Front_Picture)}
                     >
                       <ExternalLink size={16} />
                     </button>
@@ -445,7 +462,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               
               <div className="flex py-3">
                 <div className="w-40 text-gray-400 text-sm">Select the applicable promo</div>
-                <div className="text-white flex-1">{detailedApplication?.promo_id || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.promo || detailedApplication?.Select_the_applicable_promo || 'None'}</div>
               </div>
             </div>
           </div>

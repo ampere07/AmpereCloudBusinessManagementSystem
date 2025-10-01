@@ -106,8 +106,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <ApplicationManagement />;
       case 'billing':
         return <Billing />;
-      case 'billing-list-view':
-        return <BillingListView />;
       case 'transaction-list':
         return <TransactionList />;
       case 'transactions-pending-list':

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
-import { getApplicationVisits } from '../services/applicationVisitService';
+import { getAllApplicationVisits } from '../services/applicationVisitService';
 import { getApplication } from '../services/applicationService';
 
 // Interfaces for application visit data
@@ -63,7 +63,6 @@ const ApplicationVisit: React.FC = () => {
     }
   };
 
-  // Fetch data from API
   useEffect(() => {
     const fetchApplicationVisits = async () => {
       try {
@@ -71,8 +70,12 @@ const ApplicationVisit: React.FC = () => {
         console.log('Fetching application visits...');
         
         // Get all application visit data
-        const response = await getApplicationVisits('all');
+        const response = await getAllApplicationVisits();
         console.log('API Response:', response);
+        
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch application visits');
+        }
         
         if (response.success && Array.isArray(response.data)) {
           console.log(`Found ${response.data.length} application visits`);
@@ -82,51 +85,76 @@ const ApplicationVisit: React.FC = () => {
             console.log('First item example:', response.data[0]);
           }
           
-          // Map the API response to our interface
-          const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
-            id: visit.id ? String(visit.id) : '',
-            application_id: visit.application_id ? String(visit.application_id) : '',
-            scheduled_date: visit.scheduled_date || '',
-            visit_by: visit.visit_by || '',
-            visit_with: visit.visit_with || '',
-            visit_with_other: visit.visit_with_other || '',
-            visit_type: visit.visit_type || 'Initial Visit',
-            visit_status: visit.visit_status || 'Scheduled',
-            visit_remarks: visit.visit_remarks || '',
-            status_remarks: visit.status_remarks || visit.visit_remarks || '',
-            referred_by: visit.referred_by || '',
-            visit_notes: visit.visit_notes || '',
-            first_name: visit.first_name || '',
-            middle_initial: visit.middle_initial || '',
-            last_name: visit.last_name || '',
-            contact_number: visit.contact_number || '',
-            second_contact_number: visit.second_contact_number || '',
-            email_address: visit.email_address || '',
-            address: visit.address || '',
-            location: visit.location || '',
-            barangay: visit.barangay || '',
-            city: visit.city || '',
-            region: visit.region || '',
-            choose_plan: visit.choose_plan || '',
-            installation_landmark: visit.installation_landmark || '',
-            assigned_email: visit.assigned_email || '',
-            modified_by: visit.modified_by || '',
-            modified_date: visit.modified_date || new Date(visit.updated_at || Date.now()).toLocaleString(),
-            created_at: visit.created_at || '',
-            updated_at: visit.updated_at || '',
-            application_status: visit.application_status || '',
-          }));
+          // Map the API response to our interface using actual database columns
+          const visits: ApplicationVisit[] = response.data.map((visit: any) => {
+            // Log the raw visit data to see what we're working with
+            console.log('Raw visit data from API:', visit);
+            
+            const mappedVisit = {
+              id: visit.ID || visit.id || '',
+              application_id: visit.Application_ID || '',
+              scheduled_date: visit.Timestamp || visit.created_at || '',
+              visit_by: visit.Visit_By || '',
+              visit_with: visit.Visit_With || '',
+              visit_with_other: visit.Visit_With_Other || '',
+              visit_type: 'Initial Visit', // Not in database, keeping default
+              visit_status: visit.Visit_Status || 'Scheduled',
+              visit_remarks: visit.Visit_Remarks || '',
+              status_remarks: visit.Status_Remarks || '',
+              referred_by: visit.Referred_By || '',
+              visit_notes: visit.Remarks || '',
+              first_name: visit.First_Name || '',
+              middle_initial: visit.Middle_Initial || '',
+              last_name: visit.Last_Name || '',
+              contact_number: visit.Contact_Number || '',
+              second_contact_number: visit.Second_Contact_Number || '',
+              email_address: visit.Email_Address || visit.Applicant_Email_Address || '',
+              address: visit.Address || '',
+              location: visit.Location || '',
+              barangay: visit.Barangay || '',
+              city: visit.City || '',
+              region: visit.Region || '',
+              choose_plan: visit.Choose_Plan || '',
+              installation_landmark: visit.Installation_Landmark || '',
+              assigned_email: visit.Assigned_Email || '',
+              modified_by: visit.Modified_By || '',
+              modified_date: visit.Modified_Date || '',
+              created_at: visit.Timestamp || visit.created_at || '',
+              updated_at: visit.updated_at || visit.Modified_Date || '',
+              application_status: visit.Application_Status || 'Pending',
+            };
+            
+            // Log the mapped result to compare
+            console.log('Mapped visit result:', {
+              originalId: visit.ID || visit.id,
+              mappedId: mappedVisit.id,
+              originalFirstName: visit.First_Name,
+              mappedFirstName: mappedVisit.first_name,
+              originalVisitStatus: visit.Visit_Status,
+              mappedVisitStatus: mappedVisit.visit_status,
+              originalAddress: visit.Address,
+              mappedAddress: mappedVisit.address
+            });
+            
+            return mappedVisit;
+          });
           
           setApplicationVisits(visits);
-          console.log('Application visits data processed successfully');
+          setError(null);
+          console.log('Application visits data processed successfully', visits);
         } else {
           // If no visits are returned, set an empty array
           console.warn('No application visits returned from API or invalid response format', response);
           setApplicationVisits([]);
+          // Only set error if there's a message
+          if (response.message) {
+            setError(response.message);
+          }
         }
       } catch (err: any) {
         console.error('Error fetching application visits:', err);
-        setError(`Failed to load visits: ${err.message || 'Unknown error'}`);
+        setError(err.message || 'Failed to load application visits. Please try again.');
+        setApplicationVisits([]);
       } finally {
         setLoading(false);
       }
@@ -183,23 +211,28 @@ const ApplicationVisit: React.FC = () => {
     try {
       // When selecting a visit, fetch the associated application data if needed
       if (!visit.application_status) {
-        // Fetch application data to get the application status
-        const applicationData = await getApplication(visit.application_id);
-        
-        // Update the visit with application data
-        const updatedVisit = {
-          ...visit,
-          application_status: applicationData.status || 'Pending'
-        };
-        
-        setSelectedVisit(updatedVisit);
+        try {
+          // Fetch application data to get the application status
+          const applicationData = await getApplication(visit.application_id);
+          
+          // Update the visit with application data
+          const updatedVisit = {
+            ...visit,
+            application_status: applicationData.status || 'Pending'
+          };
+          
+          setSelectedVisit(updatedVisit);
+        } catch (err: any) {
+          console.error('Error fetching application data:', err);
+          // Still set the selected visit even if we can't get the application data
+          setSelectedVisit(visit);
+        }
       } else {
         setSelectedVisit(visit);
       }
     } catch (err: any) {
-      console.error('Error fetching application data:', err);
-      // Still set the selected visit even if we can't get the application data
-      setSelectedVisit(visit);
+      console.error('Error selecting visit:', err);
+      setError(`Failed to select visit: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -270,12 +303,30 @@ const ApplicationVisit: React.FC = () => {
         <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
           <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
           <p className="text-gray-300 mb-4">{error}</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
-          >
-            Retry
-          </button>
+          <div className="flex flex-col space-y-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+            
+            <div className="mt-4 p-4 bg-gray-900 rounded overflow-auto max-h-48">
+              <pre className="text-xs text-gray-400 whitespace-pre-wrap">
+                {error.includes("SQLSTATE") ? (
+                  <>
+                    <span className="text-red-400">Database Error:</span>
+                    <br />
+                    {error.includes("Table") ? "Table name mismatch - check the database schema" : error}
+                    <br /><br />
+                    <span className="text-yellow-400">Suggestion:</span>
+                    <br />
+                    Verify that the table 'application_visit' exists in your database.
+                  </>
+                ) : error}
+              </pre>
+            </div>
+          </div>
         </div>
       </div>
     );

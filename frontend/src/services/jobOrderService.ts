@@ -1,78 +1,17 @@
 import apiClient from '../config/api';
+import { JobOrderData } from '../types/jobOrder';
+
+// Export JobOrderData for backwards compatibility
+export type { JobOrderData } from '../types/jobOrder';
 
 // Response interface
 interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
-}
-
-export interface JobOrderData {
-  Application_ID: string;
-  Timestamp?: string;
-  Email_Address?: string;
-  Referred_By?: string;
-  First_Name?: string;
-  Middle_Initial?: string;
-  Last_Name?: string;
-  Contact_Number?: string;
-  Applicant_Email_Address?: string;
-  Address?: string;
-  Location?: string;
-  Barangay?: string;
-  City?: string;
-  Region?: string;
-  Choose_Plan?: string;
-  Remarks?: string;
-  Installation_Fee?: number;
-  Contract_Template?: string;
-  Billing_Day?: string;
-  Preferred_Day?: string;
-  JO_Remarks?: string;
-  Status?: string;
-  Verified_By?: string;
-  Modem_Router_SN?: string;
-  LCP?: string;
-  NAP?: string;
-  PORT?: string;
-  VLAN?: string;
-  Username?: string;
-  Visit_By?: string;
-  Visit_With?: string;
-  Visit_With_Other?: string;
-  Onsite_Status?: string;
-  Onsite_Remarks?: string;
-  Modified_By?: string;
-  Modified_Date?: string;
-  Contract_Link?: string;
-  Connection_Type?: string;
-  Assigned_Email?: string;
-  Setup_Image?: string;
-  Speedtest_Image?: string;
-  StartTimeStamp?: string;
-  EndTimeStamp?: string;
-  Duration?: string;
-  LCPNAP?: string;
-  Billing_Status?: string;
-  Router_Model?: string;
-  Date_Installed?: string;
-  Client_Signature?: string;
-  IP?: string;
-  Signed_Contract_Image?: string;
-  Box_Reading_Image?: string;
-  Router_Reading_Image?: string;
-  Username_Status?: string;
-  LCPNAPPORT?: string;
-  Usage_Type?: string;
-  Renter?: string;
-  Installation_Landmark?: string;
-  Status_Remarks?: string;
-  Port_Label_Image?: string;
-  Second_Contact_Number?: string;
-  Account_No?: string;
-  Address_Coordinates?: string;
-  Referrers_Account_Number?: string;
-  House_Front_Picture?: string;
+  count?: number;
+  table?: string;
+  debug?: any;
 }
 
 export const createJobOrder = async (jobOrderData: JobOrderData) => {
@@ -87,17 +26,46 @@ export const createJobOrder = async (jobOrderData: JobOrderData) => {
 
 export const getJobOrders = async () => {
   try {
+    console.log('Fetching job orders from database...');
     const response = await apiClient.get<ApiResponse<JobOrderData[]>>('/job-orders');
+    console.log('Raw API response:', response);
+    
+    // Process the data to ensure it matches our expected format
+    if (response.data && response.data.success && Array.isArray(response.data.data)) {
+      // Map any database field names that might be different from our interface
+      const processedData = response.data.data.map(item => {
+        return {
+          ...item,
+          // Add any field mappings here if the database column names differ from our interface
+          // For example, if the database returns job_order_id but our interface expects JobOrder_ID:
+          // JobOrder_ID: item.job_order_id,
+          id: item.id || item.JobOrder_ID
+        };
+      });
+      
+      return {
+        ...response.data,
+        data: processedData
+      };
+    }
+    
     return response.data;
   } catch (error) {
     console.error('Error fetching job orders:', error);
-    throw error;
+    // Return a formatted error response instead of throwing
+    return {
+      success: false,
+      data: [],
+      message: error instanceof Error ? error.message : 'Unknown error fetching job orders'
+    };
   }
 };
 
-export const getJobOrder = async (id: string) => {
+export const getJobOrder = async (id: string | number) => {
   try {
-    const response = await apiClient.get<ApiResponse<JobOrderData>>(`/job-orders/${id}`);
+    // Ensure ID is a string for the API URL
+    const idStr = id.toString();
+    const response = await apiClient.get<ApiResponse<JobOrderData>>(`/job-orders/${idStr}`);
     return response.data;
   } catch (error) {
     console.error('Error fetching job order:', error);
@@ -105,9 +73,11 @@ export const getJobOrder = async (id: string) => {
   }
 };
 
-export const updateJobOrder = async (id: string, jobOrderData: Partial<JobOrderData>) => {
+export const updateJobOrder = async (id: string | number, jobOrderData: Partial<JobOrderData>) => {
   try {
-    const response = await apiClient.put<ApiResponse<JobOrderData>>(`/job-orders/${id}`, jobOrderData);
+    // Ensure ID is a string for the API URL
+    const idStr = id.toString();
+    const response = await apiClient.put<ApiResponse<JobOrderData>>(`/job-orders/${idStr}`, jobOrderData);
     return response.data;
   } catch (error) {
     console.error('Error updating job order:', error);
