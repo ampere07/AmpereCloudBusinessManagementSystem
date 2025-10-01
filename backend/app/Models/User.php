@@ -16,14 +16,18 @@ class User extends Authenticatable
     protected $table = 'users';
 
     protected $fillable = [
-        'user_id',
-        'salutation',
-        'full_name',
         'username',
-        'email_address',
-        'mobile_number',
         'password_hash',
-        'org_id',
+        'email_address',
+        'first_name',
+        'middle_initial',
+        'last_name',
+        'contact_number',
+        'organization_id',
+        'role_id',
+        'group_id',
+        'status',
+        'last_login'
     ];
 
     protected $hidden = [
@@ -47,29 +51,28 @@ class User extends Authenticatable
 
     public function organization()
     {
-        return $this->belongsTo(Organization::class, 'org_id', 'org_id');
+        return $this->belongsTo(Organization::class, 'organization_id', 'id');
     }
 
-    public static function generateUserId()
+    public function role()
     {
-        $maxAttempts = 100;
-        $attempts = 0;
-        
-        do {
-            $attempts++;
-            $userId = random_int(10000000, 99999999);
-            
-            // Prevent infinite loops
-            if ($attempts > $maxAttempts) {
-                throw new \Exception('Unable to generate unique user ID after ' . $maxAttempts . ' attempts');
-            }
-        } while (self::where('user_id', $userId)->exists());
-        
-        // Ensure we never return 0 or negative numbers
-        if ($userId <= 0) {
-            throw new \Exception('Generated user ID is invalid: ' . $userId);
-        }
-        
-        return $userId;
+        return $this->belongsTo(Role::class, 'role_id', 'id');
+    }
+
+    public function group()
+    {
+        return $this->belongsTo(Group::class, 'group_id', 'id');
+    }
+
+    // Accessor for full name
+    public function getFullNameAttribute()
+    {
+        return trim($this->first_name . ' ' . ($this->middle_initial ? $this->middle_initial . '. ' : '') . $this->last_name);
+    }
+    
+    // Accessor for user_id (alias for id for backward compatibility)
+    public function getUserIdAttribute()
+    {
+        return $this->id;
     }
 }
