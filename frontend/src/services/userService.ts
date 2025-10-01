@@ -99,7 +99,12 @@ export const organizationService = {
   },
 
   // Create new organization
-  createOrganization: async (orgData: { org_name: string; org_type: string }): Promise<ApiResponse<Organization>> => {
+  createOrganization: async (orgData: { 
+    organization_name: string; 
+    address?: string | null;
+    contact_number?: string | null;
+    email_address?: string | null;
+  }): Promise<ApiResponse<Organization>> => {
     const response = await apiClient.post<ApiResponse<Organization>>('/organizations', orgData);
     return response.data;
   },
@@ -111,7 +116,12 @@ export const organizationService = {
   },
 
   // Update organization
-  updateOrganization: async (orgId: number, orgData: { org_name?: string; org_type?: string }): Promise<ApiResponse<Organization>> => {
+  updateOrganization: async (orgId: number, orgData: { 
+    organization_name?: string;
+    address?: string | null;
+    contact_number?: string | null;
+    email_address?: string | null;
+  }): Promise<ApiResponse<Organization>> => {
     const response = await apiClient.put<ApiResponse<Organization>>(`/organizations/${orgId}`, orgData);
     return response.data;
   },
@@ -132,7 +142,16 @@ export const groupService = {
   },
 
   // Create new group
-  createGroup: async (groupData: { group_name: string; org_id: number }): Promise<ApiResponse<Group>> => {
+  createGroup: async (groupData: { 
+    group_name: string;
+    fb_page_link?: string | null;
+    fb_messenger_link?: string | null;
+    template?: string | null;
+    company_name?: string | null;
+    portal_url?: string | null;
+    hotline?: string | null;
+    email?: string | null;
+  }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.post<ApiResponse<Group>>('/groups', groupData);
     return response.data;
   },
@@ -144,7 +163,16 @@ export const groupService = {
   },
 
   // Update group
-  updateGroup: async (groupId: number, groupData: { group_name?: string; org_id?: number }): Promise<ApiResponse<Group>> => {
+  updateGroup: async (groupId: number, groupData: { 
+    group_name?: string;
+    fb_page_link?: string | null;
+    fb_messenger_link?: string | null;
+    template?: string | null;
+    company_name?: string | null;
+    portal_url?: string | null;
+    hotline?: string | null;
+    email?: string | null;
+  }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.put<ApiResponse<Group>>(`/groups/${groupId}`, groupData);
     return response.data;
   },
@@ -155,11 +183,7 @@ export const groupService = {
     return response.data;
   },
 
-  // Get groups by organization
-  getGroupsByOrganization: async (orgId: number): Promise<ApiResponse<Group[]>> => {
-    const response = await apiClient.get<ApiResponse<Group[]>>(`/groups/organization/${orgId}`);
-    return response.data;
-  }
+
 };
 
 // Role Management API

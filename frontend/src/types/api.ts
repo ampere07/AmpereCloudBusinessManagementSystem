@@ -42,28 +42,31 @@ export interface User {
   salutation?: string;
   full_name: string;
   username: string;
-  email: string;
+  email_address: string;
   mobile_number?: string;
   org_id?: number | null;
   created_at: string;
   updated_at: string;
   organization?: {
-    org_id: number;
-    org_name: string;
-    org_type: string;
+    id: number;
+    organization_name: string;
+    address?: string | null;
+    contact_number?: string | null;
+    email_address?: string | null;
   };
-  roles?: Role[];
-  groups?: Group[];
 }
 
 export interface Organization {
-  org_id: number;
-  org_name: string;
-  org_type: string;
+  id: number;
+  organization_name: string;
+  address?: string | null;
+  contact_number?: string | null;
+  email_address?: string | null;
   created_at: string;
+  created_by_user_id?: number | null;
   updated_at: string;
+  updated_by_user_id?: number | null;
   users?: User[];
-  groups?: Group[];
 }
 
 export interface Role {
@@ -75,12 +78,17 @@ export interface Role {
 }
 
 export interface Group {
-  group_id: number;
+  id: number;
   group_name: string;
-  org_id: number;
-  created_at: string;
-  updated_at: string;
-  organization?: Organization;
+  fb_page_link?: string | null;
+  fb_messenger_link?: string | null;
+  template?: string | null;
+  company_name?: string | null;
+  portal_url?: string | null;
+  hotline?: string | null;
+  email?: string | null;
+  modified_by_user_id?: number | null;
+  modified_date?: string | null;
   users?: User[];
 }
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X } from 'lucide-react';
 import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
@@ -11,6 +11,8 @@ interface LocationItem {
   count: number;
 }
 
+type DisplayMode = 'card' | 'table';
+
 const BillingListView: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -20,6 +22,9 @@ const BillingListView: React.FC = () => {
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('table');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Essential table columns - only show the most important ones initially
   const [visibleColumns, setVisibleColumns] = useState([
@@ -51,6 +56,21 @@ const BillingListView: React.FC = () => {
     { key: 'provider', label: 'Provider', width: 'min-w-24' }
   ];
 
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownRef]);
+  
   // Fetch location data
   useEffect(() => {
     const fetchLocationData = async () => {
@@ -285,13 +305,47 @@ const BillingListView: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <button
-                onClick={handleRefresh}
-                disabled={isLoading}
-                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
-              >
-                {isLoading ? 'Loading...' : 'Refresh'}
-              </button>
+              <div className="flex space-x-2">
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
+                    <span>{displayMode === 'card' ? 'Card Type' : 'Table Type'}</span>
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div className="absolute right-0 mt-1 w-36 bg-gray-800 border border-gray-700 rounded shadow-lg z-10" 
+                       style={{ display: dropdownOpen ? 'block' : 'none' }}>
+                    <button
+                      onClick={() => {
+                        setDisplayMode('card');
+                        setDropdownOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'card' ? 'text-orange-500' : 'text-white'}`}
+                    >
+                      Card Type
+                    </button>
+                    <button
+                      onClick={() => {
+                        setDisplayMode('table');
+                        setDropdownOpen(false);
+                      }}
+                      className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'table' ? 'text-orange-500' : 'text-white'}`}
+                    >
+                      Table Type
+                    </button>
+                  </div>
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={isLoading}
+                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                >
+                  {isLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
             </div>
           </div>
           

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronRight, Plus, Trash2, OctagonX, HandCoins, BaggageClaim, Edit, ChevronLeft, ChevronRight as ChevronRightNav, Maximize2, X, Paperclip, Calendar, ExternalLink } from 'lucide-react';
+import { ChevronDown, ChevronRight, Plus, Trash2, OctagonX, HandCoins, Wrench, Edit, ChevronLeft, ChevronRight as ChevronRightNav, Maximize2, X, Paperclip, Calendar, ExternalLink } from 'lucide-react';
 import TransactConfirmationModal from '../modals/TransactConfirmationModal';
 import TransactionFormModal from '../modals/TransactionFormModal';
 import { BillingDetailRecord } from '../types/billing';
@@ -108,7 +108,7 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
             <HandCoins size={18} />
           </button>
           <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors">
-            <BaggageClaim size={18} />
+            <Wrench size={18} />
           </button>
           <button 
             onClick={handleTransactClick}

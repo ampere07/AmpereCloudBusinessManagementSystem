@@ -36,7 +36,7 @@ const UserManagement: React.FC = () => {
 
   const filteredUsers = users.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -208,12 +208,12 @@ const UserManagement: React.FC = () => {
                             {user.full_name}
                           </td>
                           <td className="px-4 py-4 text-sm text-white">{user.username}</td>
-                          <td className="px-4 py-4 text-sm text-gray-300">{user.email}</td>
+                          <td className="px-4 py-4 text-sm text-gray-300">{user.email_address}</td>
                           <td className="px-4 py-4 text-sm text-gray-300">
                             {user.mobile_number || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {user.organization?.org_name || 'No Organization'}
+                            {user.organization?.organization_name || 'No Organization'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
                             {new Date(user.created_at).toLocaleDateString()}

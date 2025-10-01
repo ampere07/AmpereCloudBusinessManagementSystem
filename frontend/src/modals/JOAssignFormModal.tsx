@@ -146,15 +146,50 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
-    if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
-    if (!formData.contactNumber.trim()) newErrors.contactNumber = 'Contact Number is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
-    if (!formData.address.trim()) newErrors.address = 'Address is required';
+    // Required personal information
+    if (!formData.firstName.trim()) {
+      newErrors.firstName = 'First Name is required';
+    }
     
+    if (!formData.lastName.trim()) {
+      newErrors.lastName = 'Last Name is required';
+    }
+    
+    if (!formData.contactNumber.trim()) {
+      newErrors.contactNumber = 'Contact Number is required';
+    } else if (!/^[0-9+\-\s()]+$/.test(formData.contactNumber.trim())) {
+      newErrors.contactNumber = 'Please enter a valid contact number';
+    }
+    
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
+      newErrors.email = 'Please enter a valid email address';
+    }
+    
+    if (!formData.address.trim()) {
+      newErrors.address = 'Address is required';
+    }
+    
+    // Validate installation fee (must be non-negative)
+    if (formData.installationFee < 0) {
+      newErrors.installationFee = 'Installation fee cannot be negative';
+    }
+    
+    // Validate billing day
     const billingDayNum = parseInt(formData.billingDay);
-    if (isNaN(billingDayNum) || billingDayNum > 1000) {
+    if (isNaN(billingDayNum) || billingDayNum < 1) {
+      newErrors.billingDay = 'Billing Day must be at least 1';
+    } else if (billingDayNum > 1000) {
       newErrors.billingDay = 'Billing Day cannot exceed 1000';
+    }
+    
+    // Validate contract template (must be a valid number if provided)
+    if (formData.contractTemplate && formData.contractTemplate !== '0') {
+      const templateNum = parseInt(formData.contractTemplate);
+      if (isNaN(templateNum)) {
+        newErrors.contractTemplate = 'Contract Template must be a valid number';
+      }
     }
 
     setErrors(newErrors);
@@ -162,64 +197,194 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   };
 
   const mapFormDataToJobOrder = (applicationId: string): JobOrderData => {
+    // Helper function to convert empty values to null
+    const toNullIfEmpty = (value: string | number | undefined): string | null => {
+      if (value === undefined || value === null || value === '' || value === 'None' || value === 'All') {
+        return null;
+      }
+      return String(value);
+    };
+    
+    // Helper function for numeric values that should be strings
+    const toNullIfEmptyOrZero = (value: string | number | undefined): string | null => {
+      if (value === undefined || value === null || value === '' || value === 0 || value === '0') {
+        return null;
+      }
+      return String(value);
+    };
+
+    // Create proper timestamp format for database
+    const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
+    const formattedTimestamp = formData.timestamp ? 
+      new Date(formData.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
+      currentTimestamp;
+    const modifiedTimestamp = formData.modifiedDate ? 
+      new Date(formData.modifiedDate).toISOString().slice(0, 19).replace('T', ' ') : 
+      currentTimestamp;
+
     return {
+      // Primary identifiers
       Application_ID: applicationId,
-      Timestamp: formData.timestamp,
-      Email_Address: formData.email,
-      Referred_By: formData.referredBy,
-      First_Name: formData.firstName,
-      Middle_Initial: formData.middleInitial,
-      Last_Name: formData.lastName,
-      Contact_Number: formData.contactNumber,
-      Applicant_Email_Address: formData.email,
-      Address: formData.address,
+      
+      // Timestamps
+      Timestamp: formattedTimestamp,
+      Modified_Date: modifiedTimestamp,
+      
+      // Personal Information
+      First_Name: formData.firstName.trim(),
+      Middle_Initial: toNullIfEmpty(formData.middleInitial),
+      Last_Name: formData.lastName.trim(),
+      Contact_Number: formData.contactNumber.trim(),
+      Email_Address: toNullIfEmpty(formData.email),
+      Applicant_Email_Address: toNullIfEmpty(formData.email),
+      
+      // Address Information
+      Address: formData.address.trim(),
       Location: `${formData.city}, ${formData.region}`,
-      Barangay: formData.barangay,
-      City: formData.city,
-      Region: formData.region,
+      Barangay: toNullIfEmpty(formData.barangay),
+      City: toNullIfEmpty(formData.city),
+      Region: toNullIfEmpty(formData.region),
+      Installation_Landmark: toNullIfEmpty(formData.installationLandmark),
+      
+      // Service Information
       Choose_Plan: formData.choosePlan,
-      Remarks: formData.remarks,
-      Installation_Fee: formData.installationFee,
-      Contract_Template: formData.contractTemplate,
+      
+      // Contract and Billing
+      Contract_Template: toNullIfEmptyOrZero(formData.contractTemplate),
+      Installation_Fee: formData.installationFee || 0,
       Billing_Day: formData.billingDay,
+      Preferred_Day: toNullIfEmpty(formData.billingDay), // Use billing day as preferred day initially
+      
+      // Status Information
       Status: formData.status,
       Onsite_Status: formData.onsiteStatus,
-      Assigned_Email: formData.assignedEmail,
+      
+      // Assignment and Tracking
+      Assigned_Email: toNullIfEmpty(formData.assignedEmail),
+      Referred_By: toNullIfEmpty(formData.referredBy),
       Modified_By: formData.modifiedBy,
-      Modified_Date: formData.modifiedDate,
-      Installation_Landmark: formData.installationLandmark,
-      // Set these to undefined rather than null to match the JobOrderData interface
-      Modem_Router_SN: undefined,
-      LCP: undefined,
-      NAP: undefined,
-      PORT: undefined,
-      VLAN: undefined,
-      LCPNAP: undefined
+      
+      // Remarks and Notes
+      Remarks: toNullIfEmpty(formData.remarks),
+      JO_Remarks: toNullIfEmpty(formData.remarks), // Map remarks to JO_Remarks as well
+      
+      // Technical fields - initialize as null, can be updated later
+      Modem_Router_SN: null,
+      Router_Model: null,
+      LCP: null,
+      NAP: null,
+      PORT: null,
+      VLAN: null,
+      LCPNAP: null,
+      LCPNAPPORT: null,
+      Username: null,
+      IP: null,
+      
+      // Visit tracking fields - initialize as null
+      Visit_By: null,
+      Visit_With: null,
+      Visit_With_Other: null,
+      Verified_By: null,
+      
+      // Image and document fields - initialize as null
+      Setup_Image: null,
+      Speedtest_Image: null,
+      Client_Signature: null,
+      Signed_Contract_Image: null,
+      Box_Reading_Image: null,
+      Router_Reading_Image: null,
+      House_Front_Picture: null,
+      
+      // Additional fields - initialize as null
+      StartTimeStamp: null,
+      EndTimeStamp: null,
+      Duration: null,
+      Date_Installed: null,
+      Billing_Status: null,
+      Connection_Type: null,
+      Usage_Type: null,
+      Renter: null,
+      Installation: null,
+      Port: null,
+      Label: null,
+      Image: null,
+      Second: null,
+      Account_No: null,
+      Account_Number: null,
+      Coordinates: null,
+      Referrers: null,
+      Contract_Link: null,
+      Second_Contact_Number: null,
+      Status_Remarks: null,
+      Onsite_Remarks: null
     };
   };
 
   const handleSave = async () => {
-    if (!validateForm()) return;
+    console.log('Save button clicked - JO Assign Form', formData);
+    
+    // Validate form data
+    const isValid = validateForm();
+    console.log('Form validation result:', isValid);
+    
+    if (!isValid) {
+      console.log('Form validation failed. Errors:', errors);
+      alert('Please fill in all required fields before saving.');
+      return;
+    }
     
     if (!applicationData?.id) {
       console.error('No application ID available');
+      alert('Missing application ID. Cannot create job order.');
       return;
     }
 
     setLoading(true);
     try {
+      // Prepare job order data with proper null handling
       const jobOrderData = mapFormDataToJobOrder(applicationData.id);
-      console.log('Creating Job Order with data:', jobOrderData);
       
+      // Validate critical fields one more time
+      if (!jobOrderData.First_Name || !jobOrderData.Last_Name || !jobOrderData.Contact_Number) {
+        throw new Error('Critical customer information is missing. Please check the form data.');
+      }
+      
+      console.log('Final job order data being sent to API:', JSON.stringify(jobOrderData, null, 2));
+      
+      // Call the API to create the job order
       const result = await createJobOrder(jobOrderData);
       console.log('Job Order created successfully:', result);
+      
+      if (!result.success) {
+        throw new Error(result.message || 'Failed to create job order');
+      }
+      
+      // Show success message with details
+      console.log('Job order saved successfully with data:', result.data);
+      alert(`Job Order created successfully!\n\nCustomer: ${jobOrderData.First_Name} ${jobOrderData.Last_Name}\nStatus: ${jobOrderData.Onsite_Status || 'Not set'}\nAssigned: ${jobOrderData.Assigned_Email || 'Not assigned'}`);
+      
+      // Reset form errors
+      setErrors({});
       
       // Pass the created job order data back to parent
       onSave(jobOrderData);
       onClose();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating job order:', error);
-      // You could show an error message to the user here
+      
+      let errorMessage = 'Unknown error occurred';
+      
+      if (error instanceof Error) {
+        errorMessage = error.message;
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response?.data?.error) {
+        errorMessage = error.response.data.error;
+      } else if (typeof error === 'string') {
+        errorMessage = error;
+      }
+      
+      alert(`Failed to create job order: ${errorMessage}`);
     } finally {
       setLoading(false);
     }
@@ -521,10 +686,11 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   min="0"
                   value={formData.installationFee}
                   onChange={(e) => handleInputChange('installationFee', parseFloat(e.target.value) || 0)}
-                  className="flex-1 px-3 py-2 bg-transparent text-white focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield]"
+                  className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${errors.installationFee ? 'border-red-500' : ''}`}
                   placeholder="0.00"
                 />
               </div>
+              {errors.installationFee && <p className="text-red-500 text-xs mt-1">{errors.installationFee}</p>}
             </div>
 
             {/* Contract Template */}
@@ -537,7 +703,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   type="number"
                   value={formData.contractTemplate}
                   onChange={(e) => handleInputChange('contractTemplate', e.target.value)}
-                  className="flex-1 px-3 py-2 bg-transparent text-white focus:outline-none"
+                  className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none ${errors.contractTemplate ? 'border-red-500' : ''}`}
                 />
                 <div className="flex">
                   <button
@@ -556,6 +722,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   </button>
                 </div>
               </div>
+              {errors.contractTemplate && <p className="text-red-500 text-xs mt-1">{errors.contractTemplate}</p>}
             </div>
 
             {/* Billing Day */}

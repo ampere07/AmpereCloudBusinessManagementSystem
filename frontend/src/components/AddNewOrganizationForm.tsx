@@ -8,21 +8,18 @@ interface AddNewOrganizationFormProps {
   onOrganizationCreated: (organization: Organization) => void;
 }
 
-const organizationTypeOptions = [
-  { value: '', label: 'Select Organization Type' },
-  { value: 'Other', label: 'Other' }
-];
-
 const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCancel, onOrganizationCreated }) => {
   const [formData, setFormData] = useState({
-    org_name: '',
-    org_type: ''
+    organization_name: '',
+    address: '',
+    contact_number: '',
+    email_address: ''
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -37,12 +34,8 @@ const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCance
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.org_name?.trim()) {
-      newErrors.org_name = 'Organization name is required';
-    }
-
-    if (!formData.org_type?.trim()) {
-      newErrors.org_type = 'Organization type is required';
+    if (!formData.organization_name?.trim()) {
+      newErrors.organization_name = 'Organization name is required';
     }
 
     setErrors(newErrors);
@@ -57,8 +50,10 @@ const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCance
     setLoading(true);
     try {
       const dataToSend = {
-        org_name: formData.org_name.trim(),
-        org_type: formData.org_type.trim()
+        organization_name: formData.organization_name.trim(),
+        address: formData.address.trim() || null,
+        contact_number: formData.contact_number.trim() || null,
+        email_address: formData.email_address.trim() || null
       };
       
       const response = await organizationService.createOrganization(dataToSend);
@@ -66,14 +61,12 @@ const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCance
       if (response.success && response.data) {
         console.log('Organization creation response:', response.data);
         
-        // Check if we received a valid organization object
         if (!response.data || typeof response.data !== 'object') {
           console.error('Invalid response data:', response.data);
           setErrors({ general: 'Failed to create organization. Please try again.' });
           return;
         }
         
-        // Call the callback with the created organization
         onOrganizationCreated(response.data);
         onCancel();
       } else {
@@ -124,7 +117,7 @@ const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCance
               Add New Organization
             </h2>
             <p className="text-gray-400 text-sm">
-              Create a new organization
+              Create a new organization in the system
             </p>
           </div>
 
@@ -142,41 +135,74 @@ const AddNewOrganizationForm: React.FC<AddNewOrganizationFormProps> = ({ onCance
                 </label>
                 <input
                   type="text"
-                  name="org_name"
-                  value={formData.org_name}
+                  name="organization_name"
+                  value={formData.organization_name}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.org_name ? 'border-red-600' : 'border-gray-600'
+                    errors.organization_name ? 'border-red-600' : 'border-gray-600'
                   }`}
                   placeholder="Enter organization name"
                   required
                 />
-                {errors.org_name && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_name}</p>
+                {errors.organization_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.organization_name}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Organization Type *
+                  Address
                 </label>
-                <select
-                  name="org_type"
-                  value={formData.org_type}
+                <textarea
+                  name="address"
+                  value={formData.address}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white focus:outline-none focus:border-gray-400 ${
-                    errors.org_type ? 'border-red-600' : 'border-gray-600'
+                  rows={3}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.address ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  required
-                >
-                  {organizationTypeOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.org_type && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_type}</p>
+                  placeholder="Enter organization address"
+                />
+                {errors.address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.address}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Contact Number
+                </label>
+                <input
+                  type="text"
+                  name="contact_number"
+                  value={formData.contact_number}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.contact_number ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter contact number"
+                />
+                {errors.contact_number && (
+                  <p className="text-red-400 text-sm mt-1">{errors.contact_number}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email_address"
+                  value={formData.email_address}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.email_address ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter email address"
+                />
+                {errors.email_address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email_address}</p>
                 )}
               </div>
             </div>

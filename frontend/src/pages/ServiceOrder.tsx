@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { FileText, Search, ChevronDown } from 'lucide-react';
 import ServiceOrderDetails from '../components/ServiceOrderDetails';
+import { getServiceOrders, ServiceOrderData } from '../services/serviceOrderService';
+import { getCities, City } from '../services/cityService';
 
 interface ServiceOrder {
   id: string;
@@ -37,6 +39,8 @@ interface ServiceOrder {
   assignedEmail: string;
   supportRemarks: string;
   serviceCharge: string;
+  repairCategory?: string;
+  supportStatus?: string;
 }
 
 interface LocationItem {
@@ -49,65 +53,185 @@ const ServiceOrder: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedServiceOrder, setSelectedServiceOrder] = useState<ServiceOrder | null>(null);
+  const [serviceOrders, setServiceOrders] = useState<ServiceOrder[]>([]);
+  const [cities, setCities] = useState<City[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // Mock data for service orders
-  const serviceOrders: ServiceOrder[] = [
-    {
-      id: '1',
-      ticketId: '202509181611134',
-      timestamp: '9/18/2025 4:11:34 PM',
-      accountNumber: '202302420',
-      fullName: 'John Doe',
-      contactAddress: '0515 Sample St, Sample, Binangonan, Rizal',
-      dateInstalled: '7/27/2024',
-      contactNumber: '987654321',
-      fullAddress: '0515 Sample St, Sample, Binangonan, Rizal',
-      houseFrontPicture: 'https://drive.google.com/open?id=1j1yk...',
-      emailAddress: 'Sample@gmail.com',
-      plan: 'Sample - p999',
-      provider: 'Sample',
-      username: 'Sample0192379012',
-      connectionType: 'Fiber',
-      routerModemSN: 'sisc799203bf',
-      lcp: 'LCP 027',
-      nap: 'NAP 005',
-      port: 'PORT 010',
-      vlan: '1000',
-      concern: 'High Loss',
-      concernRemarks: '-33.01 dBm',
-      visitStatus: 'Reschedule',
-      visitBy: 'John Doe',
-      visitWith: 'John Smith',
-      visitWithOther: 'NONE',
-      visitRemarks: 'Brrttt',
-      modifiedBy: 'Tech 3',
-      modifiedDate: '9/18/2025 4:36:41 PM',
-      userEmail: 'Sample@Sample.ph',
-      requestedBy: 'Sample Doe',
-      assignedEmail: 'Tech 3',
-      supportRemarks: '-33.01 dBm',
-      serviceCharge: '₱0.00'
-    }
+  // Get column headers for display (always show these even when no data)
+  const tableColumns = [
+    { id: 'timestamp', label: 'Timestamp', width: 'whitespace-nowrap' },
+    { id: 'fullName', label: 'Full Name', width: 'whitespace-nowrap' },
+    { id: 'contactNumber', label: 'Contact Number', width: 'whitespace-nowrap' },
+    { id: 'address', label: 'Full Address', width: 'whitespace-nowrap min-w-[180px]' },
+    { id: 'concern', label: 'Concern', width: 'whitespace-nowrap' },
+    { id: 'concernRemarks', label: 'Concern Remarks', width: '' },
+    { id: 'requestedBy', label: 'Requested by', width: 'whitespace-nowrap' },
+    { id: 'supportStatus', label: 'Support Status', width: 'whitespace-nowrap' },
+    { id: 'assignedEmail', label: 'Assigned Email', width: 'whitespace-nowrap' },
+    { id: 'repairCategory', label: 'Repair Category', width: 'whitespace-nowrap' },
+    { id: 'visitStatus', label: 'Visit Status', width: 'whitespace-nowrap' },
+    { id: 'modifiedBy', label: 'Modified By', width: 'whitespace-nowrap' },
+    { id: 'modifiedDate', label: 'Modified Date', width: 'whitespace-nowrap' }
   ];
+
+  // Format date function
+  const formatDate = (dateStr?: string): string => {
+    if (!dateStr) return 'Not scheduled';
+    try {
+      return new Date(dateStr).toLocaleString();
+    } catch (e) {
+      return dateStr;
+    }
+  };
+
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        
+        // Fetch cities data
+        console.log('Fetching cities...');
+        const citiesData = await getCities();
+        setCities(citiesData || []);
+        
+        // Fetch service orders data
+        console.log('Fetching service orders from service_order table...');
+        const response = await getServiceOrders();
+        console.log('Service Orders API Response:', response);
+        
+        if (response.success && Array.isArray(response.data)) {
+          console.log(`Found ${response.data.length} service orders`);
+          
+          // Map the API response to our interface
+          const processedOrders: ServiceOrder[] = response.data.map((order: ServiceOrderData) => ({
+            id: order.ID || '',
+            ticketId: order.Ticket_ID || '',
+            timestamp: formatDate(order.Timestamp),
+            accountNumber: order.Account_Number || '',
+            fullName: order.Full_Name || '',
+            contactAddress: order.Contact_Address || '',
+            dateInstalled: order.Date_Installed || '',
+            contactNumber: order.Contact_Number || '',
+            fullAddress: order.Full_Address || '',
+            houseFrontPicture: order.House_Front_Picture || '',
+            emailAddress: order.Email_Address || '',
+            plan: order.Plan || '',
+            provider: order.Provider || '',
+            username: order.Username || '',
+            connectionType: order.Connection_Type || '',
+            routerModemSN: order.Router_Modem_SN || '',
+            lcp: order.LCP || '',
+            nap: order.NAP || '',
+            port: order.PORT || '',
+            vlan: order.VLAN || '',
+            concern: order.Concern || '',
+            concernRemarks: order.Concern_Remarks || '',
+            visitStatus: order.Visit_Status || '',
+            visitBy: order.Visit_By || '',
+            visitWith: order.Visit_With || '',
+            visitWithOther: order.Visit_With_Other || '',
+            visitRemarks: order.Visit_Remarks || '',
+            modifiedBy: order.Modified_By || '',
+            modifiedDate: formatDate(order.Modified_Date),
+            userEmail: order.User_Email || '',
+            requestedBy: order.Requested_By || '',
+            assignedEmail: order.Assigned_Email || '',
+            supportRemarks: order.Support_Remarks || '',
+            serviceCharge: order.Service_Charge || '₱0.00',
+            repairCategory: order.Repair_Category || '',
+            supportStatus: order.Support_Status || ''
+          }));
+          
+          setServiceOrders(processedOrders);
+          console.log('Service orders data processed successfully');
+        } else {
+          // If no service orders are returned, set an empty array
+          console.warn('No service orders returned from API or invalid response format', response);
+          setServiceOrders([]);
+          
+          // Log table information for debugging
+          if (response.table) {
+            console.info(`Table name specified in response: ${response.table}`);
+          }
+          
+          // Only set error if there's a message
+          if (response.message) {
+            // If error is a database error, format it better
+            if (response.message.includes('SQLSTATE') || response.message.includes('table')) {
+              const formattedMessage = `Database error: ${response.message}\nPossible issue: Service orders might be using 'service_order' table instead of 'service_orders'`;
+              setError(formattedMessage);
+              console.error(formattedMessage);
+            } else {
+              setError(response.message);
+            }
+          }
+        }
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(`Failed to load data: ${err.message || 'Unknown error'}`);
+        setServiceOrders([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
   
-  // Generate location items with counts
+  // Generate location items from cities and service orders data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
       name: 'All',
       count: serviceOrders.length
-    },
-    {
-      id: 'anytown',
-      name: 'Anytown',
-      count: serviceOrders.filter(so => so.fullAddress.includes('Anytown')).length
-    },
-    {
-      id: 'eastport',
-      name: 'Eastport',
-      count: serviceOrders.filter(so => so.fullAddress.includes('Eastport')).length
     }
   ];
+  
+  // Add cities from database, or use existing data if cities not loaded
+  if (cities.length > 0) {
+    cities.forEach(city => {
+      // Count service orders in this city
+      const cityCount = serviceOrders.filter(so => 
+        so.fullAddress.toLowerCase().includes(city.name.toLowerCase())
+      ).length;
+      
+      // Add city to location items
+      locationItems.push({
+        id: city.name.toLowerCase(),
+        name: city.name,
+        count: cityCount
+      });
+    });
+  } else {
+    // Extract locations from service orders if cities not available
+    const locationSet = new Set<string>();
+    
+    serviceOrders.forEach(so => {
+      // Extract city from address if possible
+      const addressParts = so.fullAddress.split(',');
+      if (addressParts.length >= 2) {
+        const cityPart = addressParts[addressParts.length - 2].trim().toLowerCase();
+        if (cityPart && cityPart !== '') {
+          locationSet.add(cityPart);
+        }
+      }
+    });
+    
+    // Add unique locations to the list
+    Array.from(locationSet).forEach(location => {
+      const cityCount = serviceOrders.filter(so => 
+        so.fullAddress.toLowerCase().includes(location)
+      ).length;
+      
+      locationItems.push({
+        id: location,
+        name: location.charAt(0).toUpperCase() + location.slice(1), // Capitalize
+        count: cityCount
+      });
+    });
+  }
   
   // Filter service orders based on location and search query
   const filteredServiceOrders = serviceOrders.filter(serviceOrder => {
@@ -117,21 +241,24 @@ const ServiceOrder: React.FC = () => {
     const matchesSearch = searchQuery === '' || 
                          serviceOrder.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          serviceOrder.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         serviceOrder.concern.toLowerCase().includes(searchQuery.toLowerCase());
+                         (serviceOrder.concern && serviceOrder.concern.toLowerCase().includes(searchQuery.toLowerCase()));
     
     return matchesLocation && matchesSearch;
   });
   
   // Status text color component
-  const StatusText = ({ status, type }: { status: string, type: 'support' | 'visit' }) => {
+  const StatusText = ({ status, type }: { status?: string, type: 'support' | 'visit' }) => {
+    if (!status) return <span className="text-gray-400">Unknown</span>;
+    
     let textColor = '';
     
     if (type === 'support') {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'resolved':
           textColor = 'text-green-500';
           break;
         case 'in-progress':
+        case 'in progress':
           textColor = 'text-yellow-500';
           break;
         case 'pending':
@@ -144,11 +271,12 @@ const ServiceOrder: React.FC = () => {
           textColor = 'text-gray-400';
       }
     } else {
-      switch (status) {
+      switch (status.toLowerCase()) {
         case 'completed':
           textColor = 'text-green-500';
           break;
         case 'scheduled':
+        case 'reschedule':
           textColor = 'text-yellow-500';
           break;
         case 'pending':
@@ -172,6 +300,80 @@ const ServiceOrder: React.FC = () => {
   const handleRowClick = (serviceOrder: ServiceOrder) => {
     setSelectedServiceOrder(serviceOrder);
   };
+  
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-3"></div>
+          <p className="text-gray-300">Loading service orders...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
+          <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <div className="flex flex-col space-y-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+            >
+              Retry
+            </button>
+            
+            {/* Always show the table structure even when there's an error */}
+            <div className="mt-4 overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-700 text-sm">
+                <thead className="bg-gray-800 sticky top-0">
+                  <tr>
+                    {tableColumns.map(column => (
+                      <th 
+                        key={column.id}
+                        scope="col" 
+                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
+                      >
+                        <div className="flex items-center">
+                          {column.label}
+                        </div>
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-900 divide-y divide-gray-800">
+                  <tr>
+                    <td colSpan={tableColumns.length} className="px-4 py-12 text-center text-red-400">
+                      Error loading service orders. Please try again.
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            
+            <div className="mt-4 p-4 bg-gray-900 rounded overflow-auto max-h-48">
+              <pre className="text-xs text-gray-400 whitespace-pre-wrap">
+                {error.includes("SQLSTATE") ? (
+                  <>
+                    <span className="text-red-400">Database Error:</span>
+                    <br />
+                    {error.includes("Table") ? "Table name mismatch - check the database schema" : error}
+                    <br /><br />
+                    <span className="text-yellow-400">Suggestion:</span>
+                    <br />
+                    Verify that the table 'service_order' (singular) or 'service_orders' (plural) exists in your database.
+                  </>
+                ) : error}
+              </pre>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -242,45 +444,17 @@ const ServiceOrder: React.FC = () => {
               <table className="min-w-full divide-y divide-gray-700 text-sm">
                 <thead className="bg-gray-800 sticky top-0">
                   <tr>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Timestamp
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Full Name
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Contact Number
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Full Address
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Concern
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      Concern Remarks
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Requested by
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Support Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Assigned Email
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Repair Category
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Visit Status
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified By
-                    </th>
-                    <th scope="col" className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider whitespace-nowrap">
-                      Modified Date
-                    </th>
+                    {tableColumns.map(column => (
+                      <th 
+                        key={column.id}
+                        scope="col" 
+                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
+                      >
+                        <div className="flex items-center">
+                          {column.label}
+                        </div>
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody className="bg-gray-900 divide-y divide-gray-800">
@@ -291,51 +465,57 @@ const ServiceOrder: React.FC = () => {
                         className={`hover:bg-gray-800 cursor-pointer ${selectedServiceOrder?.id === serviceOrder.id ? 'bg-gray-800' : ''}`}
                         onClick={() => handleRowClick(serviceOrder)}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.timestamp}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.fullName}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.contactNumber}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
                           {serviceOrder.fullAddress}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.concern}
                         </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
                           {serviceOrder.concernRemarks}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.requestedBy}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          <StatusText status={serviceOrder.visitStatus} type="support" />
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
+                          <StatusText status={serviceOrder.supportStatus} type="support" />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.assignedEmail}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {serviceOrder.concern}
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
+                          {serviceOrder.repairCategory}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
                           <StatusText status={serviceOrder.visitStatus} type="visit" />
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.modifiedBy}
                         </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {serviceOrder.modifiedDate}
                         </td>
                       </tr>
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={13} className="px-4 py-12 text-center text-gray-400">
-                        No service orders found matching your filters
+                      <td colSpan={tableColumns.length} className="px-4 py-12 text-center">
+                        <div className="flex flex-col items-center space-y-4">
+                          <div className="text-gray-400">
+                            {serviceOrders.length > 0
+                              ? 'No service orders found matching your filters'
+                              : 'No service orders found in the service_order table'}
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   )}

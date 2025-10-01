@@ -4,48 +4,14 @@ import {
   ExternalLink, Mail, Edit
 } from 'lucide-react';
 import { updateJobOrder } from '../services/jobOrderService';
-
-interface JobOrderDetailsProps {
-  jobOrder: {
-    id: string;
-    Timestamp?: string;
-    First_Name?: string;
-    Middle_Initial?: string;
-    Last_Name?: string;
-    Address?: string;
-    Onsite_Status?: string;
-    Billing_Status?: string;
-    Status_Remarks?: string;
-    Assigned_Email?: string;
-    Contract_Template?: string;
-    Billing_Day?: string;
-    Installation_Fee?: string | number;
-    Modified_By?: string;
-    Modified_Date?: string;
-    Contact_Number?: string;
-    Second_Contact_Number?: string;
-    Email_Address?: string;
-    Applicant_Email_Address?: string;
-    Barangay?: string;
-    City?: string;
-    Choose_Plan?: string;
-    Remarks?: string;
-    Installation_Landmark?: string;
-    Connection_Type?: string;
-    Contract_Link?: string;
-    Username?: string;
-    Referred_By?: string;
-    [key: string]: any;
-  };
-  onClose: () => void;
-}
+import { JobOrderDetailsProps } from '../types/jobOrder';
 
 const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Format date function
-  const formatDate = (dateStr?: string): string => {
+  const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return 'Not scheduled';
     try {
       return new Date(dateStr).toLocaleString();
@@ -55,8 +21,8 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   };
   
   // Format price function
-  const formatPrice = (price?: string | number): string => {
-    if (!price) return '₱0.00';
+  const formatPrice = (price?: string | number | null): string => {
+    if (price === null || price === undefined) return '₱0.00';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -71,7 +37,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   };
 
   // Helper function for status text color
-  const getStatusColor = (status: string | undefined, type: 'onsite' | 'billing') => {
+  const getStatusColor = (status: string | undefined | null, type: 'onsite' | 'billing') => {
     if (!status) return 'text-gray-400';
     
     if (type === 'onsite') {
@@ -104,6 +70,12 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       setLoading(true);
+      
+      // Check if id exists, otherwise use a fallback
+      if (!jobOrder.id) {
+        throw new Error('Cannot update job order: Missing ID');
+      }
+      
       await updateJobOrder(jobOrder.id, { 
         Onsite_Status: newStatus,
         Modified_By: 'current_user@ampere.com',
