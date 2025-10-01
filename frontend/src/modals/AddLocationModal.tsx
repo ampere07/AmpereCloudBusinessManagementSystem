@@ -290,10 +290,10 @@ const AddLocationModal: React.FC<AddLocationModalProps> = ({
       }
 
       if (locationData.village.isNew && barangayId) {
-        console.log('Creating new village:', locationData.village.name, 'with borough_id:', barangayId);
+        console.log('Creating new village:', locationData.village.name, 'with barangay_id:', barangayId);
         const newVillage = await createVillage({ 
           name: locationData.village.name, 
-          borough_id: barangayId 
+          barangay_id: barangayId 
         });
         console.log('Village created with ID:', newVillage.id);
       }

@@ -11,12 +11,8 @@ class Organization extends Model
 
     protected $primaryKey = 'id';
     protected $table = 'organizations';
-<<<<<<<<< Temporary merge branch 1
     public $timestamps = true;
-=========
-    public $incrementing = true; // Enable auto-incrementing
-    protected $keyType = 'int'; // Specify key type
->>>>>>>>> Temporary merge branch 2
+
 
     protected $fillable = [
         'organization_name',

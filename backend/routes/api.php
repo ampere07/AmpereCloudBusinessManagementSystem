@@ -30,6 +30,43 @@ Route::post('/emergency/regions', [EmergencyLocationController::class, 'addRegio
 Route::post('/emergency/cities', [EmergencyLocationController::class, 'addCity']);
 Route::post('/emergency/barangays', [EmergencyLocationController::class, 'addBarangay']);
 
+// Direct location routes at API root level - matching frontend requests
+Route::get('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'getRegions']);
+Route::post('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+Route::put('/regions/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->updateLocation('region', $id, $request);
+});
+Route::delete('/regions/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->deleteLocation('region', $id, $request);
+});
+
+Route::get('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllCities']);
+Route::post('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+Route::put('/cities/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->updateLocation('city', $id, $request);
+});
+Route::delete('/cities/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->deleteLocation('city', $id, $request);
+});
+
+Route::get('/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllBarangays']);
+Route::post('/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+Route::put('/barangays/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->updateLocation('barangay', $id, $request);
+});
+Route::delete('/barangays/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->deleteLocation('barangay', $id, $request);
+});
+
+Route::get('/villages', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllVillages']);
+Route::post('/villages', [\App\Http\Controllers\Api\LocationApiController::class, 'addVillage']);
+Route::put('/villages/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->updateLocation('village', $id, $request);
+});
+Route::delete('/villages/{id}', function($id, Request $request) {
+    return app(\App\Http\Controllers\Api\LocationApiController::class)->deleteLocation('village', $id, $request);
+});
+
 // Alternative endpoint formats for maximum compatibility
 Route::post('/locations/add-region', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
 Route::post('/locations/add-city', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
@@ -707,19 +744,7 @@ Route::prefix('lcp-nap-list')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'destroy']);
 });
 
-// Basic Cities endpoint for simple data (fallback)
-Route::prefix('cities')->group(function () {
-    Route::get('/', function () {
-        // Return basic city data for Philippines regions
-        return response()->json([
-            ['id' => 1, 'region_id' => 1, 'name' => 'Binangonan'],
-            ['id' => 2, 'region_id' => 1, 'name' => 'Tagpos'],
-            ['id' => 3, 'region_id' => 1, 'name' => 'Tatala'],
-            ['id' => 4, 'region_id' => 1, 'name' => 'Pantok'],
-            ['id' => 5, 'region_id' => 1, 'name' => 'Manila']
-        ]);
-    });
-});
+
 
 // Routes to match frontend requests - using the *_list tables directly
 Route::prefix('region_list')->group(function () {

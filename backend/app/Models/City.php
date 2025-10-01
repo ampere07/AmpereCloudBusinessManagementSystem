@@ -9,12 +9,13 @@ class City extends Model
 {
     use HasFactory;
 
-    protected $table = 'city_list';
+    protected $table = 'city';
+    
+    public $timestamps = false;
     
     protected $fillable = [
         'city',
-        'region_id',
-        'is_active'
+        'region_id'
     ];
 
     public function region()

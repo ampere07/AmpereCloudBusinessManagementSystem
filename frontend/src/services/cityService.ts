@@ -51,72 +51,33 @@ export interface City {
   updated_at?: string;
 }
 
-// Static cities data for fallback
-const staticCities: City[] = [
-  { id: 1, region_id: 1, name: 'Binangonan' },
-  { id: 2, region_id: 1, name: 'Tagpos' },
-  { id: 3, region_id: 1, name: 'Tatala' },
-  { id: 4, region_id: 1, name: 'Pantok' },
-  { id: 5, region_id: 1, name: 'Manila' },
-  { id: 6, region_id: 1, name: 'Quezon City' },
-  { id: 7, region_id: 1, name: 'Makati' },
-  { id: 8, region_id: 1, name: 'Pasig' },
-  { id: 9, region_id: 1, name: 'Taguig' },
-  { id: 10, region_id: 1, name: 'Pasay' }
-];
-
 export const getCities = async (): Promise<City[]> => {
   try {
-    // Try to get cities from the new location management system first
-    try {
-      const locations = await getLocationsByType('city');
-      if (locations.length > 0) {
-        // Convert Location objects to City objects for backward compatibility
-        return locations.map(location => ({
-          id: location.id,
-          region_id: location.parentId || 0,
-          name: location.name,
-          description: location.description,
-          is_active: location.isActive
-        }));
-      }
-    } catch (error) {
-      console.log('Location API error, continuing to fallbacks...');
+    const response = await apiClient.get('/cities');
+    console.log('Raw cities response:', response);
+    console.log('Cities response.data:', response.data);
+    
+    const data = response.data as any;
+    
+    // Handle direct array response
+    if (Array.isArray(data)) {
+      console.log(`Successfully retrieved ${data.length} cities from direct array`);
+      return data;
     }
     
-    // Fallback to the legacy cities endpoint if no locations found
-    try {
-      console.log('Falling back to legacy app-cities endpoint');
-      const response = await apiClient.get<ApiResponse<City[]>>('/app-cities');
-      
-      if (response.data.success && Array.isArray(response.data.data)) {
-        const cities = response.data.data;
-        console.log(`Successfully retrieved ${cities.length} cities from legacy endpoint`);
-        return cities;
-      }
-    } catch (error) {
-      console.log('Legacy cities API error, continuing to final fallback...');
+    // Handle wrapped response
+    if (data.success && Array.isArray(data.data)) {
+      const cities = data.data;
+      console.log(`Successfully retrieved ${cities.length} cities from wrapped response`);
+      return cities;
     }
     
-    // Final fallback to simple cities endpoint
-    try {
-      console.log('Falling back to simple cities endpoint');
-      const simpleResponse = await apiClient.get<City[]>('/cities');
-      if (Array.isArray(simpleResponse.data) && simpleResponse.data.length > 0) {
-        return simpleResponse.data;
-      }
-    } catch (error) {
-      console.log('Simple cities API error, using static data...');
-    }
-    
-    // Ultimate fallback - use static data
-    console.log('Using static cities data as ultimate fallback');
-    return staticCities;
+    console.log('Using empty cities array as fallback. Data type:', typeof data, 'Is array:', Array.isArray(data));
+    return [];
     
   } catch (error: any) {
     console.error('Error fetching cities:', error);
     console.error('Error details:', error.response ? error.response.data : 'No response data');
-    // Return empty array instead of throwing error for graceful degradation
     return [];
   }
 };
@@ -221,7 +182,7 @@ export const createBarangay = async (data: { name: string; city_id: number; code
 };
 
 // Create a new village with barangay foreign key
-export const createVillage = async (data: { name: string; borough_id: number; code?: string; description?: string }): Promise<Village> => {
+export const createVillage = async (data: { name: string; barangay_id?: number; code?: string; description?: string }): Promise<Village> => {
   try {
     const response = await apiClient.post<ApiResponse<Village>>('/villages', data);
     if (response.data.success && response.data.data) {
@@ -237,10 +198,19 @@ export const createVillage = async (data: { name: string; borough_id: number; co
 // Get regions
 export const getRegions = async (): Promise<Region[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Region[]>>('/regions');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      return response.data.data;
+    const response = await apiClient.get('/regions');
+    const data = response.data as any;
+    
+    // Handle direct array response
+    if (Array.isArray(data)) {
+      return data;
     }
+    
+    // Handle wrapped response
+    if (data.success && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
     return [];
   } catch (error: any) {
     console.error('Error fetching regions:', error);
@@ -251,10 +221,19 @@ export const getRegions = async (): Promise<Region[]> => {
 // Get boroughs (barangays)
 export const getBoroughs = async (): Promise<Borough[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Borough[]>>('/barangays');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      return response.data.data;
+    const response = await apiClient.get('/barangays');
+    const data = response.data as any;
+    
+    // Handle direct array response
+    if (Array.isArray(data)) {
+      return data;
     }
+    
+    // Handle wrapped response
+    if (data.success && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
     return [];
   } catch (error: any) {
     console.error('Error fetching barangays:', error);
@@ -265,13 +244,104 @@ export const getBoroughs = async (): Promise<Borough[]> => {
 // Get villages
 export const getVillages = async (): Promise<Village[]> => {
   try {
-    const response = await apiClient.get<ApiResponse<Village[]>>('/villages');
-    if (response.data.success && Array.isArray(response.data.data)) {
-      return response.data.data;
+    const response = await apiClient.get('/villages');
+    const data = response.data as any;
+    
+    // Handle direct array response
+    if (Array.isArray(data)) {
+      return data;
     }
+    
+    // Handle wrapped response
+    if (data.success && Array.isArray(data.data)) {
+      return data.data;
+    }
+    
     return [];
   } catch (error: any) {
     console.error('Error fetching villages:', error);
     return [];
+  }
+};
+
+// Get region by ID
+export const getRegionById = async (id: number): Promise<Region | null> => {
+  try {
+    const response = await apiClient.get<ApiResponse<Region>>(`/region_list/${id}`);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error: any) {
+    console.error('Error fetching region:', error);
+    return null;
+  }
+};
+
+// Get city by ID
+export const getCityById = async (id: number): Promise<City | null> => {
+  try {
+    const response = await apiClient.get<ApiResponse<City>>(`/city_list/${id}`);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error: any) {
+    console.error('Error fetching city:', error);
+    return null;
+  }
+};
+
+// Get barangay by ID
+export const getBarangayById = async (id: number): Promise<Borough | null> => {
+  try {
+    const response = await apiClient.get<ApiResponse<Borough>>(`/barangay_list/${id}`);
+    if (response.data.success && response.data.data) {
+      return response.data.data;
+    }
+    return null;
+  } catch (error: any) {
+    console.error('Error fetching barangay:', error);
+    return null;
+  }
+};
+
+// Delete region
+export const deleteRegion = async (id: number, cascade: boolean = false): Promise<void> => {
+  try {
+    await apiClient.delete(`/regions/${id}${cascade ? '?cascade=true' : ''}`);
+  } catch (error: any) {
+    console.error('Error deleting region:', error);
+    throw error;
+  }
+};
+
+// Delete city
+export const deleteCity = async (id: number, cascade: boolean = false): Promise<void> => {
+  try {
+    await apiClient.delete(`/cities/${id}${cascade ? '?cascade=true' : ''}`);
+  } catch (error: any) {
+    console.error('Error deleting city:', error);
+    throw error;
+  }
+};
+
+// Delete barangay
+export const deleteBarangay = async (id: number, cascade: boolean = false): Promise<void> => {
+  try {
+    await apiClient.delete(`/barangays/${id}${cascade ? '?cascade=true' : ''}`);
+  } catch (error: any) {
+    console.error('Error deleting barangay:', error);
+    throw error;
+  }
+};
+
+// Delete village
+export const deleteVillage = async (id: number, cascade: boolean = false): Promise<void> => {
+  try {
+    await apiClient.delete(`/villages/${id}${cascade ? '?cascade=true' : ''}`);
+  } catch (error: any) {
+    console.error('Error deleting village:', error);
+    throw error;
   }
 };
