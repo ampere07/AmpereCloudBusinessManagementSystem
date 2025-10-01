@@ -29,6 +29,10 @@ class RouteServiceProvider extends ServiceProvider
         $this->configureRateLimiting();
 
         $this->routes(function () {
+            // Direct routes with no middleware or prefix
+            Route::middleware(['emergency.cors'])
+                ->group(base_path('routes/direct.php'));
+                
             Route::middleware('api')
                 ->prefix('api')
                 ->group(base_path('routes/api.php'));

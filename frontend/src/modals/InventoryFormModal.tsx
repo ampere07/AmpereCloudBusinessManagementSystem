@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Minus, Plus, Camera, Calendar } from 'lucide-react';
 
 interface InventoryFormModalProps {
@@ -29,21 +29,57 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   editData
 }) => {
   const [formData, setFormData] = useState<InventoryFormData>({
-    itemName: editData?.itemName || '',
-    itemDescription: editData?.itemDescription || '',
-    supplier: editData?.supplier || '',
-    quantityAlert: editData?.quantityAlert || 0,
-    image: editData?.image || null,
-    modifiedBy: editData?.modifiedBy || 'ravenampere0123@gmail.com',
-    modifiedDate: editData?.modifiedDate || new Date().toLocaleString('sv-SE').replace(' ', ' '),
-    userEmail: editData?.userEmail || 'ravenampere0123@gmail.com',
-    category: editData?.category || '',
-    totalStockAvailable: editData?.totalStockAvailable || 0,
-    totalStockIn: editData?.totalStockIn || 0
+    itemName: '',
+    itemDescription: '',
+    supplier: '',
+    quantityAlert: 0,
+    image: null,
+    modifiedBy: 'ravenampere0123@gmail.com',
+    modifiedDate: new Date().toISOString().slice(0, 16),
+    userEmail: 'ravenampere0123@gmail.com',
+    category: '',
+    totalStockAvailable: 0,
+    totalStockIn: 0
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+
+  // Update form data when editData changes
+  useEffect(() => {
+    if (editData) {
+      setFormData({
+        itemName: editData.itemName || '',
+        itemDescription: editData.itemDescription || '',
+        supplier: editData.supplier || '',
+        quantityAlert: editData.quantityAlert || 0,
+        image: editData.image || null,
+        modifiedBy: editData.modifiedBy || 'ravenampere0123@gmail.com',
+        modifiedDate: editData.modifiedDate || new Date().toISOString().slice(0, 16),
+        userEmail: editData.userEmail || 'ravenampere0123@gmail.com',
+        category: editData.category || '',
+        totalStockAvailable: editData.totalStockAvailable || 0,
+        totalStockIn: editData.totalStockIn || 0
+      });
+    } else {
+      // Reset form for new item
+      setFormData({
+        itemName: '',
+        itemDescription: '',
+        supplier: '',
+        quantityAlert: 0,
+        image: null,
+        modifiedBy: 'ravenampere0123@gmail.com',
+        modifiedDate: new Date().toISOString().slice(0, 16),
+        userEmail: 'ravenampere0123@gmail.com',
+        category: '',
+        totalStockAvailable: 0,
+        totalStockIn: 0
+      });
+    }
+    // Clear errors when editData changes
+    setErrors({});
+  }, [editData]);
 
   if (!isOpen) return null;
 
@@ -86,7 +122,7 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     setLoading(true);
     try {
       await onSave(formData);
-      onClose();
+      // Don't close here - let parent handle it after successful save
     } catch (error) {
       console.error('Error saving inventory item:', error);
     } finally {
@@ -95,6 +131,8 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   };
 
   const handleCancel = () => {
+    // Reset form and errors when canceling
+    setErrors({});
     onClose();
   };
 
@@ -122,7 +160,9 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
-          <h2 className="text-xl font-semibold text-white">Inventory Form</h2>
+          <h2 className="text-xl font-semibold text-white">
+            {editData ? 'Edit Inventory Item' : 'Add Inventory Item'}
+          </h2>
           <div className="flex items-center space-x-3">
             <button
               onClick={handleCancel}
@@ -138,10 +178,10 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
               {loading ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
+                  {editData ? 'Updating...' : 'Saving...'}
                 </>
               ) : (
-                'Save'
+                editData ? 'Update' : 'Save'
               )}
             </button>
             <button

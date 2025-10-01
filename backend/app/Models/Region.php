@@ -1,45 +1,23 @@
 <?php
+
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Region extends Model
 {
     use HasFactory;
-    
-    protected $table = 'regions';
-    
-    protected $fillable = [
-        'name',
-        'code',
-        'description',
-        'is_active',
 
-    protected $table = 'app_regions';
+    protected $table = 'region_list';
     
     protected $fillable = [
-        'name',
-        'created_at',
-        'updated_at'
+        'region',
+        'is_active'
     ];
-    
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
-    
+
     public function cities()
     {
-        return $this->hasMany(City::class, 'region_id', 'id');
+        return $this->hasMany(City::class, 'region_id');
     }
-    
-    public function activeCities()
-    {
-        return $this->hasMany(City::class, 'region_id', 'id')->where('is_active', true);
-    }
-    
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-}
 }

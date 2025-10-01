@@ -10,12 +10,28 @@ use Illuminate\Support\Facades\Validator;
 class PlanApiController extends Controller
 {
     /**
-     * Get current user email from session/auth (fallback for now)
+     * Get current user email from session/auth and validate it exists
      */
     private function getCurrentUser()
     {
-        // For now, return a default user - you can modify this to get from session/auth
-        return 'ravenampere0123@gmail.com';
+        $defaultUser = 'ravenampere0123@gmail.com';
+        
+        // Check if the email exists in Employee_Email table
+        $validUser = DB::select('SELECT Email FROM Employee_Email WHERE Email = ?', [$defaultUser]);
+        
+        if (!empty($validUser)) {
+            return $defaultUser;
+        }
+        
+        // If default user doesn't exist, try to find any valid email
+        $anyValidUser = DB::select('SELECT Email FROM Employee_Email LIMIT 1');
+        
+        if (!empty($anyValidUser)) {
+            return $anyValidUser[0]->Email;
+        }
+        
+        // If no valid users exist, return null (will be handled by database constraint)
+        return null;
     }
 
     /**
@@ -25,29 +41,29 @@ class PlanApiController extends Controller
     {
         try {
             // First check if table exists
-            $tableExists = DB::select("SHOW TABLES LIKE 'app_plans'");
+            $tableExists = DB::select("SHOW TABLES LIKE 'plan_list'");
             if (empty($tableExists)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'app_plans table does not exist'
+                    'message' => 'plan_list table does not exist'
                 ], 500);
             }
 
             // Get table structure to verify required columns exist
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
+            $columns = DB::select("SHOW COLUMNS FROM plan_list");
             $columnNames = array_column($columns, 'Field');
             
             // Build SELECT statement based on available columns
-            $selectFields = ['id', 'name'];
-            if (in_array('description', $columnNames)) $selectFields[] = 'description';
-            if (in_array('price', $columnNames)) $selectFields[] = 'price';
+            $selectFields = ['Plan_Name as name'];
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Price', $columnNames)) $selectFields[] = 'Price as price';
             if (in_array('is_active', $columnNames)) $selectFields[] = 'is_active';
-            if (in_array('modified_date', $columnNames)) $selectFields[] = 'modified_date';
-            if (in_array('modified_by', $columnNames)) $selectFields[] = 'modified_by';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
             if (in_array('created_at', $columnNames)) $selectFields[] = 'created_at';
             if (in_array('updated_at', $columnNames)) $selectFields[] = 'updated_at';
             
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM app_plans';
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM plan_list';
             
             // Don't filter by is_active - show all records
             $selectQuery .= ' ORDER BY name';
@@ -92,7 +108,7 @@ class PlanApiController extends Controller
     }
 
     /**
-     * Store a new plan in app_plans table
+     * Store a new plan in plan_list table
      */
     public function store(Request $request)
     {
@@ -115,12 +131,19 @@ class PlanApiController extends Controller
             $description = $request->input('description', '');
             $price = $request->input('price');
             
-            // Automatically set modified date and user
+            // Get current user - handle case where no valid user exists
             $currentUser = $this->getCurrentUser();
+            if ($currentUser === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid employee email found. Please ensure Employee_Email table is populated.'
+                ], 500);
+            }
+            
             $now = now();
             
-            // Check for duplicate plan name in app_plans table
-            $existing = DB::select('SELECT id FROM app_plans WHERE LOWER(name) = LOWER(?)', [$name]);
+            // Check for duplicate plan name in plan_list table
+            $existing = DB::select('SELECT Plan_Name FROM plan_list WHERE LOWER(Plan_Name) = LOWER(?)', [$name]);
             if (!empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -129,28 +152,30 @@ class PlanApiController extends Controller
             }
             
             // Get available columns
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
+            $columns = DB::select("SHOW COLUMNS FROM plan_list");
             $columnNames = array_column($columns, 'Field');
             
             // Build insert data based on available columns
             $insertData = [
-                'name' => $name
+                'Plan_Name' => $name
             ];
             
-            if (in_array('description', $columnNames)) $insertData['description'] = $description;
-            if (in_array('price', $columnNames)) $insertData['price'] = $price;
-            if (in_array('is_active', $columnNames)) $insertData['is_active'] = true;
-            if (in_array('modified_date', $columnNames)) $insertData['modified_date'] = $now;
-            if (in_array('modified_by', $columnNames)) $insertData['modified_by'] = $currentUser;
-            if (in_array('created_at', $columnNames)) $insertData['created_at'] = $now;
-            if (in_array('updated_at', $columnNames)) $insertData['updated_at'] = $now;
+            if (in_array('Description', $columnNames)) $insertData['Description'] = $description;
+            if (in_array('Price', $columnNames)) $insertData['Price'] = $price;
+            if (in_array('Modified_Date', $columnNames)) $insertData['Modified_Date'] = $now;
+            if (in_array('Modified_By', $columnNames)) $insertData['Modified_By'] = $currentUser;
             
-            $id = DB::table('app_plans')->insertGetId($insertData);
+            DB::table('plan_list')->insert($insertData);
             
             // Get the inserted record
-            $selectFields = array_intersect(['id', 'name', 'description', 'price', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM app_plans WHERE id = ?';
-            $plan = DB::select($selectQuery, [$id])[0];
+            $selectFields = ['Plan_Name as name'];
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Price', $columnNames)) $selectFields[] = 'Price as price';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM plan_list WHERE Plan_Name = ?';
+            $plan = DB::select($selectQuery, [$name])[0];
             
             return response()->json([
                 'success' => true,
@@ -169,18 +194,23 @@ class PlanApiController extends Controller
     }
 
     /**
-     * Display the specified plan from app_plans table
+     * Display the specified plan from plan_list table
      */
-    public function show($id)
+    public function show($planName)
     {
         try {
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
+            $columns = DB::select("SHOW COLUMNS FROM plan_list");
             $columnNames = array_column($columns, 'Field');
             
-            $selectFields = array_intersect(['id', 'name', 'description', 'price', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM app_plans WHERE id = ?';
+            $selectFields = ['Plan_Name as name'];
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Price', $columnNames)) $selectFields[] = 'Price as price';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
             
-            $plan = DB::select($selectQuery, [$id]);
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM plan_list WHERE Plan_Name = ?';
+            
+            $plan = DB::select($selectQuery, [$planName]);
             
             if (empty($plan)) {
                 return response()->json([
@@ -202,9 +232,9 @@ class PlanApiController extends Controller
     }
 
     /**
-     * Update the specified plan in app_plans table
+     * Update the specified plan in plan_list table
      */
-    public function update(Request $request, $id)
+    public function update(Request $request, $planName)
     {
         try {
             $validator = Validator::make($request->all(), [
@@ -221,8 +251,8 @@ class PlanApiController extends Controller
                 ], 422);
             }
 
-            // Check if plan exists in app_plans table
-            $existing = DB::select('SELECT * FROM app_plans WHERE id = ?', [$id]);
+            // Check if plan exists in plan_list table
+            $existing = DB::select('SELECT Plan_Name FROM plan_list WHERE Plan_Name = ?', [$planName]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -234,12 +264,19 @@ class PlanApiController extends Controller
             $description = $request->input('description', '');
             $price = $request->input('price');
             
-            // Automatically set modified date and user
+            // Get current user - handle case where no valid user exists
             $currentUser = $this->getCurrentUser();
+            if ($currentUser === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid employee email found. Please ensure Employee_Email table is populated.'
+                ], 500);
+            }
+            
             $now = now();
             
             // Check for duplicate name (excluding current plan)
-            $duplicates = DB::select('SELECT id FROM app_plans WHERE LOWER(name) = LOWER(?) AND id != ?', [$name, $id]);
+            $duplicates = DB::select('SELECT Plan_Name FROM plan_list WHERE LOWER(Plan_Name) = LOWER(?) AND Plan_Name != ?', [$name, $planName]);
             if (!empty($duplicates)) {
                 return response()->json([
                     'success' => false,
@@ -248,26 +285,30 @@ class PlanApiController extends Controller
             }
             
             // Get available columns
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
+            $columns = DB::select("SHOW COLUMNS FROM plan_list");
             $columnNames = array_column($columns, 'Field');
             
             // Build update data based on available columns
             $updateData = [
-                'name' => $name
+                'Plan_Name' => $name
             ];
             
-            if (in_array('description', $columnNames)) $updateData['description'] = $description;
-            if (in_array('price', $columnNames)) $updateData['price'] = $price;
-            if (in_array('modified_date', $columnNames)) $updateData['modified_date'] = $now;
-            if (in_array('modified_by', $columnNames)) $updateData['modified_by'] = $currentUser;
-            if (in_array('updated_at', $columnNames)) $updateData['updated_at'] = $now;
+            if (in_array('Description', $columnNames)) $updateData['Description'] = $description;
+            if (in_array('Price', $columnNames)) $updateData['Price'] = $price;
+            if (in_array('Modified_Date', $columnNames)) $updateData['Modified_Date'] = $now;
+            if (in_array('Modified_By', $columnNames)) $updateData['Modified_By'] = $currentUser;
             
-            DB::table('app_plans')->where('id', $id)->update($updateData);
+            DB::table('plan_list')->where('Plan_Name', $planName)->update($updateData);
             
             // Get updated record
-            $selectFields = array_intersect(['id', 'name', 'description', 'price', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM app_plans WHERE id = ?';
-            $plan = DB::select($selectQuery, [$id])[0];
+            $selectFields = ['Plan_Name as name'];
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Price', $columnNames)) $selectFields[] = 'Price as price';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM plan_list WHERE Plan_Name = ?';
+            $plan = DB::select($selectQuery, [$name])[0];
             
             return response()->json([
                 'success' => true,
@@ -284,13 +325,13 @@ class PlanApiController extends Controller
     }
 
     /**
-     * HARD DELETE - Permanently remove the specified plan from app_plans table
+     * HARD DELETE - Permanently remove the specified plan from plan_list table
      */
-    public function destroy($id)
+    public function destroy($planName)
     {
         try {
             // Check if plan exists
-            $existing = DB::select('SELECT * FROM app_plans WHERE id = ?', [$id]);
+            $existing = DB::select('SELECT Plan_Name FROM plan_list WHERE Plan_Name = ?', [$planName]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -301,7 +342,7 @@ class PlanApiController extends Controller
             $plan = $existing[0];
             
             // HARD DELETE - permanently remove from database
-            $deleted = DB::table('app_plans')->where('id', $id)->delete();
+            $deleted = DB::table('plan_list')->where('Plan_Name', $planName)->delete();
             
             if ($deleted) {
                 return response()->json([
@@ -324,21 +365,21 @@ class PlanApiController extends Controller
     }
 
     /**
-     * Get plan statistics from app_plans table
+     * Get plan statistics from plan_list table
      */
     public function getStatistics()
     {
         try {
-            $columns = DB::select("SHOW COLUMNS FROM app_plans");
+            $columns = DB::select("SHOW COLUMNS FROM plan_list");
             $columnNames = array_column($columns, 'Field');
             
-            // Don't filter by is_active - count all records
-            $totalPlans = DB::select("SELECT COUNT(*) as count FROM app_plans")[0]->count ?? 0;
+            // Count all records
+            $totalPlans = DB::select("SELECT COUNT(*) as count FROM plan_list")[0]->count ?? 0;
             
-            if (in_array('price', $columnNames)) {
-                $avgPrice = DB::select("SELECT AVG(price) as avg_price FROM app_plans")[0]->avg_price ?? 0;
-                $minPrice = DB::select("SELECT MIN(price) as min_price FROM app_plans")[0]->min_price ?? 0;
-                $maxPrice = DB::select("SELECT MAX(price) as max_price FROM app_plans")[0]->max_price ?? 0;
+            if (in_array('Price', $columnNames)) {
+                $avgPrice = DB::select("SELECT AVG(Price) as avg_price FROM plan_list")[0]->avg_price ?? 0;
+                $minPrice = DB::select("SELECT MIN(Price) as min_price FROM plan_list")[0]->min_price ?? 0;
+                $maxPrice = DB::select("SELECT MAX(Price) as max_price FROM plan_list")[0]->max_price ?? 0;
             } else {
                 $avgPrice = $minPrice = $maxPrice = 0;
             }
