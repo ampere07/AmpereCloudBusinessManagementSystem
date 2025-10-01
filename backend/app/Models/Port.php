@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class Port extends Model
 {
-    protected $table = 'ports';
-    protected $primaryKey = 'PORT_ID';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $table = 'port';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
         'PORT_ID',

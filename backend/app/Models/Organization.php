@@ -9,9 +9,9 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'org_id';
+    protected $primaryKey = 'id';
     protected $table = 'organizations';
-    public $incrementing = false; // Disable auto-incrementing
+    public $incrementing = true; // Enable auto-incrementing
     protected $keyType = 'int'; // Specify key type
 
     protected $fillable = [

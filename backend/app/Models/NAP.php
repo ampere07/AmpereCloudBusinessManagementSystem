@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class NAP extends Model
 {
     protected $table = 'nap';
-    protected $primaryKey = 'NAP_ID';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
         'NAP_ID',

@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class VLAN extends Model
 {
-    protected $table = 'vlans';
-    protected $primaryKey = 'VLAN_ID';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $table = 'vlan';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
         'VLAN_ID',
