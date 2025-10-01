@@ -8,76 +8,59 @@ class ApplicationVisit extends Model
 {
     protected $table = 'application_visits';
     
-    // Disable Laravel's automatic timestamps since we use custom fields
-    public $timestamps = false;
+    protected $primaryKey = 'id';
+    public $timestamps = true;
     
-    /**
-     * The primary key for the model.
-     *
-     * @var string
-     */
-    protected $primaryKey = 'ID';
-    
-    /**
-     * The "type" of the auto-incrementing ID.
-     *
-     * @var string
-     */
-    protected $keyType = 'string';
-    
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     *
-     * @var bool
-     */
-    public $incrementing = false;
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
     
     protected $fillable = [
-        'ID',
-        'Timestamp',
-        'Email_Address',
-        'Referred_By',
-        'First_Name',
-        'Middle_Initial',
-        'Last_Name',
-        'Contact_Number',
-        'Applicant_Email_Address',
-        'Address',
-        'Location',
-        'Barangay',
-        'City',
-        'Region',
-        'Choose_Plan',
-        'Remarks',
-        'Installation_Landmark',
-        'Second_Contact_Number',
-        'Assigned_Email',
-        'Image_1',
-        'Image_2',
-        'Image_3',
-        'Visit_By',
-        'Visit_With',
-        'Visit_With_Other',
-        'Visit_Status',
-        'Visit_Remarks',
-        'Application_Status',
-        'Modified_By',
-        'Modified_Date',
-        'Status_Remarks',
-        'Referrers_Account_Number',
-        'Application_ID',
-        'House_Front_Picture'
+        'application_id',
+        'timestamp',
+        'assigned_email',
+        'visit_by_user_id',
+        'visit_with',
+        'visit_status',
+        'visit_remarks',
+        'application_status',
+        'status_remarks_id',
+        'image1_url',
+        'image2_url',
+        'image3_url',
+        'house_front_picture_url',
+        'created_by_user_id',
+        'updated_by_user_id'
     ];
     
-    protected $dates = [];
+    protected $casts = [
+        'id' => 'integer',
+        'application_id' => 'integer',
+        'timestamp' => 'datetime',
+        'visit_by_user_id' => 'integer',
+        'status_remarks_id' => 'integer',
+        'created_by_user_id' => 'integer',
+        'updated_by_user_id' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
+    ];
     
-    protected $casts = [];
-    
-    /**
-     * Get the application that owns the visit
-     */
     public function application()
     {
-        return $this->belongsTo(Application::class, 'Application_ID', 'id');
+        return $this->belongsTo(Application::class, 'application_id', 'id');
+    }
+    
+    public function visitByUser()
+    {
+        return $this->belongsTo(User::class, 'visit_by_user_id', 'id');
+    }
+    
+    public function createdByUser()
+    {
+        return $this->belongsTo(User::class, 'created_by_user_id', 'id');
+    }
+    
+    public function updatedByUser()
+    {
+        return $this->belongsTo(User::class, 'updated_by_user_id', 'id');
     }
 }

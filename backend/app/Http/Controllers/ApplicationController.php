@@ -8,105 +8,60 @@ use Illuminate\Support\Facades\Log;
 
 class ApplicationController extends Controller
 {
-    /**
-     * Display a listing of the applications.
-     *
-     * @return \Illuminate\Http\Response
-     */
     public function index()
     {
         try {
             Log::info('ApplicationController: Starting to fetch applications');
             
-            // Fetch from the application table
             $applications = Application::all();
             Log::info('ApplicationController: Fetched ' . $applications->count() . ' applications');
             
-            // Debug information
-            $count = $applications->count();
-            $firstApp = $applications->first();
-            
-            if ($firstApp) {
-                Log::info('First application data:', $firstApp->toArray());
-            }
-            
-            // Transform data to match the expected format in the frontend using exact database column names
             $formattedApplications = $applications->map(function ($app) {
                 return [
-                    'id' => (string)$app->Application_ID,
+                    'id' => (string)$app->id,
                     'customer_name' => $this->getFullName($app),
-                    'timestamp' => $app->Timestamp,
-                    'address' => $app->Installation_Address ?? '',
-                    'address_line' => $app->Installation_Address ?? '',
-                    'status' => $app->Status ?? 'pending',
-                    'location' => $this->getLocationName($app->Region ?? '', $app->City ?? ''),
+                    'timestamp' => $app->timestamp ? $app->timestamp->format('Y-m-d H:i:s') : null,
+                    'address' => $app->installation_address ?? '',
+                    'address_line' => $app->installation_address ?? '',
+                    'status' => $app->status ?? 'pending',
+                    'location' => $this->getLocationName($app->region ?? '', $app->city ?? ''),
                     
-                    // Exact database columns
-                    'Application_ID' => $app->Application_ID,
-                    'Timestamp' => $app->Timestamp,
-                    'Email_Address' => $app->Email_Address,
-                    'Region' => $app->Region,
-                    'City' => $app->City,
-                    'Barangay' => $app->Barangay,
-                    'Referred_by' => $app->Referred_by,
-                    'First_Name' => $app->First_Name,
-                    'Middle_Initial' => $app->Middle_Initial,
-                    'Last_Name' => $app->Last_Name,
-                    'Mobile_Number' => $app->Mobile_Number,
-                    'Secondary_Mobile_Number' => $app->Secondary_Mobile_Number,
-                    'Installation_Address' => $app->Installation_Address,
-                    'Landmark' => $app->Landmark,
-                    'Desired_Plan' => $app->Desired_Plan,
-                    'Proof_of_Billing' => $app->Proof_of_Billing,
-                    'Government_Valid_ID' => $app->Government_Valid_ID,
-                    '2nd_Government_Valid_ID' => $app->{'2nd_Government_Valid_ID'},
-                    'House_Front_Picture' => $app->House_Front_Picture,
-                    'I_agree_to_the_terms_and_conditions' => $app->I_agree_to_the_terms_and_conditions,
-                    'First_Nearest_landmark' => $app->First_Nearest_landmark,
-                    'Second_Nearest_landmark' => $app->Second_Nearest_landmark,
-                    'Select_the_applicable_promo' => $app->Select_the_applicable_promo,
-                    'Attach_the_picture_of_your_document' => $app->Attach_the_picture_of_your_document,
-                    'Attach_SOA_from_other_provider' => $app->Attach_SOA_from_other_provider,
-                    'Status' => $app->Status,
+                    'email_address' => $app->email_address,
+                    'first_name' => $app->first_name,
+                    'middle_initial' => $app->middle_initial,
+                    'last_name' => $app->last_name,
+                    'mobile_number' => $app->mobile_number,
+                    'secondary_mobile_number' => $app->secondary_mobile_number,
+                    'installation_address' => $app->installation_address,
+                    'landmark' => $app->landmark,
+                    'region' => $app->region,
+                    'city' => $app->city,
+                    'barangay' => $app->barangay,
+                    'village' => $app->village,
+                    'desired_plan' => $app->desired_plan,
+                    'promo' => $app->promo,
+                    'referrer_account_id' => $app->referrer_account_id,
+                    'referred_by' => $app->referred_by,
+                    'proof_of_billing_url' => $app->proof_of_billing_url,
+                    'government_valid_id_url' => $app->government_valid_id_url,
+                    'second_government_valid_id_url' => $app->second_government_valid_id_url,
+                    'house_front_picture_url' => $app->house_front_picture_url,
+                    'document_attachment_url' => $app->document_attachment_url,
+                    'other_isp_bill_url' => $app->other_isp_bill_url,
+                    'terms_agreed' => $app->terms_agreed,
+                    'created_at' => $app->created_at ? $app->created_at->format('Y-m-d H:i:s') : null,
+                    'updated_at' => $app->updated_at ? $app->updated_at->format('Y-m-d H:i:s') : null,
+                    'created_by_user_id' => $app->created_by_user_id,
+                    'updated_by_user_id' => $app->updated_by_user_id,
                     
-                    // Convenience mappings for frontend compatibility
-                    'city' => $app->City,
-                    'region' => $app->Region,
-                    'barangay' => $app->Barangay,
-                    'email' => $app->Email_Address,
-                    'mobile' => $app->Mobile_Number,
-                    'mobile_number' => $app->Mobile_Number,
-                    'mobile_alt' => $app->Secondary_Mobile_Number,
-                    'secondary_number' => $app->Secondary_Mobile_Number,
-                    'referred_by' => $app->Referred_by,
-                    'first_name' => $app->First_Name,
-                    'middle_initial' => $app->Middle_Initial,
-                    'last_name' => $app->Last_Name,
-                    'plan' => $app->Desired_Plan,
-                    'desired_plan' => $app->Desired_Plan,
-                    'landmark' => $app->Landmark,
-                    'first_nearest_landmark' => $app->First_Nearest_landmark,
-                    'second_nearest_landmark' => $app->Second_Nearest_landmark,
-                    'promo' => $app->Select_the_applicable_promo,
-                    'gov_id_primary' => $app->Government_Valid_ID,
-                    'gov_id_secondary' => $app->{'2nd_Government_Valid_ID'},
-                    'house_front_pic' => $app->House_Front_Picture,
-                    'proof_of_billing' => $app->Proof_of_Billing,
-                    'terms_agreement' => $app->I_agree_to_the_terms_and_conditions,
-                    'document_attachment' => $app->Attach_the_picture_of_your_document,
-                    'soa_attachment' => $app->Attach_SOA_from_other_provider,
-                    'create_date' => $app->Timestamp ? date('Y-m-d', strtotime($app->Timestamp)) : null,
-                    'create_time' => $app->Timestamp ? date('H:i:s', strtotime($app->Timestamp)) : null
+                    'create_date' => $app->timestamp ? $app->timestamp->format('Y-m-d') : null,
+                    'create_time' => $app->timestamp ? $app->timestamp->format('H:i:s') : null
                 ];
             });
             
             return response()->json([
                 'applications' => $formattedApplications,
-                'debug' => [
-                    'count' => $count,
-                    'first_app' => $firstApp ? $firstApp->toArray() : null,
-                    'table' => 'application'
-                ]
+                'success' => true
             ]);
         } catch (\Exception $e) {
             Log::error('ApplicationController error: ' . $e->getMessage());
@@ -114,33 +69,23 @@ class ApplicationController extends Controller
             
             return response()->json([
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'message' => 'Failed to fetch applications from database'
+                'message' => 'Failed to fetch applications from database',
+                'success' => false
             ], 500);
         }
     }
     
-    /**
-     * Get full customer name safely
-     */
     private function getFullName($app)
     {
         $parts = array_filter([
-            $app->First_Name ?? '',
-            $app->Middle_Initial ?? '',
-            $app->Last_Name ?? ''
+            $app->first_name ?? '',
+            $app->middle_initial ?? '',
+            $app->last_name ?? ''
         ]);
         
         return implode(' ', $parts) ?: 'Unknown';
     }
     
-    /**
-     * Get location name based on region and city strings.
-     *
-     * @param string $region
-     * @param string $city
-     * @return string
-     */
     private function getLocationName($region, $city)
     {
         try {
@@ -152,120 +97,85 @@ class ApplicationController extends Controller
         }
     }
 
-    /**
-     * Store a newly created application in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
     public function store(Request $request)
     {
         $validatedData = $request->validate([
-            'Email_Address' => 'required|email',
-            'First_Name' => 'required|string|max:255',
-            'Middle_Initial' => 'nullable|string|max:10',
-            'Last_Name' => 'required|string|max:255',
-            'Mobile_Number' => 'required|string|max:20',
-            'Secondary_Mobile_Number' => 'nullable|string|max:20',
-            'Region' => 'required|string|max:100',
-            'City' => 'required|string|max:100',
-            'Barangay' => 'nullable|string|max:100',
-            'Installation_Address' => 'required|string',
-            'Referred_by' => 'nullable|string|max:255',
-            'Desired_Plan' => 'nullable|string|max:255',
-            'Status' => 'nullable|string|max:50'
+            'email_address' => 'required|email',
+            'first_name' => 'required|string|max:255',
+            'middle_initial' => 'nullable|string|max:1',
+            'last_name' => 'required|string|max:255',
+            'mobile_number' => 'required|string|max:50',
+            'secondary_mobile_number' => 'nullable|string|max:50',
+            'region' => 'required|string|max:255',
+            'city' => 'required|string|max:255',
+            'barangay' => 'nullable|string|max:255',
+            'village' => 'nullable|string|max:255',
+            'installation_address' => 'required',
+            'landmark' => 'nullable',
+            'referred_by' => 'nullable|string|max:255',
+            'desired_plan' => 'nullable|string|max:255',
+            'promo' => 'nullable|string|max:255',
+            'status' => 'nullable|string|max:100'
         ]);
 
-        // Add timestamp
-        $validatedData['Timestamp'] = now();
+        $validatedData['timestamp'] = now();
+        $validatedData['created_by_user_id'] = auth()->id();
 
         $application = Application::create($validatedData);
 
         return response()->json([
             'message' => 'Application created successfully',
-            'application' => $application
+            'application' => $application,
+            'success' => true
         ], 201);
     }
 
-    /**
-     * Display the specified application.
-     *
-     * @param  string  $id
-     * @return \Illuminate\Http\Response
-     */
     public function show($id)
     {
         try {
             Log::info('ApplicationController show: Fetching application ID: ' . $id);
             
-            $application = Application::where('Application_ID', $id)->firstOrFail();
+            $application = Application::findOrFail($id);
             
-            // Format application data for the frontend using exact database column names
             $formattedApplication = [
-                'id' => (string)$application->Application_ID,
+                'id' => (string)$application->id,
                 'customer_name' => $this->getFullName($application),
-                'timestamp' => $application->Timestamp,
-                'address' => $application->Installation_Address ?? '',
-                'address_line' => $application->Installation_Address ?? '',
-                'status' => $application->Status ?? 'pending',
-                'location' => $this->getLocationName($application->Region ?? '', $application->City ?? ''),
+                'timestamp' => $application->timestamp ? $application->timestamp->format('Y-m-d H:i:s') : null,
+                'address' => $application->installation_address ?? '',
+                'address_line' => $application->installation_address ?? '',
+                'status' => $application->status ?? 'pending',
+                'location' => $this->getLocationName($application->region ?? '', $application->city ?? ''),
                 
-                // All exact database columns
-                'Application_ID' => $application->Application_ID,
-                'Timestamp' => $application->Timestamp,
-                'Email_Address' => $application->Email_Address,
-                'Region' => $application->Region,
-                'City' => $application->City,
-                'Barangay' => $application->Barangay,
-                'Referred_by' => $application->Referred_by,
-                'First_Name' => $application->First_Name,
-                'Middle_Initial' => $application->Middle_Initial,
-                'Last_Name' => $application->Last_Name,
-                'Mobile_Number' => $application->Mobile_Number,
-                'Secondary_Mobile_Number' => $application->Secondary_Mobile_Number,
-                'Installation_Address' => $application->Installation_Address,
-                'Landmark' => $application->Landmark,
-                'Desired_Plan' => $application->Desired_Plan,
-                'Proof_of_Billing' => $application->Proof_of_Billing,
-                'Government_Valid_ID' => $application->Government_Valid_ID,
-                '2nd_Government_Valid_ID' => $application->{'2nd_Government_Valid_ID'},
-                'House_Front_Picture' => $application->House_Front_Picture,
-                'I_agree_to_the_terms_and_conditions' => $application->I_agree_to_the_terms_and_conditions,
-                'First_Nearest_landmark' => $application->First_Nearest_landmark,
-                'Second_Nearest_landmark' => $application->Second_Nearest_landmark,
-                'Select_the_applicable_promo' => $application->Select_the_applicable_promo,
-                'Attach_the_picture_of_your_document' => $application->Attach_the_picture_of_your_document,
-                'Attach_SOA_from_other_provider' => $application->Attach_SOA_from_other_provider,
-                'Status' => $application->Status,
+                'email_address' => $application->email_address,
+                'first_name' => $application->first_name,
+                'middle_initial' => $application->middle_initial,
+                'last_name' => $application->last_name,
+                'mobile_number' => $application->mobile_number,
+                'secondary_mobile_number' => $application->secondary_mobile_number,
+                'installation_address' => $application->installation_address,
+                'landmark' => $application->landmark,
+                'region' => $application->region,
+                'city' => $application->city,
+                'barangay' => $application->barangay,
+                'village' => $application->village,
+                'desired_plan' => $application->desired_plan,
+                'promo' => $application->promo,
+                'referrer_account_id' => $application->referrer_account_id,
+                'referred_by' => $application->referred_by,
+                'proof_of_billing_url' => $application->proof_of_billing_url,
+                'government_valid_id_url' => $application->government_valid_id_url,
+                'second_government_valid_id_url' => $application->second_government_valid_id_url,
+                'house_front_picture_url' => $application->house_front_picture_url,
+                'document_attachment_url' => $application->document_attachment_url,
+                'other_isp_bill_url' => $application->other_isp_bill_url,
+                'terms_agreed' => $application->terms_agreed,
+                'created_at' => $application->created_at ? $application->created_at->format('Y-m-d H:i:s') : null,
+                'updated_at' => $application->updated_at ? $application->updated_at->format('Y-m-d H:i:s') : null,
+                'created_by_user_id' => $application->created_by_user_id,
+                'updated_by_user_id' => $application->updated_by_user_id,
                 
-                // Convenience mappings for frontend
-                'city' => $application->City,
-                'region' => $application->Region,
-                'barangay' => $application->Barangay,
-                'email' => $application->Email_Address,
-                'mobile' => $application->Mobile_Number,
-                'mobile_number' => $application->Mobile_Number,
-                'mobile_alt' => $application->Secondary_Mobile_Number,
-                'secondary_number' => $application->Secondary_Mobile_Number,
-                'referred_by' => $application->Referred_by,
-                'first_name' => $application->First_Name,
-                'middle_initial' => $application->Middle_Initial,
-                'last_name' => $application->Last_Name,
-                'plan' => $application->Desired_Plan,
-                'desired_plan' => $application->Desired_Plan,
-                'landmark' => $application->Landmark,
-                'first_nearest_landmark' => $application->First_Nearest_landmark,
-                'second_nearest_landmark' => $application->Second_Nearest_landmark,
-                'promo' => $application->Select_the_applicable_promo,
-                'gov_id_primary' => $application->Government_Valid_ID,
-                'gov_id_secondary' => $application->{'2nd_Government_Valid_ID'},
-                'house_front_pic' => $application->House_Front_Picture,
-                'proof_of_billing' => $application->Proof_of_Billing,
-                'terms_agreement' => $application->I_agree_to_the_terms_and_conditions,
-                'document_attachment' => $application->Attach_the_picture_of_your_document,
-                'soa_attachment' => $application->Attach_SOA_from_other_provider,
-                'create_date' => $application->Timestamp ? date('Y-m-d', strtotime($application->Timestamp)) : null,
-                'create_time' => $application->Timestamp ? date('H:i:s', strtotime($application->Timestamp)) : null
+                'create_date' => $application->timestamp ? $application->timestamp->format('Y-m-d') : null,
+                'create_time' => $application->timestamp ? $application->timestamp->format('H:i:s') : null
             ];
             
             return response()->json([
@@ -283,21 +193,30 @@ class ApplicationController extends Controller
         }
     }
 
-    /**
-     * Update the specified application in storage.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  string  $id
-     * @return \Illuminate\Http\Response
-     */
     public function update(Request $request, $id)
     {
         try {
             $validatedData = $request->validate([
-                'Status' => 'nullable|string|max:50'  // Using exact database column name
+                'status' => 'nullable|string|max:100',
+                'email_address' => 'nullable|email',
+                'first_name' => 'nullable|string|max:255',
+                'middle_initial' => 'nullable|string|max:1',
+                'last_name' => 'nullable|string|max:255',
+                'mobile_number' => 'nullable|string|max:50',
+                'secondary_mobile_number' => 'nullable|string|max:50',
+                'region' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'barangay' => 'nullable|string|max:255',
+                'village' => 'nullable|string|max:255',
+                'installation_address' => 'nullable',
+                'landmark' => 'nullable',
+                'referred_by' => 'nullable|string|max:255',
+                'desired_plan' => 'nullable|string|max:255',
+                'promo' => 'nullable|string|max:255'
             ]);
 
-            $application = Application::where('Application_ID', $id)->firstOrFail();
+            $application = Application::findOrFail($id);
+            $validatedData['updated_by_user_id'] = auth()->id();
             $application->update($validatedData);
 
             return response()->json([
@@ -316,25 +235,23 @@ class ApplicationController extends Controller
         }
     }
 
-    /**
-     * Remove the specified application from storage.
-     *
-     * @param  string  $id
-     * @return \Illuminate\Http\Response
-     */
     public function destroy($id)
     {
         try {
-            $application = Application::where('Application_ID', $id)->firstOrFail();
+            $application = Application::findOrFail($id);
             $application->delete();
 
-            return response()->json(['message' => 'Application deleted successfully']);
+            return response()->json([
+                'message' => 'Application deleted successfully',
+                'success' => true
+            ]);
         } catch (\Exception $e) {
             Log::error('ApplicationController destroy error: ' . $e->getMessage());
             
             return response()->json([
                 'message' => 'Failed to delete application',
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'success' => false
             ], 500);
         }
     }

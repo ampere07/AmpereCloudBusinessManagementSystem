@@ -11,82 +11,68 @@ class Application extends Model
 
     protected $table = 'applications';
     
-    // Disable Laravel's timestamp functionality
-    public $timestamps = false;
+    protected $primaryKey = 'id';
+    public $timestamps = true;
     
-    // All actual columns from your database
+    const CREATED_AT = 'created_at';
+    const UPDATED_AT = 'updated_at';
+    
     protected $fillable = [
-        'Application_ID',
-        'Timestamp',
-        'Email_Address',
-        'Region',
-        'City',
-        'Barangay',
-        'Referred_by',
-        'First_Name',
-        'Middle_Initial',
-        'Last_Name',
-        'Mobile_Number',
-        'Secondary_Mobile_Number',
-        'Installation_Address',
-        'Landmark',
-        'Desired_Plan',
-        'Proof_of_Billing',
-        'Government_Valid_ID',
-        '2nd_Government_Valid_ID',
-        'House_Front_Picture',
-        'I_agree_to_the_terms_and_conditions',
-        'First_Nearest_landmark',
-        'Second_Nearest_landmark',
-        'Select_the_applicable_promo',
-        'Attach_the_picture_of_your_document',
-        'Attach_SOA_from_other_provider',
-        'Status'
+        'timestamp',
+        'email_address',
+        'first_name',
+        'middle_initial',
+        'last_name',
+        'mobile_number',
+        'secondary_mobile_number',
+        'installation_address',
+        'landmark',
+        'region',
+        'city',
+        'barangay',
+        'village',
+        'desired_plan',
+        'promo',
+        'referrer_account_id',
+        'referred_by',
+        'proof_of_billing_url',
+        'government_valid_id_url',
+        'second_government_valid_id_url',
+        'house_front_picture_url',
+        'document_attachment_url',
+        'other_isp_bill_url',
+        'terms_agreed',
+        'status',
+        'created_by_user_id',
+        'updated_by_user_id'
     ];
     
-    // Map database column names to more convenient property names
     protected $casts = [
-        'Application_ID' => 'string',
+        'id' => 'integer',
+        'timestamp' => 'datetime',
+        'terms_agreed' => 'boolean',
+        'referrer_account_id' => 'integer',
+        'created_by_user_id' => 'integer',
+        'updated_by_user_id' => 'integer',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime'
     ];
     
-    /**
-     * The primary key for the model.
-     *
-     * @var string
-     */
-    protected $primaryKey = 'Application_ID';
-    
-    /**
-     * The "type" of the auto-incrementing ID.
-     *
-     * @var string
-     */
-    protected $keyType = 'string';
-    
-    /**
-     * Indicates if the IDs are auto-incrementing.
-     *
-     * @var bool
-     */
-    public $incrementing = false;
-    
-    /**
-     * Get full customer name
-     */
     public function getFullNameAttribute()
     {
-        return trim($this->First_Name . ' ' . ($this->Middle_Initial ? $this->Middle_Initial . ' ' : '') . $this->Last_Name);
+        return trim(
+            $this->first_name . ' ' . 
+            ($this->middle_initial ? $this->middle_initial . ' ' : '') . 
+            $this->last_name
+        );
     }
     
-    /**
-     * Get timestamp formatted as shown in the UI
-     */
     public function getFormattedTimestampAttribute()
     {
-        if (!$this->Timestamp) {
+        if (!$this->timestamp) {
             return null;
         }
         
-        return date('m/d/Y H:i:s', strtotime($this->Timestamp));
+        return $this->timestamp->format('m/d/Y H:i:s');
     }
 }

@@ -57,33 +57,25 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   
 
   const [formData, setFormData] = useState<VisitFormData>(() => {
-    // Capture initial values of second contact number with extended logging
-    const initialSecondContact = applicationData?.mobile_alt ||
-                                applicationData?.Secondary_Mobile_Number ||
-                                applicationData?.secondary_number ||
-                                applicationData?.second_contact_number ||
-                                '';
+    const initialSecondContact = applicationData?.secondary_mobile_number || '';
                                 
     console.log('DEBUG - Initial second contact values:', {
-      mobile_alt: applicationData?.mobile_alt,
-      Secondary_Mobile_Number: applicationData?.Secondary_Mobile_Number,
-      secondary_number: applicationData?.secondary_number,
-      second_contact_number: applicationData?.second_contact_number,
+      secondary_mobile_number: applicationData?.secondary_mobile_number,
       initialSecondContact
     });
     
     return {
-      firstName: applicationData?.First_Name || applicationData?.first_name || '',
-      middleInitial: applicationData?.Middle_Initial || applicationData?.middle_initial || '',
-      lastName: applicationData?.Last_Name || applicationData?.last_name || '',
-      contactNumber: applicationData?.Mobile_Number || applicationData?.mobile || applicationData?.mobile_number || '',
+      firstName: applicationData?.first_name || '',
+      middleInitial: applicationData?.middle_initial || '',
+      lastName: applicationData?.last_name || '',
+      contactNumber: applicationData?.mobile_number || '',
       secondContactNumber: initialSecondContact,
-      email: applicationData?.Email_Address || applicationData?.email || '',
-      address: applicationData?.Installation_Address || applicationData?.address_line || applicationData?.address || '',
-      barangay: applicationData?.Barangay || applicationData?.barangay || '',
-      city: applicationData?.City || applicationData?.city || '',
-      region: applicationData?.Region || applicationData?.region || '',
-      choosePlan: applicationData?.Desired_Plan || 'SwitchConnect - P799',
+      email: applicationData?.email_address || '',
+      address: applicationData?.installation_address || '',
+      barangay: applicationData?.barangay || '',
+      city: applicationData?.city || '',
+      region: applicationData?.region || '',
+      choosePlan: applicationData?.desired_plan || 'SwitchConnect - P799',
       remarks: '',
       assignedEmail: '',
       visitBy: '',
@@ -103,42 +95,26 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   // Update form data when applicationData changes
   useEffect(() => {
     if (applicationData) {
-      // Debug the exact application data structure
       console.log('DEBUG - Application data loaded:', applicationData);
-      console.log('DEBUG - Second contact fields:', {
-        mobile_alt: applicationData.mobile_alt,
-        Secondary_Mobile_Number: applicationData.Secondary_Mobile_Number,
-        secondary_number: applicationData.secondary_number,
-        second_contact_number: applicationData.second_contact_number,
-        // Log all properties to find the correct one
-        allProps: Object.keys(applicationData)
-      });
-      
-      // Note: Data is coming from 'applications' table, not 'application'
+      console.log('DEBUG - Second contact field:', applicationData.secondary_mobile_number);
       
       setFormData(prev => {
-        // Get second contact number from any available field
-        const secondContact = applicationData.mobile_alt || 
-                             applicationData.Secondary_Mobile_Number || 
-                             applicationData.secondary_number || 
-                             applicationData.second_contact_number || 
-                             '';
-                             
+        const secondContact = applicationData.secondary_mobile_number || '';
         console.log('DEBUG - Selected second contact number:', secondContact);        
         
         return {
           ...prev,
-          firstName: applicationData.First_Name || applicationData.first_name || prev.firstName,
-          middleInitial: applicationData.Middle_Initial || applicationData.middle_initial || prev.middleInitial,
-          lastName: applicationData.Last_Name || applicationData.last_name || prev.lastName,
-          contactNumber: applicationData.Mobile_Number || applicationData.mobile || applicationData.mobile_number || prev.contactNumber,
+          firstName: applicationData.first_name || prev.firstName,
+          middleInitial: applicationData.middle_initial || prev.middleInitial,
+          lastName: applicationData.last_name || prev.lastName,
+          contactNumber: applicationData.mobile_number || prev.contactNumber,
           secondContactNumber: secondContact,
-          email: applicationData.Email_Address || applicationData.email || prev.email,
-          address: applicationData.Installation_Address || applicationData.address_line || applicationData.address || prev.address,
-          barangay: applicationData.Barangay || applicationData.barangay || prev.barangay,
-          city: applicationData.City || applicationData.city || prev.city,
-          region: applicationData.Region || applicationData.region || prev.region,
-          choosePlan: applicationData.Desired_Plan || prev.choosePlan
+          email: applicationData.email_address || prev.email,
+          address: applicationData.installation_address || prev.address,
+          barangay: applicationData.barangay || prev.barangay,
+          city: applicationData.city || prev.city,
+          region: applicationData.region || prev.region,
+          choosePlan: applicationData.desired_plan || prev.choosePlan
         };
       });
     }
@@ -164,60 +140,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First Name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last Name is required';
-    }
-    
-    if (!formData.contactNumber.trim()) {
-      newErrors.contactNumber = 'Contact Number is required';
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.contactNumber.trim())) {
-      newErrors.contactNumber = 'Please enter a valid contact number';
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-    
-    if (!formData.barangay.trim()) {
-      newErrors.barangay = 'Barangay is required';
-    }
-    
-    if (!formData.region.trim()) {
-      newErrors.region = 'Region is required';
-    }
-    
-    if (!formData.choosePlan.trim()) {
-      newErrors.choosePlan = 'Plan is required';
-    }
-    
     if (!formData.assignedEmail.trim()) {
       newErrors.assignedEmail = 'Assigned Email is required';
-    }
-    
-    // Automatically set visitBy to assignedEmail if empty
-    if (!formData.visitBy && formData.assignedEmail) {
-      setFormData(prev => ({
-        ...prev,
-        visitBy: formData.assignedEmail
-      }));
-    } else if (!formData.visitBy.trim()) {
-      newErrors.visitBy = 'Assigned Technician is required';
-    }
-
-    // For "Visit With Other", only validate if "Other" is selected
-    if (formData.visitWith === 'Other' && !formData.visitWithOther.trim()) {
-      newErrors.visitWithOther = 'Please specify who else will visit';
     }
 
     setErrors(newErrors);
@@ -225,36 +149,33 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   };
 
   const mapFormDataToVisitData = (applicationId: string): ApplicationVisitData => {
+    const appId = parseInt(applicationId);
+    
+    if (isNaN(appId) || appId <= 0) {
+      throw new Error(`Invalid application ID: ${applicationId}`);
+    }
+    
+    console.log('Mapping form data to visit data:', {
+      applicationId,
+      parsedAppId: appId,
+      assignedEmail: formData.assignedEmail,
+      visitStatus: formData.status
+    });
+    
     return {
-      Application_ID: applicationId,
-      First_Name: formData.firstName.trim(),
-      Last_Name: formData.lastName.trim(),
-      Middle_Initial: formData.middleInitial ? formData.middleInitial.trim() : null,
-      Contact_Number: formData.contactNumber.trim(),
-      Second_Contact_Number: formData.secondContactNumber ? formData.secondContactNumber.trim() : null,
-      Email_Address: formData.email.trim(),
-      Address: formData.address.trim(),
-      Barangay: formData.barangay || null,
-      City: formData.city || null,
-      Region: formData.region || null,
-      Choose_Plan: formData.choosePlan,
-      Visit_Notes: formData.remarks ? formData.remarks.trim() : null,
-      Installation_Landmark: formData.remarks ? formData.remarks.trim() : null,
-      Assigned_Email: formData.assignedEmail,
-      Visit_By: formData.visitBy || formData.assignedEmail,
-      Visit_With: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : null,
-      Visit_With_Other: formData.visitWith === 'Other' ? (formData.visitWithOther ? formData.visitWithOther.trim() : null) : null,
-      Visit_Type: formData.visitType,
-      Visit_Status: formData.status,
-      Created_By: formData.createdBy,
-      Modified_By: formData.modifiedBy
+      application_id: appId,
+      assigned_email: formData.assignedEmail,
+      visit_by_user_id: null,
+      visit_with: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : (formData.visitWith === 'Other' ? formData.visitWithOther : null),
+      visit_status: formData.status,
+      visit_remarks: formData.remarks || formData.visitNotes || null,
+      application_status: 'Scheduled'
     };
   };
 
   const handleSave = async () => {
     console.log('Save button clicked!', formData);
     
-    // Check validation
     const isValid = validateForm();
     console.log('Form validation result:', isValid);
     
@@ -264,7 +185,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       return;
     }
     
-    if (!applicationData?.id && !applicationData?.Application_ID) {
+    if (!applicationData?.id) {
       console.error('No application ID available');
       alert('Missing application ID. Cannot save visit.');
       return;
@@ -272,27 +193,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
     setLoading(true);
     try {
-      // Use either id or Application_ID
-      const applicationId = applicationData.id || applicationData.Application_ID;
+      const applicationId = applicationData.id;
       
-      // Prepare visit data with proper validation and defaults
       const visitData = mapFormDataToVisitData(applicationId);
-      
-      // Ensure all critical fields are populated
-      if (!visitData.Visit_By && visitData.Assigned_Email) {
-        visitData.Visit_By = visitData.Assigned_Email;
-      }
-      
-      // Validate required fields one more time before API call
-      if (!visitData.Application_ID || !visitData.First_Name || !visitData.Last_Name || 
-          !visitData.Contact_Number || !visitData.Email_Address || !visitData.Address || 
-          !visitData.Assigned_Email) {
-        throw new Error('Required fields are missing. Please check your form data.');
-      }
       
       console.log('Final data being sent to API:', JSON.stringify(visitData, null, 2));
       
-      // Call the API to create the visit
       const result = await createApplicationVisit(visitData);
       console.log('Application visit created successfully:', result);
       
@@ -300,32 +206,41 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         throw new Error(result.message || 'Failed to create application visit');
       }
       
-      // Show success message
-      console.log('Visit created successfully with ID:', result.data?.id || result.data?.ID);
-      alert(`Visit created successfully!\n\nTechnician: ${visitData.Assigned_Email}`);
+      console.log('Visit created successfully with ID:', result.data?.id);
+      alert(`Visit created successfully!`);
       
-      // Reset form errors to show clean state
       setErrors({});
       
-      // Pass the created visit data back to parent
       onSave(visitData);
       onClose();
     } catch (error: any) {
       console.error('Error creating application visit:', error);
       
       let errorMessage = 'Unknown error occurred';
+      let errorDetails = '';
       
       if (error instanceof Error) {
         errorMessage = error.message;
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.response?.data?.error) {
-        errorMessage = error.response.data.error;
+      } else if (error.response?.data) {
+        const responseData = error.response.data;
+        errorMessage = responseData.message || 'Server error occurred';
+        
+        if (responseData.errors) {
+          errorDetails = Object.entries(responseData.errors)
+            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
+            .join('\n');
+        } else if (responseData.error) {
+          errorDetails = responseData.error;
+        }
       } else if (typeof error === 'string') {
         errorMessage = error;
       }
       
-      alert(`Failed to schedule visit: ${errorMessage}`);
+      const fullErrorMessage = errorDetails 
+        ? `${errorMessage}\n\nDetails:\n${errorDetails}` 
+        : errorMessage;
+      
+      alert(`Failed to schedule visit:\n\n${fullErrorMessage}`);
     } finally {
       setLoading(false);
     }

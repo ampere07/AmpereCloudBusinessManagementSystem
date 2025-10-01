@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown, Minus, Plus } from 'lucide-react';
 import { createJobOrder, JobOrderData } from '../services/jobOrderService';
 import { getContractTemplates, ContractTemplate } from '../services/lookupService';
+import locationService, { Location } from '../services/locationService';
+import { UserData } from '../types/api';
 
 interface JOAssignFormModalProps {
   isOpen: boolean;
@@ -43,30 +45,46 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   onSave,
   applicationData
 }) => {
+  // Get current logged-in user
+  const getCurrentUser = (): UserData | null => {
+    try {
+      const authData = localStorage.getItem('authData');
+      if (authData) {
+        return JSON.parse(authData);
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+    }
+    return null;
+  };
+
+  const currentUser = getCurrentUser();
+  const currentUserEmail = currentUser?.email || 'unknown@ampere.com';
+
   const [formData, setFormData] = useState<JOFormData>({
     timestamp: new Date().toLocaleString('sv-SE').replace(' ', ' '),
     provider: '',
     status: 'Confirmed',
-    referredBy: applicationData?.source || '',
+    referredBy: applicationData?.referred_by || '',
     firstName: applicationData?.first_name || '',
     middleInitial: applicationData?.middle_initial || '',
     lastName: applicationData?.last_name || '',
-    contactNumber: applicationData?.mobile || applicationData?.mobileNumber || applicationData?.mobile_number || '',
-    email: applicationData?.email || '',
-    address: applicationData?.address_line || applicationData?.address || '',
-    barangay: 'All',
-    city: 'All',
-    region: applicationData?.region_id || 'Rizal',
-    choosePlan: 'SwitchConnect - P799',
+    contactNumber: applicationData?.mobile_number || '',
+    email: applicationData?.email_address || '',
+    address: applicationData?.installation_address || '',
+    barangay: applicationData?.barangay || '',
+    city: applicationData?.city || '',
+    region: applicationData?.region || '',
+    choosePlan: applicationData?.desired_plan || '',
     remarks: '',
     installationFee: 0.00,
     contractTemplate: '0',
     billingDay: '30',
     onsiteStatus: 'In Progress',
     assignedEmail: '',
-    modifiedBy: 'ravenampere0123@gmail.com',
+    modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('sv-SE').replace(' ', ' '),
-    installationLandmark: ''
+    installationLandmark: applicationData?.landmark || ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -75,45 +93,103 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   // Contract template state
   const [contractTemplates, setContractTemplates] = useState<ContractTemplate[]>([]);
   const [lookupLoading, setLookupLoading] = useState(true);
+  
+  // Location state
+  const [regions, setRegions] = useState<Location[]>([]);
+  const [cities, setCities] = useState<Location[]>([]);
+  const [barangays, setBarangays] = useState<Location[]>([]);
+  const [locationsLoading, setLocationsLoading] = useState(true);
+  
+  // Plans state
+  const [plans, setPlans] = useState<string[]>([]);
 
-  // Load contract templates on component mount
+  // Load contract templates and locations on component mount
   useEffect(() => {
-    const fetchContractTemplates = async () => {
+    const fetchLookupData = async () => {
       try {
         setLookupLoading(true);
-        const templates = await getContractTemplates();
+        setLocationsLoading(true);
+        
+        // Mock data for regions
+        const mockRegions: Location[] = [
+          { id: 99001, name: 'Metro Manila', type: 'region', isActive: true, createdAt: '', updatedAt: '' },
+          { id: 99002, name: 'Rizal', type: 'region', isActive: true, createdAt: '', updatedAt: '' }
+        ];
+        
+        // Mock data for cities
+        const mockCities: Location[] = [
+          { id: 99003, name: 'Binangonan', type: 'city', isActive: true, createdAt: '', updatedAt: '' },
+          { id: 99004, name: 'Antipolo', type: 'city', isActive: true, createdAt: '', updatedAt: '' }
+        ];
+        
+        // Mock data for barangays
+        const mockBarangays: Location[] = [
+          { id: 99005, name: 'Almanza Dos', type: 'borough', isActive: true, createdAt: '', updatedAt: '' },
+          { id: 99006, name: 'San Isidro', type: 'borough', isActive: true, createdAt: '', updatedAt: '' }
+        ];
+        
+        const [templates, regionsResponse, citiesResponse, barangaysResponse] = await Promise.all([
+          getContractTemplates(),
+          locationService.getByType('region').catch(() => ({ success: false, data: [] })),
+          locationService.getByType('city').catch(() => ({ success: false, data: [] })),
+          locationService.getByType('borough').catch(() => ({ success: false, data: [] }))
+        ]);
+        
         setContractTemplates(templates);
+        
+        const regionsData = [...mockRegions, ...(regionsResponse.data || [])];
+        const citiesData = [...mockCities, ...(citiesResponse.data || [])];
+        const barangaysData = [...mockBarangays, ...(barangaysResponse.data || [])];
+        
+        console.log('Loaded regions:', regionsData);
+        console.log('Loaded cities:', citiesData);
+        console.log('Loaded barangays:', barangaysData);
+        
+        // Mock data for plans
+        const mockPlans = [
+          'SwitchConnect - P799',
+          'SwitchConnect - P999',
+          'SwitchConnect - P1299',
+          'SwitchConnect - P1599'
+        ];
+        
+        setPlans(mockPlans);
+        console.log('Loaded plans:', mockPlans);
+        
+        setRegions(regionsData);
+        setCities(citiesData);
+        setBarangays(barangaysData);
       } catch (error) {
-        console.error('Failed to load contract templates:', error);
+        console.error('Failed to load lookup data:', error);
       } finally {
         setLookupLoading(false);
+        setLocationsLoading(false);
       }
     };
 
     if (isOpen) {
-      fetchContractTemplates();
+      fetchLookupData();
     }
   }, [isOpen]);
 
   useEffect(() => {
     if (applicationData) {
       console.log('JO Form - Application Data:', applicationData);
-      console.log('JO Form - Mobile fields:', {
-        mobile: applicationData.mobile,
-        mobileNumber: applicationData.mobileNumber,
-        mobile_number: applicationData.mobile_number
-      });
       
       setFormData(prev => ({
         ...prev,
-        referredBy: applicationData.source || prev.referredBy,
+        referredBy: applicationData.referred_by || prev.referredBy,
         firstName: applicationData.first_name || prev.firstName,
         middleInitial: applicationData.middle_initial || prev.middleInitial,
         lastName: applicationData.last_name || prev.lastName,
-        contactNumber: applicationData.mobile || applicationData.mobileNumber || applicationData.mobile_number || prev.contactNumber,
-        email: applicationData.email || prev.email,
-        address: applicationData.address_line || applicationData.address || prev.address,
-        region: applicationData.region_id || prev.region
+        contactNumber: applicationData.mobile_number || prev.contactNumber,
+        email: applicationData.email_address || prev.email,
+        address: applicationData.installation_address || prev.address,
+        barangay: applicationData.barangay || prev.barangay,
+        city: applicationData.city || prev.city,
+        region: applicationData.region || prev.region,
+        choosePlan: applicationData.desired_plan || prev.choosePlan,
+        installationLandmark: applicationData.landmark || prev.installationLandmark
       }));
     }
   }, [applicationData]);
@@ -122,6 +198,20 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleInstallationFeeChange = (value: string) => {
+    if (value === '' || value === '-') {
+      setFormData(prev => ({ ...prev, installationFee: 0 }));
+    } else {
+      const numValue = parseFloat(value);
+      if (!isNaN(numValue)) {
+        setFormData(prev => ({ ...prev, installationFee: numValue }));
+      }
+    }
+    if (errors.installationFee) {
+      setErrors(prev => ({ ...prev, installationFee: '' }));
     }
   };
 
@@ -196,8 +286,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const mapFormDataToJobOrder = (applicationId: string): JobOrderData => {
-    // Helper function to convert empty values to null
+  const mapFormDataToJobOrder = (applicationId: string, data: JOFormData = formData): any => {
     const toNullIfEmpty = (value: string | number | undefined): string | null => {
       if (value === undefined || value === null || value === '' || value === 'None' || value === 'All') {
         return null;
@@ -205,7 +294,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       return String(value);
     };
     
-    // Helper function for numeric values that should be strings
     const toNullIfEmptyOrZero = (value: string | number | undefined): string | null => {
       if (value === undefined || value === null || value === '' || value === 0 || value === '0') {
         return null;
@@ -213,117 +301,36 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       return String(value);
     };
 
-    // Create proper timestamp format for database
     const currentTimestamp = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    const formattedTimestamp = formData.timestamp ? 
-      new Date(formData.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
-      currentTimestamp;
-    const modifiedTimestamp = formData.modifiedDate ? 
-      new Date(formData.modifiedDate).toISOString().slice(0, 19).replace('T', ' ') : 
+    const formattedTimestamp = data.timestamp ? 
+      new Date(data.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
       currentTimestamp;
 
     return {
-      // Primary identifiers
-      Application_ID: applicationId,
-      
-      // Timestamps
-      Timestamp: formattedTimestamp,
-      Modified_Date: modifiedTimestamp,
-      
-      // Personal Information
-      First_Name: formData.firstName.trim(),
-      Middle_Initial: toNullIfEmpty(formData.middleInitial),
-      Last_Name: formData.lastName.trim(),
-      Contact_Number: formData.contactNumber.trim(),
-      Email_Address: toNullIfEmpty(formData.email),
-      Applicant_Email_Address: toNullIfEmpty(formData.email),
-      
-      // Address Information
-      Address: formData.address.trim(),
-      Location: `${formData.city}, ${formData.region}`,
-      Barangay: toNullIfEmpty(formData.barangay),
-      City: toNullIfEmpty(formData.city),
-      Region: toNullIfEmpty(formData.region),
-      Installation_Landmark: toNullIfEmpty(formData.installationLandmark),
-      
-      // Service Information
-      Choose_Plan: formData.choosePlan,
-      
-      // Contract and Billing
-      Contract_Template: toNullIfEmptyOrZero(formData.contractTemplate),
-      Installation_Fee: formData.installationFee || 0,
-      Billing_Day: formData.billingDay,
-      Preferred_Day: toNullIfEmpty(formData.billingDay), // Use billing day as preferred day initially
-      
-      // Status Information
-      Status: formData.status,
-      Onsite_Status: formData.onsiteStatus,
-      
-      // Assignment and Tracking
-      Assigned_Email: toNullIfEmpty(formData.assignedEmail),
-      Referred_By: toNullIfEmpty(formData.referredBy),
-      Modified_By: formData.modifiedBy,
-      
-      // Remarks and Notes
-      Remarks: toNullIfEmpty(formData.remarks),
-      JO_Remarks: toNullIfEmpty(formData.remarks), // Map remarks to JO_Remarks as well
-      
-      // Technical fields - initialize as null, can be updated later
-      Modem_Router_SN: null,
-      Router_Model: null,
-      LCP: null,
-      NAP: null,
-      PORT: null,
-      VLAN: null,
-      LCPNAP: null,
-      LCPNAPPORT: null,
-      Username: null,
-      IP: null,
-      
-      // Visit tracking fields - initialize as null
-      Visit_By: null,
-      Visit_With: null,
-      Visit_With_Other: null,
-      Verified_By: null,
-      
-      // Image and document fields - initialize as null
-      Setup_Image: null,
-      Speedtest_Image: null,
-      Client_Signature: null,
-      Signed_Contract_Image: null,
-      Box_Reading_Image: null,
-      Router_Reading_Image: null,
-      House_Front_Picture: null,
-      
-      // Additional fields - initialize as null
-      StartTimeStamp: null,
-      EndTimeStamp: null,
-      Duration: null,
-      Date_Installed: null,
-      Billing_Status: null,
-      Connection_Type: null,
-      Usage_Type: null,
-      Renter: null,
-      Installation: null,
-      Port: null,
-      Label: null,
-      Image: null,
-      Second: null,
-      Account_No: null,
-      Account_Number: null,
-      Coordinates: null,
-      Referrers: null,
-      Contract_Link: null,
-      Second_Contact_Number: null,
-      Status_Remarks: null,
-      Onsite_Remarks: null
+      application_id: applicationId,
+      timestamp: formattedTimestamp,
+      installation_fee: data.installationFee || 0,
+      billing_day: parseInt(data.billingDay) || 30,
+      modem_router_sn: toNullIfEmpty(data.contractTemplate),
+      onsite_status: data.onsiteStatus || 'In Progress',
+      onsite_remarks: toNullIfEmpty(data.remarks),
+      contract_link: null,
+      created_by_user_id: null,
+      updated_by_user_id: null,
     };
   };
 
   const handleSave = async () => {
     console.log('Save button clicked - JO Assign Form', formData);
     
-    // Validate form data
+    const updatedFormData = {
+      ...formData,
+      modifiedBy: currentUserEmail,
+      modifiedDate: new Date().toLocaleString('sv-SE').replace(' ', ' ')
+    };
+    
+    setFormData(updatedFormData);
+    
     const isValid = validateForm();
     console.log('Form validation result:', isValid);
     
@@ -341,17 +348,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
     setLoading(true);
     try {
-      // Prepare job order data with proper null handling
-      const jobOrderData = mapFormDataToJobOrder(applicationData.id);
-      
-      // Validate critical fields one more time
-      if (!jobOrderData.First_Name || !jobOrderData.Last_Name || !jobOrderData.Contact_Number) {
-        throw new Error('Critical customer information is missing. Please check the form data.');
-      }
+      const jobOrderData = mapFormDataToJobOrder(applicationData.id, updatedFormData);
       
       console.log('Final job order data being sent to API:', JSON.stringify(jobOrderData, null, 2));
       
-      // Call the API to create the job order
       const result = await createJobOrder(jobOrderData);
       console.log('Job Order created successfully:', result);
       
@@ -359,22 +359,29 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         throw new Error(result.message || 'Failed to create job order');
       }
       
-      // Show success message with details
       console.log('Job order saved successfully with data:', result.data);
-      alert(`Job Order created successfully!\n\nCustomer: ${jobOrderData.First_Name} ${jobOrderData.Last_Name}\nStatus: ${jobOrderData.Onsite_Status || 'Not set'}\nAssigned: ${jobOrderData.Assigned_Email || 'Not assigned'}`);
+      alert(`Job Order created successfully!`);
       
-      // Reset form errors
       setErrors({});
-      
-      // Pass the created job order data back to parent
-      onSave(jobOrderData);
+      onSave(result.data);
       onClose();
     } catch (error: any) {
       console.error('Error creating job order:', error);
+      console.error('Error response:', error.response);
+      console.error('Validation errors:', error.response?.data?.errors);
       
       let errorMessage = 'Unknown error occurred';
       
-      if (error instanceof Error) {
+      if (error.response?.data?.errors) {
+        const validationErrors = error.response.data.errors;
+        const errorDetails = Object.entries(validationErrors)
+          .map(([field, messages]: [string, any]) => {
+            const messageArray = Array.isArray(messages) ? messages : [messages];
+            return `${field}: ${messageArray.join(', ')}`;
+          })
+          .join('\n');
+        errorMessage = `Validation failed:\n${errorDetails}`;
+      } else if (error instanceof Error) {
         errorMessage = error.message;
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
@@ -399,7 +406,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">JO Assign Form</h2>
           <div className="flex items-center space-x-3">
@@ -432,11 +438,8 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           </div>
         </div>
 
-        {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Basic Information Section */}
           <div className="space-y-4">
-            {/* Timestamp */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Timestamp<span className="text-red-500">*</span>
@@ -452,7 +455,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               </div>
             </div>
 
-            {/* Provider */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Provider<span className="text-red-500">*</span>
@@ -471,7 +473,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               </div>
             </div>
 
-            {/* Status */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Status<span className="text-red-500">*</span>
@@ -490,7 +491,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               </div>
             </div>
 
-            {/* Referred By */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Referred By</label>
               <input
@@ -502,9 +502,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
             </div>
           </div>
 
-          {/* Personal Information Section */}
           <div className="space-y-4">
-            {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 First Name<span className="text-red-500">*</span>
@@ -518,7 +516,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
             </div>
 
-            {/* Middle Initial */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Middle Initial</label>
               <input
@@ -530,7 +527,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               />
             </div>
 
-            {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Last Name<span className="text-red-500">*</span>
@@ -544,7 +540,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
             </div>
 
-            {/* Contact Number */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Contact Number<span className="text-red-500">*</span>
@@ -558,7 +553,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.contactNumber && <p className="text-red-500 text-xs mt-1">{errors.contactNumber}</p>}
             </div>
 
-            {/* Applicant Email Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Applicant Email Address<span className="text-red-500">*</span>
@@ -573,9 +567,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
             </div>
           </div>
 
-          {/* Address Information Section */}
           <div className="space-y-4">
-            {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Address<span className="text-red-500">*</span>
@@ -589,7 +581,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
             </div>
 
-            {/* Barangay */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Barangay<span className="text-red-500">*</span>
@@ -598,17 +589,26 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  disabled={locationsLoading}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
                 >
-                  <option value="All">All</option>
-                  <option value="Barangay 1">Barangay 1</option>
-                  <option value="Barangay 2">Barangay 2</option>
+                  {formData.barangay && !barangays.find(b => b.name === formData.barangay) && (
+                    <option value={formData.barangay}>{formData.barangay}</option>
+                  )}
+                  <option value="">Select Barangay</option>
+                  {barangays.map((barangay) => (
+                    <option key={barangay.id} value={barangay.name}>
+                      {barangay.name}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {locationsLoading && (
+                <p className="text-gray-400 text-xs mt-1">Loading barangays...</p>
+              )}
             </div>
 
-            {/* City */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 City<span className="text-red-500">*</span>
@@ -617,33 +617,56 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  disabled={locationsLoading}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
                 >
-                  <option value="All">All</option>
-                  <option value="Binangonan">Binangonan</option>
-                  <option value="Rizal">Rizal</option>
+                  {formData.city && !cities.find(c => c.name === formData.city) && (
+                    <option value={formData.city}>{formData.city}</option>
+                  )}
+                  <option value="">Select City</option>
+                  {cities.map((city) => (
+                    <option key={city.id} value={city.name}>
+                      {city.name}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {locationsLoading && (
+                <p className="text-gray-400 text-xs mt-1">Loading cities...</p>
+              )}
             </div>
 
-            {/* Region */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Region<span className="text-red-500">*</span>
               </label>
-              <input
-                type="text"
-                value={formData.region}
-                onChange={(e) => handleInputChange('region', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
+              <div className="relative">
+                <select
+                  value={formData.region}
+                  onChange={(e) => handleInputChange('region', e.target.value)}
+                  disabled={locationsLoading}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
+                >
+                  {formData.region && !regions.find(r => r.name === formData.region) && (
+                    <option value={formData.region}>{formData.region}</option>
+                  )}
+                  <option value="">Select Region</option>
+                  {regions.map((region) => (
+                    <option key={region.id} value={region.name}>
+                      {region.name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+              </div>
+              {locationsLoading && (
+                <p className="text-gray-400 text-xs mt-1">Loading regions...</p>
+              )}
             </div>
           </div>
 
-          {/* Service Information Section */}
           <div className="space-y-4">
-            {/* Choose Plan */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choose Plan<span className="text-red-500">*</span>
@@ -654,15 +677,20 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   onChange={(e) => handleInputChange('choosePlan', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
                 >
-                  <option value="SwitchConnect - P799">SwitchConnect - P799</option>
-                  <option value="SwitchConnect - P999">SwitchConnect - P999</option>
-                  <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
+                  {formData.choosePlan && !plans.includes(formData.choosePlan) && (
+                    <option value={formData.choosePlan}>{formData.choosePlan}</option>
+                  )}
+                  <option value="">Select Plan</option>
+                  {plans.map((plan, index) => (
+                    <option key={index} value={plan}>
+                      {plan}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
             </div>
 
-            {/* Remarks */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Remarks</label>
               <textarea
@@ -673,7 +701,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               />
             </div>
 
-            {/* Installation Fee */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Installation Fee<span className="text-red-500">*</span>
@@ -684,8 +711,8 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   type="number"
                   step="0.01"
                   min="0"
-                  value={formData.installationFee}
-                  onChange={(e) => handleInputChange('installationFee', parseFloat(e.target.value) || 0)}
+                  value={formData.installationFee === 0 ? '' : formData.installationFee}
+                  onChange={(e) => handleInstallationFeeChange(e.target.value)}
                   className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] ${errors.installationFee ? 'border-red-500' : ''}`}
                   placeholder="0.00"
                 />
@@ -693,7 +720,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.installationFee && <p className="text-red-500 text-xs mt-1">{errors.installationFee}</p>}
             </div>
 
-            {/* Contract Template */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Contract Template<span className="text-red-500">*</span>
@@ -725,7 +751,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.contractTemplate && <p className="text-red-500 text-xs mt-1">{errors.contractTemplate}</p>}
             </div>
 
-            {/* Billing Day */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Billing Day<span className="text-red-500">*</span>
@@ -766,9 +791,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
             </div>
           </div>
 
-          {/* Assignment Information Section */}
           <div className="space-y-4">
-            {/* Onsite Status */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Onsite Status<span className="text-red-500">*</span>
@@ -788,7 +811,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               </div>
             </div>
 
-            {/* Assigned Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Assigned Email<span className="text-red-500">*</span>
@@ -807,7 +829,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               </div>
             </div>
 
-            {/* Modified By */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Modified By<span className="text-red-500">*</span>
@@ -815,12 +836,12 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               <input
                 type="email"
                 value={formData.modifiedBy}
-                onChange={(e) => handleInputChange('modifiedBy', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-700 rounded text-gray-400 cursor-not-allowed"
+                title="Auto-populated with logged-in user"
               />
             </div>
 
-            {/* Modified Date */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Modified Date<span className="text-red-500">*</span>
@@ -829,14 +850,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <input
                   type="datetime-local"
                   value={formData.modifiedDate}
-                  onChange={(e) => handleInputChange('modifiedDate', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                  readOnly
+                  className="w-full px-3 py-2 bg-gray-700 border border-gray-700 rounded text-gray-400 cursor-not-allowed"
+                  title="Auto-populated with current timestamp"
                 />
                 <Calendar className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
             </div>
 
-            {/* Installation Landmark */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">Installation Landmark</label>
               <input

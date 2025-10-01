@@ -329,43 +329,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required fields validation
-    if (!formData.firstName.trim()) {
-      newErrors.firstName = 'First Name is required';
-    }
-    
-    if (!formData.lastName.trim()) {
-      newErrors.lastName = 'Last Name is required';
-    }
-    
-    if (!formData.contactNumber.trim()) {
-      newErrors.contactNumber = 'Contact Number is required';
-    } else if (!/^[0-9+\-\s()]+$/.test(formData.contactNumber.trim())) {
-      newErrors.contactNumber = 'Please enter a valid contact number';
-    }
-    
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
-      newErrors.email = 'Please enter a valid email address';
-    }
-    
-    if (!formData.address.trim()) {
-      newErrors.address = 'Address is required';
-    }
-    
-    if (!formData.barangay.trim()) {
-      newErrors.barangay = 'Barangay is required';
-    }
-    
-    if (!formData.region.trim()) {
-      newErrors.region = 'Region is required';
-    }
-    
-    if (!formData.choosePlan.trim()) {
-      newErrors.choosePlan = 'Plan is required';
-    }
-    
     if (!formData.assignedEmail.trim()) {
       newErrors.assignedEmail = 'Assigned Email is required';
     }
@@ -376,20 +339,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
   const mapFormDataToUpdateData = () => {
     return {
-      First_Name: formData.firstName.trim(),
-      Middle_Initial: formData.middleInitial ? formData.middleInitial.trim() : null,
-      Last_Name: formData.lastName.trim(),
-      Contact_Number: formData.contactNumber.trim(),
-      Second_Contact_Number: formData.secondContactNumber ? formData.secondContactNumber.trim() : null,
-      Email_Address: formData.email.trim(),
-      Address: formData.address.trim(),
-      Barangay: formData.barangay || null,
-      City: formData.city || null,
-      Region: formData.region || null,
-      Choose_Plan: formData.choosePlan,
-      Visit_Remarks: formData.remarks ? formData.remarks.trim() : null,
-      Assigned_Email: formData.assignedEmail,
-      Modified_By: formData.modifiedBy
+      assigned_email: formData.assignedEmail,
+      visit_remarks: formData.remarks ? formData.remarks.trim() : null,
+      updated_by_user_id: null
     };
   };
 
@@ -513,15 +465,15 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
             {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                First Name<span className="text-red-500">*</span>
+                First Name
               </label>
               <input
                 type="text"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.firstName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
-              {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
             </div>
 
             {/* Middle Initial */}
@@ -535,35 +487,36 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 onChange={(e) => handleInputChange('middleInitial', e.target.value)}
                 maxLength={1}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
             </div>
 
             {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Last Name<span className="text-red-500">*</span>
+                Last Name
               </label>
               <input
                 type="text"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.lastName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
-              {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
             </div>
 
             {/* Contact Number */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Contact Number<span className="text-red-500">*</span>
+                Contact Number
               </label>
               <input
                 type="text"
                 value={formData.contactNumber}
                 onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.contactNumber ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
-              {errors.contactNumber && <p className="text-red-500 text-xs mt-1">{errors.contactNumber}</p>}
             </div>
 
             {/* Second Contact Number */}
@@ -576,59 +529,49 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.secondContactNumber || ''}
                 onChange={(e) => handleInputChange('secondContactNumber', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
             </div>
 
             {/* Applicant Email Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Applicant Email Address<span className="text-red-500">*</span>
+                Applicant Email Address
               </label>
               <input
                 type="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.email ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
-              {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
             {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Address<span className="text-red-500">*</span>
+                Address
               </label>
               <input
                 type="text"
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.address ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
               />
-              {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
             </div>
 
             {/* Barangay */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Barangay<span className="text-red-500">*</span>
+                Barangay
               </label>
-              <select
+              <input
+                type="text"
                 value={formData.barangay}
-                onChange={(e) => handleInputChange('barangay', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                disabled={barangays.length === 0}
-              >
-                <option value="">Select Barangay</option>
-                {barangays.map((barangay) => (
-                  <option key={barangay.id} value={barangay.name}>
-                    {barangay.name}
-                  </option>
-                ))}
-              </select>
-              {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
-              {barangays.length === 0 && selectedCityId && (
-                <p className="text-yellow-500 text-xs mt-1">No barangays available for selected city</p>
-              )}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
+              />
             </div>
 
             {/* City */}
@@ -636,60 +579,38 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 City
               </label>
-              <select
+              <input
+                type="text"
                 value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                disabled={cities.length === 0}
-              >
-                <option value="">Select City</option>
-                {cities.map((city) => (
-                  <option key={city.id} value={city.name}>
-                    {city.name}
-                  </option>
-                ))}
-              </select>
-              {cities.length === 0 && selectedRegionId && (
-                <p className="text-yellow-500 text-xs mt-1">No cities available for selected region</p>
-              )}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
+              />
             </div>
 
             {/* Region */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Region<span className="text-red-500">*</span>
+                Region
               </label>
-              <select
+              <input
+                type="text"
                 value={formData.region}
-                onChange={(e) => handleInputChange('region', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-              >
-                <option value="">Select Region</option>
-                {regions.map((region) => (
-                  <option key={region.id} value={region.name}>
-                    {region.name}
-                  </option>
-                ))}
-              </select>
-              {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
+              />
             </div>
 
             {/* Choose Plan */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Choose Plan<span className="text-red-500">*</span>
+                Choose Plan
               </label>
-              <select
+              <input
+                type="text"
                 value={formData.choosePlan}
-                onChange={(e) => handleInputChange('choosePlan', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-              >
-                <option value="SwitchConnect - P799">SwitchConnect - P799</option>
-                <option value="SwitchConnect - P999">SwitchConnect - P999</option>
-                <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
-                <option value="SwitchUltra - P1499">SwitchUltra - P1499</option>
-              </select>
-              {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                readOnly
+              />
             </div>
 
             {/* Remarks */}

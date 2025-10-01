@@ -17,16 +17,12 @@ interface ApplicationDetailsProps {
     customerName: string;
     timestamp: string;
     address: string;
-    action?: 'Schedule' | 'Duplicate';
     location: string;
-    cityId?: number | null;
-    regionId?: number | null;
-    boroughId?: number | null;
-    villageId?: number | null;
-    addressLine?: string;
-    fullAddress?: string;
-    email?: string;
-    mobileNumber?: string;
+    city?: string;
+    region?: string;
+    barangay?: string;
+    email_address?: string;
+    mobile_number?: string;
   };
   onClose: () => void;
   onApplicationUpdate?: () => void;
@@ -133,43 +129,29 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
     id: detailedApplication?.id || application.id || '',
     create_date: detailedApplication?.create_date || '',
     create_time: detailedApplication?.create_time || '',
-    update_date: detailedApplication?.update_date || '',
-    update_time: detailedApplication?.update_time || '',
-    email: detailedApplication?.email || application.email || '',
+    email_address: detailedApplication?.email_address || application.email_address || '',
     first_name: detailedApplication?.first_name || '',
     middle_initial: detailedApplication?.middle_initial || '',
     last_name: detailedApplication?.last_name || '',
-    mobileNumber: detailedApplication?.mobile || application.mobileNumber || '',
-    mobile_alt: detailedApplication?.mobile_alt || '',  // Explicitly include mobile_alt
-    secondaryNumber: detailedApplication?.mobile_alt || '',  // Add this as secondaryNumber too
-    status: detailedApplication?.status || (application.action === 'Schedule' ? 'Schedule' : 'In Progress'),
-    // Region data
-    region_id: detailedApplication?.region_id,
-    city_id: detailedApplication?.city_id,
-    borough_id: detailedApplication?.borough_id,
-    village_id: detailedApplication?.village_id,
-    address_line: detailedApplication?.address_line || application.address || '',
-    // Landmarks
+    mobile_number: detailedApplication?.mobile_number || application.mobile_number || '',
+    secondary_mobile_number: detailedApplication?.secondary_mobile_number || '',
+    status: detailedApplication?.status || 'pending',
+    installation_address: detailedApplication?.installation_address || application.address || '',
     landmark: detailedApplication?.landmark || '',
-    nearest_landmark1: detailedApplication?.nearest_landmark1 || '',
-    nearest_landmark2: detailedApplication?.nearest_landmark2 || '',
-    // Plan, promo, docs
-    plan_id: detailedApplication?.plan_id || '',
-    promo_id: detailedApplication?.promo_id || '',
-    proof_of_billing: detailedApplication?.proof_of_billing || '',
-    gov_id_primary: detailedApplication?.gov_id_primary || '',
-    gov_id_secondary: detailedApplication?.gov_id_secondary || '',
-    house_front_pic: detailedApplication?.house_front_pic || '',
-    room_pic: detailedApplication?.room_pic || '',
-    // Consent
-    primary_consent: detailedApplication?.primary_consent || false,
-    primary_consent_at: detailedApplication?.primary_consent_at || '',
-    // Source
-    source: detailedApplication?.source || '',
-    ip_address: detailedApplication?.ip_address || '',
-    user_agent: detailedApplication?.user_agent || '',
-    portal_id: detailedApplication?.portal_id || '',
-    group_id: detailedApplication?.group_id || '',
+    region: detailedApplication?.region || application.region || '',
+    city: detailedApplication?.city || application.city || '',
+    barangay: detailedApplication?.barangay || application.barangay || '',
+    village: detailedApplication?.village || '',
+    desired_plan: detailedApplication?.desired_plan || '',
+    promo: detailedApplication?.promo || '',
+    referred_by: detailedApplication?.referred_by || '',
+    proof_of_billing_url: detailedApplication?.proof_of_billing_url || '',
+    government_valid_id_url: detailedApplication?.government_valid_id_url || '',
+    second_government_valid_id_url: detailedApplication?.second_government_valid_id_url || '',
+    house_front_picture_url: detailedApplication?.house_front_picture_url || '',
+    document_attachment_url: detailedApplication?.document_attachment_url || '',
+    other_isp_bill_url: detailedApplication?.other_isp_bill_url || '',
+    terms_agreed: detailedApplication?.terms_agreed || false,
     
     fullName: [
       detailedApplication?.first_name,
@@ -177,13 +159,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       detailedApplication?.last_name
     ].filter(Boolean).join(' ') || application.customerName || '',
     
-    fullAddress: detailedApplication?.address_line || application.address || '',
-    
-    landmarks: [
-      detailedApplication?.landmark,
-      detailedApplication?.nearest_landmark1,
-      detailedApplication?.nearest_landmark2
-    ].filter(Boolean).join(', ') || '',
+    fullAddress: detailedApplication?.installation_address || application.address || '',
     
     timestamp: detailedApplication?.create_date && detailedApplication?.create_time 
       ? `${detailedApplication.create_date} ${detailedApplication.create_time}` 
@@ -313,28 +289,24 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
             <div className="space-y-0">
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Referred by:</div>
-                <div className="text-white flex-1">{detailedApplication?.referred_by || detailedApplication?.Referred_by || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.referred_by || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Status</div>
-                <div className="text-green-500 flex-1">{detailedApplication?.status || detailedApplication?.Status || 'None'}</div>
+                <div className="text-green-500 flex-1">{detailedApplication?.status || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Timestamp</div>
-                <div className="text-white flex-1">
-                  {detailedApplication?.timestamp || detailedApplication?.Timestamp || 'None'}
-                </div>
+                <div className="text-white flex-1">{detailedApplication?.timestamp || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Full Name</div>
                 <div className="text-white flex-1">
                   {detailedApplication?.customer_name || 
-                   [detailedApplication?.first_name || detailedApplication?.First_Name, 
-                    detailedApplication?.middle_initial || detailedApplication?.Middle_Initial, 
-                    detailedApplication?.last_name || detailedApplication?.Last_Name].filter(Boolean).join(' ') || 
+                   [detailedApplication?.first_name, detailedApplication?.middle_initial, detailedApplication?.last_name].filter(Boolean).join(' ') || 
                    application.customerName || 'None'}
                 </div>
               </div>
@@ -342,35 +314,31 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Full Address</div>
                 <div className="text-white flex-1">
-                  {application.fullAddress || detailedApplication?.address_line || detailedApplication?.Installation_Address || application.address || 'No address'}
+                  {[
+                    detailedApplication?.installation_address || application.address,
+                    detailedApplication?.village,
+                    detailedApplication?.barangay,
+                    detailedApplication?.city,
+                    detailedApplication?.region
+                  ].filter(Boolean).join(', ') || 'No address'}
                 </div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Landmark</div>
-                <div className="text-white flex-1">{detailedApplication?.landmark || detailedApplication?.Landmark || 'None'}</div>
-              </div>
-              
-              <div className="flex py-3 border-b border-gray-800">
-                <div className="w-40 text-gray-400 text-sm">First Nearest Landmark</div>
-                <div className="text-white flex-1">{detailedApplication?.first_nearest_landmark || detailedApplication?.First_Nearest_landmark || 'None'}</div>
-              </div>
-              
-              <div className="flex py-3 border-b border-gray-800">
-                <div className="w-40 text-gray-400 text-sm">Second Nearest Landmark</div>
-                <div className="text-white flex-1">{detailedApplication?.second_nearest_landmark || detailedApplication?.Second_Nearest_landmark || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.landmark || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Email Address</div>
-                <div className="text-white flex-1">{detailedApplication?.email || detailedApplication?.Email_Address || application.email || 'None'}</div>
+                <div className="text-white flex-1">{detailedApplication?.email_address || application.email_address || 'None'}</div>
               </div>
               
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Mobile Number</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.mobile || detailedApplication?.Mobile_Number || application.mobileNumber || 'None'}</span>
-                  {(detailedApplication?.mobile || detailedApplication?.Mobile_Number || application.mobileNumber) && (
+                  <span>{detailedApplication?.mobile_number || application.mobile_number || 'None'}</span>
+                  {(detailedApplication?.mobile_number || application.mobile_number) && (
                     <div>
                       <button className="text-gray-400 hover:text-white ml-2">
                         <Phone size={16} />
@@ -386,8 +354,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Second Mobile Number</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.secondary_number || detailedApplication?.mobile_alt || detailedApplication?.Secondary_Mobile_Number || 'None'}</span>
-                  {(detailedApplication?.secondary_number || detailedApplication?.mobile_alt || detailedApplication?.Secondary_Mobile_Number) && (
+                  <span>{detailedApplication?.secondary_mobile_number || 'None'}</span>
+                  {detailedApplication?.secondary_mobile_number && (
                     <div>
                       <button className="text-gray-400 hover:text-white ml-2">
                         <Phone size={16} />
@@ -403,8 +371,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               <div className="flex py-3 border-b border-gray-800">
                 <div className="w-40 text-gray-400 text-sm">Desired Plan</div>
                 <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.desired_plan || detailedApplication?.Desired_Plan || detailedApplication?.plan || 'None'}</span>
-                  {(detailedApplication?.desired_plan || detailedApplication?.Desired_Plan || detailedApplication?.plan) && (
+                  <span>{detailedApplication?.desired_plan || 'None'}</span>
+                  {detailedApplication?.desired_plan && (
                     <button className="text-gray-400 hover:text-white">
                       <Info size={16} />
                     </button>
@@ -412,14 +380,14 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               </div>
               
-              {(detailedApplication?.gov_id_primary || detailedApplication?.Government_Valid_ID) && (
+              {detailedApplication?.government_valid_id_url && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">Government Valid ID</div>
                   <div className="text-white flex-1 flex justify-between items-center truncate">
-                    <span className="truncate">{detailedApplication.gov_id_primary || detailedApplication.Government_Valid_ID}</span>
+                    <span className="truncate">{detailedApplication.government_valid_id_url}</span>
                     <button 
                       className="text-gray-400 hover:text-white"
-                      onClick={() => window.open(detailedApplication.gov_id_primary || detailedApplication.Government_Valid_ID)}
+                      onClick={() => window.open(detailedApplication.government_valid_id_url)}
                     >
                       <ExternalLink size={16} />
                     </button>
@@ -427,33 +395,21 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               )}
               
-              {(detailedApplication?.terms_agreement || detailedApplication?.I_agree_to_the_terms_and_conditions) && (
+              {detailedApplication?.terms_agreed && (
                 <div className="flex py-3 border-b border-gray-800">
-                  <div className="w-40 text-gray-400 text-sm">I agree to the terms and conditions</div>
-                  <div className="text-white flex-1">Yes, I Agree</div>
+                  <div className="w-40 text-gray-400 text-sm">Terms and Conditions</div>
+                  <div className="text-white flex-1">Agreed</div>
                 </div>
               )}
               
-              <div className="flex py-3 border-b border-gray-800">
-                <div className="w-40 text-gray-400 text-sm">User Email</div>
-                <div className="text-white flex-1 flex justify-between items-center">
-                  <span>{detailedApplication?.email || detailedApplication?.Email_Address || application.email || 'None'}</span>
-                  {(detailedApplication?.email || detailedApplication?.Email_Address || application.email) && (
-                    <button className="text-gray-400 hover:text-white">
-                      <Mail size={16} />
-                    </button>
-                  )}
-                </div>
-              </div>
-              
-              {(detailedApplication?.house_front_pic || detailedApplication?.House_Front_Picture) && (
+              {detailedApplication?.house_front_picture_url && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">House Front Picture</div>
                   <div className="text-white flex-1 flex justify-between items-center truncate">
-                    <span className="truncate">{detailedApplication.house_front_pic || detailedApplication.House_Front_Picture}</span>
+                    <span className="truncate">{detailedApplication.house_front_picture_url}</span>
                     <button 
                       className="text-gray-400 hover:text-white"
-                      onClick={() => window.open(detailedApplication.house_front_pic || detailedApplication.House_Front_Picture)}
+                      onClick={() => window.open(detailedApplication.house_front_picture_url)}
                     >
                       <ExternalLink size={16} />
                     </button>
@@ -462,8 +418,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
               )}
               
               <div className="flex py-3">
-                <div className="w-40 text-gray-400 text-sm">Select the applicable promo</div>
-                <div className="text-white flex-1">{detailedApplication?.promo || detailedApplication?.Select_the_applicable_promo || 'None'}</div>
+                <div className="w-40 text-gray-400 text-sm">Promo</div>
+                <div className="text-white flex-1">{detailedApplication?.promo || 'None'}</div>
               </div>
             </div>
           </div>
