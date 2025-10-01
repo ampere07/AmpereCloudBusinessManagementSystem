@@ -33,8 +33,10 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       if (email === demoEmail && password === demoPassword) {
         // Mock successful login for demo credentials
         const mockUserData: UserData = {
+          id: 1,
+          username: 'admin',
           email: email,
-          name: 'Admin User',
+          full_name: 'Admin User',
           role: 'administrator'
         };
         onLogin(mockUserData);
@@ -44,7 +46,15 @@ const Login: React.FC<LoginProps> = ({ onLogin }) => {
       // Try actual API login for other credentials
       const response = await login(email, password);
       if (response.status === 'success') {
-        onLogin(response.data.user);
+        const userData: UserData = {
+          id: response.data.user.id,
+          username: response.data.user.username,
+          email: response.data.user.email,
+          full_name: response.data.user.full_name,
+          role: response.data.user.role,
+          organization: response.data.user.organization
+        };
+        onLogin(userData);
       } else {
         setError('Login failed. Please try again.');
       }

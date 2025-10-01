@@ -128,6 +128,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       setLoading(true);
+      // Update in the 'application_visits' table
       await updateApplicationVisit(applicationVisit.id, { 
         Visit_Status: newStatus,
         Modified_By: 'current_user@ampere.com' // In real app, this would be the logged-in user

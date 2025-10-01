@@ -3,9 +3,15 @@ export interface LoginResponse {
   message: string;
   data: {
     user: {
+      id: number;
+      username: string;
       email: string;
-      name: string;
+      full_name: string;
       role: string;
+      organization?: {
+        id: number;
+        name: string;
+      };
     };
     token: string;
   };
@@ -32,9 +38,15 @@ export interface ApiError {
 }
 
 export interface UserData {
+  id: number;
+  username: string;
   email: string;
-  name: string;
+  full_name: string;
   role: string;
+  organization?: {
+    id: number;
+    name: string;
+  };
 }
 
 export interface User {

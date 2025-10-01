@@ -114,6 +114,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         setLoading(true);
         setError(null);
         
+        // Getting application from the 'applications' table
         const result = await getApplication(application.id);
         setDetailedApplication(result);
       } catch (err: any) {

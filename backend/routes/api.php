@@ -369,8 +369,11 @@ Route::post('/login', function (Request $request) {
                    ->first();
         
         if (!$user) {
-            // Log failed login attempt
-            ActivityLogService::loginAttemptFailed($identifier, $request->ip());
+            // Log the error details
+            \Log::warning('Login failed: User not found', [
+                'identifier' => $identifier,
+                'ip' => $request->ip()
+            ]);
             
             return response()->json([
                 'status' => 'error',
@@ -380,7 +383,11 @@ Route::post('/login', function (Request $request) {
         
         // Verify password
         if (!Hash::check($password, $user->password_hash)) {
-            ActivityLogService::loginAttemptFailed($identifier, $request->ip());
+            // Log the error details
+            \Log::warning('Login failed: Invalid password', [
+                'identifier' => $identifier,
+                'ip' => $request->ip()
+            ]);
             
             return response()->json([
                 'status' => 'error',
@@ -388,36 +395,56 @@ Route::post('/login', function (Request $request) {
             ], 401);
         }
         
-        // Successful login
-        ActivityLogService::userLogin($user->user_id, $user->username);
+        // Successfully authenticated
+        \Log::info('User login successful', [
+            'user_id' => $user->id,
+            'username' => $user->username
+        ]);
         
         // Get user role for response
-        $primaryRole = $user->role ? $user->role->role_name : 'User';
+        $primaryRole = $user->role ? $user->role->name : 'User';
+        
+        // Update last login timestamp
+        $user->last_login = now();
+        $user->save();
+        
+        // Prepare response data
+        $responseData = [
+            'user' => [
+                'id' => $user->id,
+                'username' => $user->username,
+                'email' => $user->email_address,
+                'full_name' => $user->getFullNameAttribute(),
+                'role' => $primaryRole,
+            ]
+        ];
+        
+        // Add organization data if available
+        if ($user->organization) {
+            $responseData['user']['organization'] = [
+                'id' => $user->organization->id,
+                'name' => $user->organization->name ?? 'Unknown Organization'
+            ];
+        }
+        
+        // Generate token
+        $token = 'user_token_' . $user->id . '_' . time();
+        $responseData['token'] = $token;
         
         return response()->json([
             'status' => 'success',
             'message' => 'Login successful',
-            'data' => [
-                'user' => [
-                    'user_id' => $user->user_id,
-                    'username' => $user->username,
-                    'email' => $user->email_address,
-                    'full_name' => $user->full_name,
-                    'salutation' => $user->salutation,
-                    'mobile_number' => $user->mobile_number,
-                    'role' => $primaryRole,
-                    'group' => $user->group,
-                    'organization' => $user->organization ? [
-                        'org_id' => $user->organization->org_id,
-                        'org_name' => $user->organization->org_name,
-                        'org_type' => $user->organization->org_type
-                    ] : null
-                ],
-                'token' => 'user_token_' . $user->user_id . '_' . time()
-            ]
+            'data' => $responseData
         ]);
         
     } catch (\Exception $e) {
+        // Log the detailed exception
+        \Log::error('Login exception: ' . $e->getMessage(), [
+            'file' => $e->getFile(),
+            'line' => $e->getLine(),
+            'trace' => $e->getTraceAsString()
+        ]);
+        
         return response()->json([
             'status' => 'error',
             'message' => 'Login failed',

@@ -31,11 +31,11 @@ class ApplicationVisitController extends Controller
                 'success' => true,
                 'data' => $visits,
                 'count' => $count,
-                'table' => 'application_visit',
+                'table' => 'application_visits',
                 'debug' => [
                     'count' => $count,
                     'first_visit' => $firstVisit ? $firstVisit->toArray() : null,
-                    'table' => 'application_visit'
+                    'table' => 'application_visits'
                 ]
             ]);
         } catch (\Exception $e) {
@@ -55,7 +55,7 @@ class ApplicationVisitController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'Application_ID' => 'required|exists:application,Application_ID',
+                'Application_ID' => 'required|exists:applications,Application_ID',
                 'First_Name' => 'required|string|max:255',
                 'Last_Name' => 'required|string|max:255',
                 'Contact_Number' => 'required|string|max:255',
@@ -96,16 +96,16 @@ class ApplicationVisitController extends Controller
                 'type' => gettype($applicationId)
             ]);
             
-            // Double-check the Application_ID exists in the application table
+            // Double-check the Application_ID exists in the applications table
             $applicationExists = Application::where('Application_ID', $applicationId)->exists();
             if (!$applicationExists) {
-                \Log::error('Application_ID not found in application table', [
+                \Log::error('Application_ID not found in applications table', [
                     'Application_ID' => $applicationId
                 ]);
                 return response()->json([
                     'success' => false,
-                    'message' => 'Application ID does not exist in application table',
-                    'error' => "Application_ID {$applicationId} not found in application table"
+                    'message' => 'Application ID does not exist in applications table',
+                    'error' => "Application_ID {$applicationId} not found in applications table"
                 ], 400);
             }
             
@@ -286,7 +286,7 @@ class ApplicationVisitController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $formattedVisits,
-                'table' => 'application_visit',
+                'table' => 'application_visits',
                 'count' => $formattedVisits->count()
             ]);
         } catch (\Exception $e) {
@@ -313,7 +313,7 @@ class ApplicationVisitController extends Controller
             $visit = ApplicationVisit::findOrFail($id);
             
             $validator = Validator::make($request->all(), [
-                'Application_ID' => 'exists:application,Application_ID',
+                'Application_ID' => 'exists:applications,Application_ID',
                 'First_Name' => 'string|max:255',
                 'Last_Name' => 'string|max:255',
                 'Contact_Number' => 'string|max:255',
