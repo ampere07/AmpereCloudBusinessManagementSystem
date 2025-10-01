@@ -47,6 +47,7 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
       throw new Error('Application_ID is required');
     }
     
+    // Using the correct table name 'application_visits'
     const response = await apiClient.post<ApiResponse<ApplicationVisitData>>('/application-visits', visitData);
     console.log('API response received:', response);
     
@@ -64,6 +65,7 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
 export const getAllApplicationVisits = async () => {
   try {
     console.log('Fetching all application visits...');
+    // Using the correct table name 'application_visits'
     const response = await apiClient.get<ApiResponse<any[]>>('/application-visits');
     
     // Log the complete response for debugging
@@ -109,6 +111,7 @@ export const getAllApplicationVisits = async () => {
 export const getApplicationVisits = async (applicationId: string) => {
   try {
     console.log(`Fetching application visits for applicationId: ${applicationId}`);
+    // Using the correct table name 'application_visits'
     const response = await apiClient.get<ApiResponse<any[]>>(`/application-visits/application/${applicationId}`);
     
     // Log the complete response for debugging
@@ -153,6 +156,7 @@ export const getApplicationVisits = async (applicationId: string) => {
 
 export const getApplicationVisit = async (id: string) => {
   try {
+    // Using the correct table name 'application_visits'
     const response = await apiClient.get<ApiResponse<ApplicationVisitData>>(`/application-visits/${id}`);
     return response.data;
   } catch (error) {
@@ -163,6 +167,7 @@ export const getApplicationVisit = async (id: string) => {
 
 export const updateApplicationVisit = async (id: string, visitData: Partial<ApplicationVisitData>) => {
   try {
+    // Using the correct table name 'application_visits'
     const response = await apiClient.put<ApiResponse<ApplicationVisitData>>(`/application-visits/${id}`, visitData);
     return response.data;
   } catch (error) {
@@ -173,6 +178,7 @@ export const updateApplicationVisit = async (id: string, visitData: Partial<Appl
 
 export const deleteApplicationVisit = async (id: string) => {
   try {
+    // Using the correct table name 'application_visits'
     const response = await apiClient.delete<ApiResponse<null>>(`/application-visits/${id}`);
     return response.data;
   } catch (error) {

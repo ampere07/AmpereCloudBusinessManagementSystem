@@ -4,7 +4,7 @@ import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
 import { getAllApplicationVisits } from '../services/applicationVisitService';
 import { getApplication } from '../services/applicationService';
 
-// Interfaces for application visit data
+// Interfaces for application visit data from 'application_visits' table (previously 'application_visit')
 interface ApplicationVisit {
   id: string;
   application_id: string;
@@ -69,7 +69,7 @@ const ApplicationVisit: React.FC = () => {
         setLoading(true);
         console.log('Fetching application visits...');
         
-        // Get all application visit data
+        // Get all application visit data from the 'application_visits' table (not 'application_visit')
         const response = await getAllApplicationVisits();
         console.log('API Response:', response);
         
@@ -321,7 +321,7 @@ const ApplicationVisit: React.FC = () => {
                     <br /><br />
                     <span className="text-yellow-400">Suggestion:</span>
                     <br />
-                    Verify that the table 'application_visit' exists in your database.
+                    Verify that the table 'application_visits' exists in your database.
                   </>
                 ) : error}
               </pre>

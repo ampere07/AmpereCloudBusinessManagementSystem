@@ -119,7 +119,7 @@ const ApplicationManagement: React.FC = () => {
     fetchApplications();
   }, [locationDataLoaded]);
 
-  // Function to fetch applications (extracted for reuse)
+  // Function to fetch applications (extracted for reuse) from 'applications' table
   const fetchApplications = async () => {
     try {
       setIsLoading(true);
@@ -308,12 +308,12 @@ const ApplicationManagement: React.FC = () => {
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-lg font-semibold text-white">Application</h2>
+            <h2 className="text-lg font-semibold text-white">Applications</h2>
             <button 
               className="bg-orange-600 text-white px-3 py-1 rounded text-sm flex items-center space-x-1"
-              aria-label="Application"
+              aria-label="Applications"
             >
-              <span>Application</span>
+              <span>Applications</span>
             </button>
           </div>
         </div>

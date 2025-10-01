@@ -114,6 +114,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         allProps: Object.keys(applicationData)
       });
       
+      // Note: Data is coming from 'applications' table, not 'application'
+      
       setFormData(prev => {
         // Get second contact number from any available field
         const secondContact = applicationData.mobile_alt || 
@@ -472,7 +474,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
             </div>
 
-            {/* Barangay - Now using value from application table */}
+            {/* Barangay - Now using value from applications table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Barangay<span className="text-red-500">*</span>
@@ -487,7 +489,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
             </div>
 
-            {/* City - Now using value from application table */}
+            {/* City - Now using value from applications table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 City
@@ -501,7 +503,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               />
             </div>
 
-            {/* Region - Now using value from application table */}
+            {/* Region - Now using value from applications table */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Region<span className="text-red-500">*</span>

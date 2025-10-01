@@ -215,6 +215,7 @@ export const updateApplication = async (id: string, application: Partial<Applica
     dbData.Status = application.status;  // Convert lowercase 'status' to capitalized 'Status'
   }
   
+  // Using the correct table name 'applications' for API endpoint
   const response = await apiClient.put<ApplicationResponse>(`/applications/${id}`, dbData);
   if (!response.data.application) {
     throw new Error('Failed to update application');

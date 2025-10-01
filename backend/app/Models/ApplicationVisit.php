@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Model;
 
 class ApplicationVisit extends Model
 {
-    protected $table = 'application_visit';
+    protected $table = 'application_visits';
     
     // Disable Laravel's automatic timestamps since we use custom fields
     public $timestamps = false;
