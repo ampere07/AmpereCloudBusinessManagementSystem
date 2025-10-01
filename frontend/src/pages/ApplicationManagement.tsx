@@ -13,65 +13,24 @@ interface Application {
   timestamp: string;
   address: string;
   location: string;
-  cityId?: number | null;
-  regionId?: number | null;
-  boroughId?: number | null;
-  villageId?: number | null;
   city?: string;
   region?: string;
   barangay?: string;
-  addressLine?: string;
-  fullAddress?: string;
-  createDate?: string;
-  createTime?: string;
   status?: string;
-  email?: string;
-  mobileNumber?: string;
-  secondaryNumber?: string;
-  visitDate?: string;
-  visitBy?: string;
-  visitWith?: string;
-  notes?: string;
-  lastModified?: string;
-  modifiedBy?: string;
-  // Additional fields from the database
-  firstName?: string;
-  middleInitial?: string;
-  lastName?: string;
-  referredBy?: string;
-  desiredPlan?: string;
+  email_address?: string;
+  first_name?: string;
+  middle_initial?: string;
+  last_name?: string;
+  mobile_number?: string;
+  secondary_mobile_number?: string;
+  installation_address?: string;
   landmark?: string;
-  nearestLandmark1?: string;
-  nearestLandmark2?: string;
-  planId?: string | number;
-  promoId?: string | number;
-  // Exact database column names for TypeScript support
-  Application_ID?: string;
-  Timestamp?: string;
-  Email_Address?: string;
-  Region?: string;
-  City?: string;
-  Barangay?: string;
-  Referred_by?: string;
-  First_Name?: string;
-  Middle_Initial?: string;
-  Last_Name?: string;
-  Mobile_Number?: string;
-  Secondary_Mobile_Number?: string;
-  Installation_Address?: string;
-  Landmark?: string;
-  Desired_Plan?: string;
-  Proof_of_Billing?: string;
-  Government_Valid_ID?: string;
-  '2nd_Government_Valid_ID'?: string;
-  House_Front_Picture?: string;
-  I_agree_to_the_terms_and_conditions?: string;
-  First_Nearest_landmark?: string;
-  Second_Nearest_landmark?: string;
-  Select_the_applicable_promo?: string;
-  Attach_the_picture_of_your_document?: string;
-  Attach_SOA_from_other_provider?: string;
-  Status?: string;
+  desired_plan?: string;
+  promo?: string;
+  referred_by?: string;
+  village?: string;
+  create_date?: string;
+  create_time?: string;
 }
 
 interface LocationItem {
@@ -127,73 +86,37 @@ const ApplicationManagement: React.FC = () => {
       console.log('Fetched applications:', apiApplications);
       
       if (apiApplications && apiApplications.length > 0) {
-        // Transform API applications to match our interface
         const transformedApplications: Application[] = apiApplications.map(app => {
-          // For string-based schema (current), use string values directly
-          const regionName = app.region || app.Region || '';
-          const cityName = app.city || app.City || '';
-          const barangayName = app.barangay || app.Barangay || '';
-          
-          const addressLine = app.address_line || app.address || app.Installation_Address || '';
+          const regionName = app.region || '';
+          const cityName = app.city || '';
+          const barangayName = app.barangay || '';
+          const addressLine = app.installation_address || app.address_line || app.address || '';
           const fullAddress = [regionName, cityName, barangayName, addressLine].filter(Boolean).join(', ');
           
           return {
             id: app.id || '',
-            customerName: app.customer_name || `${app.first_name || app.First_Name || ''} ${app.middle_initial || app.Middle_Initial || ''} ${app.last_name || app.Last_Name || ''}`.trim(),
+            customerName: app.customer_name || `${app.first_name || ''} ${app.middle_initial || ''} ${app.last_name || ''}`.trim(),
             timestamp: app.timestamp || (app.create_date && app.create_time ? `${app.create_date} ${app.create_time}` : ''),
             address: addressLine,
             location: app.location || fullAddress,
             status: app.status || 'pending',
-            // Legacy ID fields for compatibility (if needed)
-            cityId: typeof app.city_id === 'number' ? app.city_id : null,
-            regionId: typeof app.region_id === 'number' ? app.region_id : null,
-            boroughId: typeof app.borough_id === 'number' ? app.borough_id : null,
-            villageId: typeof app.village_id === 'number' ? app.village_id : null,
-            // String-based location data
             city: cityName,
             region: regionName,
             barangay: barangayName,
-            addressLine: addressLine,
-            fullAddress: fullAddress,
-            createDate: app.create_date || '',
-            createTime: app.create_time || '',
-            email: app.email || app.Email_Address,
-            mobileNumber: app.mobile_number || app.mobile || app.Mobile_Number,
-            secondaryNumber: app.secondary_number || app.mobile_alt || app.Secondary_Mobile_Number,
-            visitDate: app.visit_date,
-            visitBy: app.visit_by,
-            visitWith: app.visit_with,
-            notes: app.notes,
-            lastModified: app.last_modified || app.update_date,
-            modifiedBy: app.modified_by,
-            // Additional database fields using exact column names
-            firstName: app.first_name || app.First_Name,
-            middleInitial: app.middle_initial || app.Middle_Initial,
-            lastName: app.last_name || app.Last_Name,
-            referredBy: app.referred_by || app.Referred_by,
-            desiredPlan: app.desired_plan || app.Desired_Plan || app.plan || '',
-            landmark: app.landmark || app.Landmark,
-            nearestLandmark1: app.first_nearest_landmark || app.First_Nearest_landmark,
-            nearestLandmark2: app.second_nearest_landmark || app.Second_Nearest_landmark,
-            // Exact database columns for reference
-            Application_ID: app.Application_ID,
-            Timestamp: app.Timestamp,
-            Email_Address: app.Email_Address,
-            Region: app.Region,
-            City: app.City,
-            Barangay: app.Barangay,
-            Referred_by: app.Referred_by,
-            First_Name: app.First_Name,
-            Middle_Initial: app.Middle_Initial,
-            Last_Name: app.Last_Name,
-            Mobile_Number: app.Mobile_Number,
-            Secondary_Mobile_Number: app.Secondary_Mobile_Number,
-            Installation_Address: app.Installation_Address,
-            Landmark: app.Landmark,
-            Desired_Plan: app.Desired_Plan,
-            Status: app.Status,
-            planId: app.plan_id,
-            promoId: app.promo_id
+            email_address: app.email_address,
+            first_name: app.first_name,
+            middle_initial: app.middle_initial,
+            last_name: app.last_name,
+            mobile_number: app.mobile_number,
+            secondary_mobile_number: app.secondary_mobile_number,
+            installation_address: app.installation_address,
+            landmark: app.landmark,
+            desired_plan: app.desired_plan,
+            promo: app.promo,
+            referred_by: app.referred_by,
+            village: app.village,
+            create_date: app.create_date,
+            create_time: app.create_time
           };
         });
         
@@ -282,13 +205,10 @@ const ApplicationManagement: React.FC = () => {
   // Filter applications based on location and search query
   const filteredApplications = useMemo(() => {
     return applications.filter(application => {
-      // Apply location filter - handle both string and ID-based filtering
       const matchesLocation = selectedLocation === 'all' || 
-                             application.cityId === Number(selectedLocation) ||
                              (application.city && application.city.toLowerCase() === selectedLocation) ||  
                              selectedLocation === (application.city || '').toLowerCase();
       
-      // Apply search query filter
       const matchesSearch = searchQuery === '' || 
                            application.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            application.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -403,14 +323,20 @@ const ApplicationManagement: React.FC = () => {
                       <div className="flex items-start justify-between">
                         <div className="flex-1 min-w-0">
                           <div className="text-white font-medium text-sm mb-1 uppercase">
-                            {application.customerName || `${application.firstName || ''} ${application.middleInitial || ''} ${application.lastName || ''}`.trim()}
+                            {application.customerName}
                           </div>
                           <div className="text-gray-400 text-xs">
-                            {application.createDate && application.createTime 
-                              ? `${application.createDate} ${application.createTime}` 
+                            {application.create_date && application.create_time 
+                              ? `${application.create_date} ${application.create_time}` 
                               : application.timestamp || 'Not specified'}
                             {' | '}
-                            {application.fullAddress || application.address || [application.region, application.city, application.barangay].filter(Boolean).join(', ')}
+                            {[
+                              application.installation_address || application.address,
+                              application.village,
+                              application.barangay,
+                              application.city,
+                              application.region
+                            ].filter(Boolean).join(', ')}
                           </div>
                         </div>
                         <div className="flex flex-col items-end space-y-1 ml-4 flex-shrink-0">

@@ -19,28 +19,15 @@ class JobOrderController extends Controller
     public function index(): JsonResponse
     {
         try {
-            // Log that we're accessing the job_orders table
             \Log::info('Accessing job_orders table');
             
-            $jobOrders = JobOrder::with([
-                'application',
-                'modemRouterSN',
-                'contractTemplate',
-                'lcp',
-                'nap',
-                'port',
-                'vlan',
-                'lcpnap'
-            ])->get();
+            $jobOrders = JobOrder::with('application')->get();
 
-            // Log the count of job orders found
             \Log::info('Found ' . $jobOrders->count() . ' job orders in database');
             
-            // Check if we got any job orders
             if ($jobOrders->isEmpty()) {
                 \Log::info('No job orders found in database');
             } else {
-                // Log the first job order for debugging
                 \Log::info('First job order example:', $jobOrders->first()->toArray());
             }
 
@@ -68,12 +55,11 @@ class JobOrderController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'Application_ID' => 'nullable|integer|exists:app_applications,id',
-                'First_Name' => 'nullable|string|max:255',
-                'Last_Name' => 'nullable|string|max:255',
-                'Contact_Number' => 'nullable|string|max:255',
-                'Email_Address' => 'nullable|email|max:255',
-                'Installation_Fee' => 'nullable|numeric|min:0',
+                'application_id' => 'nullable|integer|exists:applications,id',
+                'timestamp' => 'nullable|date',
+                'installation_fee' => 'nullable|numeric|min:0',
+                'billing_day' => 'nullable|integer|min:1',
+                'onsite_status' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -84,26 +70,11 @@ class JobOrderController extends Controller
                 ], 422);
             }
 
-            // Convert empty strings or undefined to null for relationships
             $data = $request->all();
-            foreach(['LCP', 'NAP', 'PORT', 'VLAN', 'LCPNAP', 'Modem_Router_SN'] as $field) {
-                if (!isset($data[$field]) || $data[$field] === '' || $data[$field] === null) {
-                    $data[$field] = null;
-                }
-            }
             
             $jobOrder = JobOrder::create($data);
 
-            $jobOrder->load([
-                'application',
-                'modemRouterSN',
-                'contractTemplate',
-                'lcp',
-                'nap',
-                'port',
-                'vlan',
-                'lcpnap'
-            ]);
+            $jobOrder->load('application');
 
             return response()->json([
                 'success' => true,
@@ -122,16 +93,7 @@ class JobOrderController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $jobOrder = JobOrder::with([
-                'application',
-                'modemRouterSN',
-                'contractTemplate',
-                'lcp',
-                'nap',
-                'port',
-                'vlan',
-                'lcpnap'
-            ])->findOrFail($id);
+            $jobOrder = JobOrder::with('application')->findOrFail($id);
 
             return response()->json([
                 'success' => true,
@@ -152,12 +114,11 @@ class JobOrderController extends Controller
             $jobOrder = JobOrder::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'Application_ID' => 'nullable|integer|exists:app_applications,id',
-                'First_Name' => 'nullable|string|max:255',
-                'Last_Name' => 'nullable|string|max:255',
-                'Contact_Number' => 'nullable|string|max:255',
-                'Email_Address' => 'nullable|email|max:255',
-                'Installation_Fee' => 'nullable|numeric|min:0',
+                'application_id' => 'nullable|integer|exists:applications,id',
+                'timestamp' => 'nullable|date',
+                'installation_fee' => 'nullable|numeric|min:0',
+                'billing_day' => 'nullable|integer|min:1',
+                'onsite_status' => 'nullable|string|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -168,26 +129,11 @@ class JobOrderController extends Controller
                 ], 422);
             }
 
-            // Convert empty strings or undefined to null for relationships
             $data = $request->all();
-            foreach(['LCP', 'NAP', 'PORT', 'VLAN', 'LCPNAP', 'Modem_Router_SN'] as $field) {
-                if (!isset($data[$field]) || $data[$field] === '' || $data[$field] === null) {
-                    $data[$field] = null;
-                }
-            }
             
             $jobOrder->update($data);
 
-            $jobOrder->load([
-                'application',
-                'modemRouterSN',
-                'contractTemplate',
-                'lcp',
-                'nap',
-                'port',
-                'vlan',
-                'lcpnap'
-            ]);
+            $jobOrder->load('application');
 
             return response()->json([
                 'success' => true,

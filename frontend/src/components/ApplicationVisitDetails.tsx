@@ -128,17 +128,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       setLoading(true);
-      // Update in the 'application_visits' table
       await updateApplicationVisit(applicationVisit.id, { 
-        Visit_Status: newStatus,
-        Modified_By: 'current_user@ampere.com' // In real app, this would be the logged-in user
-        // The modified_date will be handled by the server
+        visit_status: newStatus,
+        updated_by_user_id: null
       });
       
-      // Update local state to reflect the change
       setCurrentVisitData({ ...currentVisitData, visit_status: newStatus });
       
-      // Show success message
       alert(`Status updated to ${newStatus}`);
     } catch (err: any) {
       setError(`Failed to update status: ${err.message}`);
