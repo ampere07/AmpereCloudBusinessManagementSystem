@@ -10,6 +10,7 @@ const apiClient = axios.create({
     'X-Requested-With': 'XMLHttpRequest',
   },
   timeout: 30000, // Increased timeout to 30 seconds
+  withCredentials: true, // Enable cookies and authentication headers for CORS
 });
 
 apiClient.interceptors.request.use(

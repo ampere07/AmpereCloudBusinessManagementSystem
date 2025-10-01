@@ -241,7 +241,7 @@ const RouterModelList: React.FC = () => {
     const isActive = router.is_active !== undefined ? router.is_active : true;
     
     return (
-      <div key={router.SN} className="bg-gray-900 border-b border-gray-800 hover:bg-gray-850 transition-colors">
+      <div key={router.SN} className="bg-gray-900 border-b border-gray-800">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -268,7 +268,7 @@ const RouterModelList: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleEdit(router)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all"
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
               title="Edit"
             >
               <Edit2 className="h-4 w-4" />
@@ -276,7 +276,7 @@ const RouterModelList: React.FC = () => {
             <button
               onClick={() => handleDelete(router)}
               disabled={deletingItems.has(router.SN)}
-              className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               title={deletingItems.has(router.SN) ? 'Permanently Deleting...' : 'Permanently Delete'}
             >
               {deletingItems.has(router.SN) ? (
@@ -307,15 +307,15 @@ const RouterModelList: React.FC = () => {
                   resetForm();
                   setShowAddPanel(true);
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Add
               </button>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all">
+              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded">
                 <Filter className="h-5 w-5" />
               </button>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all">
+              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -378,14 +378,14 @@ const RouterModelList: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={closePanel}
-                  className="px-6 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-150 border border-gray-600"
+                  className="px-6 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg border border-gray-600"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={savingForm}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:scale-105 hover:shadow-lg hover:shadow-red-600/25"
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {savingForm && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save
@@ -405,7 +405,7 @@ const RouterModelList: React.FC = () => {
                     type="text"
                     value={formData.brand}
                     onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
                     placeholder="Enter router brand"
                   />
                 </div>
@@ -419,7 +419,7 @@ const RouterModelList: React.FC = () => {
                     type="text"
                     value={formData.model}
                     onChange={(e) => setFormData({ ...formData, model: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
                     placeholder="Enter router model"
                   />
                 </div>
@@ -433,7 +433,7 @@ const RouterModelList: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200 resize-none"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none resize-none"
                     placeholder="Enter router description or specifications"
                   />
                 </div>
@@ -448,7 +448,7 @@ const RouterModelList: React.FC = () => {
                       type="email"
                       value={formData.modifiedBy}
                       onChange={(e) => setFormData({ ...formData, modifiedBy: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
+                      className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
                       placeholder="Enter email address"
                       readOnly
                     />
@@ -466,7 +466,7 @@ const RouterModelList: React.FC = () => {
                       type="datetime-local"
                       value={formData.modifiedDate}
                       onChange={(e) => setFormData({ ...formData, modifiedDate: e.target.value })}
-                      className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
+                      className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
                       readOnly
                     />
                     <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-500 pointer-events-none" />

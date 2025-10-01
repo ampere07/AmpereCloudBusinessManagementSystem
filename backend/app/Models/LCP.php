@@ -7,9 +7,9 @@ use Illuminate\Database\Eloquent\Model;
 class LCP extends Model
 {
     protected $table = 'lcp';
-    protected $primaryKey = 'LCP_ID';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
         'LCP_ID',

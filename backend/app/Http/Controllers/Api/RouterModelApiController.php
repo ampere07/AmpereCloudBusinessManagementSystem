@@ -10,212 +10,73 @@ use Illuminate\Support\Facades\Validator;
 class RouterModelApiController extends Controller
 {
     /**
-     * Get current user email from session/auth (fallback for now)
+     * Get current user email from session/auth and validate it exists
      */
     private function getCurrentUser()
     {
-        return 'ravenampere0123@gmail.com';
+        $defaultUser = 'ravenampere0123@gmail.com';
+        
+        // Check if the email exists in Employee_Email table
+        $validUser = DB::select('SELECT Email FROM Employee_Email WHERE Email = ?', [$defaultUser]);
+        
+        if (!empty($validUser)) {
+            return $defaultUser;
+        }
+        
+        // If default user doesn't exist, try to find any valid email
+        $anyValidUser = DB::select('SELECT Email FROM Employee_Email LIMIT 1');
+        
+        if (!empty($anyValidUser)) {
+            return $anyValidUser[0]->Email;
+        }
+        
+        // If no valid users exist, return null
+        return null;
     }
 
     /**
-     * Get all router models from modem_router_sn table
+     * Get all router models from Router_Models table
      */
     public function index()
     {
         try {
             // Check if table exists
-            $tableExists = DB::select("SHOW TABLES LIKE 'modem_router_sn'");
+            $tableExists = DB::select("SHOW TABLES LIKE 'Router_Models'");
             if (empty($tableExists)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'modem_router_sn table does not exist',
-                    'debug_info' => 'Table not found in database'
+                    'message' => 'Router_Models table does not exist'
                 ], 500);
             }
 
             // Get table structure to verify required columns exist
-            $columns = DB::select("SHOW COLUMNS FROM modem_router_sn");
+            $columns = DB::select("SHOW COLUMNS FROM Router_Models");
             $columnNames = array_column($columns, 'Field');
             
-            \Log::info('Router Models API - Available columns: ', $columnNames);
-            
             // Build SELECT statement based on available columns
-            $selectFields = [];
-            if (in_array('SN', $columnNames)) $selectFields[] = 'SN';
-            if (in_array('Model', $columnNames)) $selectFields[] = 'Model';
-            if (in_array('brand', $columnNames)) $selectFields[] = 'brand';
-            if (in_array('description', $columnNames)) $selectFields[] = 'description';
-            if (in_array('is_active', $columnNames)) $selectFields[] = 'is_active';
-            if (in_array('modified_by', $columnNames)) $selectFields[] = 'modified_by';
-            if (in_array('modified_date', $columnNames)) $selectFields[] = 'modified_date';
-            if (in_array('created_at', $columnNames)) $selectFields[] = 'created_at';
-            if (in_array('updated_at', $columnNames)) $selectFields[] = 'updated_at';
+            $selectFields = ['Model as model'];
+            if (in_array('Brand', $columnNames)) $selectFields[] = 'Brand as brand';
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
             
-            if (empty($selectFields)) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'No valid columns found in modem_router_sn table',
-                    'available_columns' => $columnNames
-                ], 500);
-            }
-            
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM modem_router_sn ORDER BY SN';
-            
-            \Log::info('Router Models API - Query: ' . $selectQuery);
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM Router_Models ORDER BY Model';
             
             $routers = DB::select($selectQuery);
             
-            \Log::info('Router Models API - Found ' . count($routers) . ' records');
-            
-            // Format the results to ensure consistent structure
-            $formattedRouters = [];
-            foreach ($routers as $router) {
-                $routerArray = (array) $router;
-                
-                // Set default values for missing fields
-                if (!isset($routerArray['SN'])) $routerArray['SN'] = '';
-                if (!isset($routerArray['Model'])) $routerArray['Model'] = '';
-                if (!isset($routerArray['brand'])) $routerArray['brand'] = 'Unknown';
-                if (!isset($routerArray['description'])) $routerArray['description'] = '';
-                if (!isset($routerArray['is_active'])) $routerArray['is_active'] = 1;
-                if (!isset($routerArray['modified_date'])) $routerArray['modified_date'] = date('Y-m-d H:i:s');
-                if (!isset($routerArray['modified_by'])) $routerArray['modified_by'] = $this->getCurrentUser();
-                if (!isset($routerArray['created_at'])) $routerArray['created_at'] = date('Y-m-d H:i:s');
-                if (!isset($routerArray['updated_at'])) $routerArray['updated_at'] = date('Y-m-d H:i:s');
-                
-                $formattedRouters[] = $routerArray;
-            }
-            
             return response()->json([
                 'success' => true,
-                'data' => $formattedRouters,
-                'columns_available' => $columnNames,
-                'debug_info' => [
-                    'query_executed' => $selectQuery,
-                    'raw_count' => count($routers),
-                    'formatted_count' => count($formattedRouters)
-                ]
+                'data' => $routers,
+                'columns_available' => $columnNames
             ]);
             
         } catch (\Exception $e) {
             \Log::error('Router Model API Error: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
             
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching router models: ' . $e->getMessage(),
                 'error_details' => [
-                    'file' => $e->getFile(),
-                    'line' => $e->getLine(),
-                    'trace' => $e->getTraceAsString()
-                ]
-            ], 500);
-        }
-    }
-
-    /**
-     * Store a new router model
-     */
-    public function store(Request $request)
-    {
-        try {
-            \Log::info('Router Models Store - Request data: ', $request->all());
-            
-            $validator = Validator::make($request->all(), [
-                'brand' => 'required|string|max:255',
-                'model' => 'required|string|max:255',
-                'description' => 'nullable|string'
-            ]);
-
-            if ($validator->fails()) {
-                \Log::error('Router Models Store - Validation failed: ', $validator->errors()->toArray());
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
-            $brand = $request->input('brand');
-            $model = $request->input('model');
-            $description = $request->input('description', '');
-            
-            // Generate SN based on brand and model
-            $sn = strtoupper(substr($brand, 0, 3)) . '_' . strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $model)) . '_' . time();
-            
-            \Log::info('Router Models Store - Generated SN: ' . $sn);
-            
-            // Automatically set modified date and user
-            $currentUser = $this->getCurrentUser();
-            $now = now();
-            
-            // Check for duplicate SN and generate unique one
-            $originalSn = $sn;
-            $counter = 1;
-            while (!empty(DB::select('SELECT SN FROM modem_router_sn WHERE SN = ?', [$sn]))) {
-                $sn = $originalSn . '_' . $counter;
-                $counter++;
-                \Log::info('Router Models Store - SN exists, trying: ' . $sn);
-            }
-            
-            // Get available columns
-            $columns = DB::select("SHOW COLUMNS FROM modem_router_sn");
-            $columnNames = array_column($columns, 'Field');
-            
-            \Log::info('Router Models Store - Available columns: ', $columnNames);
-            
-            // Build insert data based on available columns
-            $insertData = [
-                'SN' => $sn
-            ];
-            
-            if (in_array('Model', $columnNames)) $insertData['Model'] = $model;
-            if (in_array('brand', $columnNames)) $insertData['brand'] = $brand;
-            if (in_array('description', $columnNames)) $insertData['description'] = $description;
-            if (in_array('is_active', $columnNames)) $insertData['is_active'] = 1;
-            if (in_array('modified_date', $columnNames)) $insertData['modified_date'] = $now;
-            if (in_array('modified_by', $columnNames)) $insertData['modified_by'] = $currentUser;
-            if (in_array('created_at', $columnNames)) $insertData['created_at'] = $now;
-            if (in_array('updated_at', $columnNames)) $insertData['updated_at'] = $now;
-            
-            \Log::info('Router Models Store - Insert data: ', $insertData);
-            
-            $inserted = DB::table('modem_router_sn')->insert($insertData);
-            
-            if (!$inserted) {
-                throw new \Exception('Failed to insert record into database');
-            }
-            
-            \Log::info('Router Models Store - Record inserted successfully');
-            
-            // Get the inserted record
-            $selectFields = array_intersect(['SN', 'Model', 'brand', 'description', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM modem_router_sn WHERE SN = ?';
-            $router = DB::select($selectQuery, [$sn]);
-            
-            if (empty($router)) {
-                throw new \Exception('Record was inserted but could not be retrieved');
-            }
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Router model added successfully',
-                'data' => $router[0],
-                'debug_info' => [
-                    'generated_sn' => $sn,
-                    'insert_data' => $insertData
-                ]
-            ], 201);
-            
-        } catch (\Exception $e) {
-            \Log::error('Router Model Store Error: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Error adding router model: ' . $e->getMessage(),
-                'debug_info' => [
                     'file' => $e->getFile(),
                     'line' => $e->getLine()
                 ]
@@ -224,24 +85,111 @@ class RouterModelApiController extends Controller
     }
 
     /**
-     * Display the specified router model
+     * Store a new router model in Router_Models table
      */
-    public function show($sn)
+    public function store(Request $request)
     {
         try {
-            \Log::info('Router Models Show - Looking for SN: ' . $sn);
+            $validator = Validator::make($request->all(), [
+                'model' => 'required|string|max:255',
+                'brand' => 'nullable|string|max:255',
+                'description' => 'nullable|string'
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $model = $request->input('model');
+            $brand = $request->input('brand', '');
+            $description = $request->input('description', '');
             
-            $columns = DB::select("SHOW COLUMNS FROM modem_router_sn");
+            // Get current user - handle case where no valid user exists
+            $currentUser = $this->getCurrentUser();
+            if ($currentUser === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid employee email found. Please ensure Employee_Email table is populated.'
+                ], 500);
+            }
+            
+            $now = now();
+            
+            // Check for duplicate model name
+            $existing = DB::select('SELECT Model FROM Router_Models WHERE LOWER(Model) = LOWER(?)', [$model]);
+            if (!empty($existing)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'A router model with this name already exists'
+                ], 422);
+            }
+            
+            // Get available columns
+            $columns = DB::select("SHOW COLUMNS FROM Router_Models");
             $columnNames = array_column($columns, 'Field');
             
-            $selectFields = array_intersect(['SN', 'Model', 'brand', 'description', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM modem_router_sn WHERE SN = ?';
+            // Build insert data based on available columns
+            $insertData = [
+                'Model' => $model
+            ];
             
-            $router = DB::select($selectQuery, [$sn]);
+            if (in_array('Brand', $columnNames)) $insertData['Brand'] = $brand;
+            if (in_array('Description', $columnNames)) $insertData['Description'] = $description;
+            if (in_array('Modified_Date', $columnNames)) $insertData['Modified_Date'] = $now;
+            if (in_array('Modified_By', $columnNames)) $insertData['Modified_By'] = $currentUser;
+            
+            DB::table('Router_Models')->insert($insertData);
+            
+            // Get the inserted record
+            $selectFields = ['Model as model'];
+            if (in_array('Brand', $columnNames)) $selectFields[] = 'Brand as brand';
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM Router_Models WHERE Model = ?';
+            $router = DB::select($selectQuery, [$model])[0];
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Router model added successfully',
+                'data' => $router
+            ], 201);
+            
+        } catch (\Exception $e) {
+            \Log::error('Router Model Store Error: ' . $e->getMessage());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error adding router model: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Display the specified router model
+     */
+    public function show($model)
+    {
+        try {
+            $columns = DB::select("SHOW COLUMNS FROM Router_Models");
+            $columnNames = array_column($columns, 'Field');
+            
+            $selectFields = ['Model as model'];
+            if (in_array('Brand', $columnNames)) $selectFields[] = 'Brand as brand';
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM Router_Models WHERE Model = ?';
+            
+            $router = DB::select($selectQuery, [$model]);
             
             if (empty($router)) {
-                \Log::warning('Router Models Show - Router not found: ' . $sn);
-                
                 return response()->json([
                     'success' => false,
                     'message' => 'Router model not found'
@@ -253,8 +201,6 @@ class RouterModelApiController extends Controller
                 'data' => $router[0]
             ]);
         } catch (\Exception $e) {
-            \Log::error('Router Models Show Error: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Error fetching router model: ' . $e->getMessage()
@@ -265,14 +211,12 @@ class RouterModelApiController extends Controller
     /**
      * Update the specified router model
      */
-    public function update(Request $request, $sn)
+    public function update(Request $request, $model)
     {
         try {
-            \Log::info('Router Models Update - SN: ' . $sn . ', Data: ', $request->all());
-            
             $validator = Validator::make($request->all(), [
-                'brand' => 'required|string|max:255',
                 'model' => 'required|string|max:255',
+                'brand' => 'nullable|string|max:255',
                 'description' => 'nullable|string'
             ]);
 
@@ -285,7 +229,7 @@ class RouterModelApiController extends Controller
             }
 
             // Check if router model exists
-            $existing = DB::select('SELECT * FROM modem_router_sn WHERE SN = ?', [$sn]);
+            $existing = DB::select('SELECT Model FROM Router_Models WHERE Model = ?', [$model]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -293,38 +237,57 @@ class RouterModelApiController extends Controller
                 ], 404);
             }
             
-            $brand = $request->input('brand');
-            $model = $request->input('model');
+            $newModel = $request->input('model');
+            $brand = $request->input('brand', '');
             $description = $request->input('description', '');
             
-            // Automatically set modified date and user
+            // Get current user - handle case where no valid user exists
             $currentUser = $this->getCurrentUser();
+            if ($currentUser === null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No valid employee email found. Please ensure Employee_Email table is populated.'
+                ], 500);
+            }
+            
             $now = now();
             
+            // Check for duplicate name (excluding current model)
+            if ($newModel !== $model) {
+                $duplicates = DB::select('SELECT Model FROM Router_Models WHERE LOWER(Model) = LOWER(?) AND Model != ?', [$newModel, $model]);
+                if (!empty($duplicates)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'A router model with this name already exists'
+                    ], 422);
+                }
+            }
+            
             // Get available columns
-            $columns = DB::select("SHOW COLUMNS FROM modem_router_sn");
+            $columns = DB::select("SHOW COLUMNS FROM Router_Models");
             $columnNames = array_column($columns, 'Field');
             
             // Build update data based on available columns
-            $updateData = [];
+            $updateData = [
+                'Model' => $newModel
+            ];
             
-            if (in_array('Model', $columnNames)) $updateData['Model'] = $model;
-            if (in_array('brand', $columnNames)) $updateData['brand'] = $brand;
-            if (in_array('description', $columnNames)) $updateData['description'] = $description;
-            if (in_array('modified_date', $columnNames)) $updateData['modified_date'] = $now;
-            if (in_array('modified_by', $columnNames)) $updateData['modified_by'] = $currentUser;
-            if (in_array('updated_at', $columnNames)) $updateData['updated_at'] = $now;
+            if (in_array('Brand', $columnNames)) $updateData['Brand'] = $brand;
+            if (in_array('Description', $columnNames)) $updateData['Description'] = $description;
+            if (in_array('Modified_Date', $columnNames)) $updateData['Modified_Date'] = $now;
+            if (in_array('Modified_By', $columnNames)) $updateData['Modified_By'] = $currentUser;
             
-            \Log::info('Router Models Update - Update data: ', $updateData);
-            
-            $updated = DB::table('modem_router_sn')->where('SN', $sn)->update($updateData);
-            
-            \Log::info('Router Models Update - Affected rows: ' . $updated);
+            DB::table('Router_Models')->where('Model', $model)->update($updateData);
             
             // Get updated record
-            $selectFields = array_intersect(['SN', 'Model', 'brand', 'description', 'is_active', 'modified_date', 'modified_by', 'created_at', 'updated_at'], $columnNames);
-            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM modem_router_sn WHERE SN = ?';
-            $router = DB::select($selectQuery, [$sn])[0];
+            $selectFields = ['Model as model'];
+            if (in_array('Brand', $columnNames)) $selectFields[] = 'Brand as brand';
+            if (in_array('Description', $columnNames)) $selectFields[] = 'Description as description';
+            if (in_array('Modified_Date', $columnNames)) $selectFields[] = 'Modified_Date as modified_date';
+            if (in_array('Modified_By', $columnNames)) $selectFields[] = 'Modified_By as modified_by';
+            
+            $selectQuery = 'SELECT ' . implode(', ', $selectFields) . ' FROM Router_Models WHERE Model = ?';
+            $router = DB::select($selectQuery, [$newModel])[0];
             
             return response()->json([
                 'success' => true,
@@ -333,8 +296,6 @@ class RouterModelApiController extends Controller
             ]);
             
         } catch (\Exception $e) {
-            \Log::error('Router Models Update Error: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Error updating router model: ' . $e->getMessage()
@@ -343,15 +304,13 @@ class RouterModelApiController extends Controller
     }
 
     /**
-     * HARD DELETE - Permanently remove the specified router model from database
+     * HARD DELETE - Permanently remove the specified router model
      */
-    public function destroy($sn)
+    public function destroy($model)
     {
         try {
-            \Log::info('Router Models Delete - SN: ' . $sn);
-            
             // Check if router model exists
-            $existing = DB::select('SELECT * FROM modem_router_sn WHERE SN = ?', [$sn]);
+            $existing = DB::select('SELECT Model FROM Router_Models WHERE Model = ?', [$model]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -360,9 +319,7 @@ class RouterModelApiController extends Controller
             }
             
             // HARD DELETE - permanently remove from database
-            $deleted = DB::table('modem_router_sn')->where('SN', $sn)->delete();
-            
-            \Log::info('Router Models Delete - Affected rows: ' . $deleted);
+            $deleted = DB::table('Router_Models')->where('Model', $model)->delete();
             
             if ($deleted) {
                 return response()->json([
@@ -377,8 +334,6 @@ class RouterModelApiController extends Controller
             }
             
         } catch (\Exception $e) {
-            \Log::error('Router Models Delete Error: ' . $e->getMessage());
-            
             return response()->json([
                 'success' => false,
                 'message' => 'Error deleting router model: ' . $e->getMessage()
@@ -392,17 +347,17 @@ class RouterModelApiController extends Controller
     public function getStatistics()
     {
         try {
-            $columns = DB::select("SHOW COLUMNS FROM modem_router_sn");
+            $columns = DB::select("SHOW COLUMNS FROM Router_Models");
             $columnNames = array_column($columns, 'Field');
             
-            $totalRouters = DB::select("SELECT COUNT(*) as count FROM modem_router_sn")[0]->count ?? 0;
+            $totalRouters = DB::select("SELECT COUNT(*) as count FROM Router_Models")[0]->count ?? 0;
             
-            // Get brand statistics if brand column exists
+            // Get brand statistics if Brand column exists
             $brandStats = [];
-            if (in_array('brand', $columnNames)) {
-                $brands = DB::select("SELECT brand, COUNT(*) as count FROM modem_router_sn GROUP BY brand ORDER BY count DESC");
+            if (in_array('Brand', $columnNames)) {
+                $brands = DB::select("SELECT Brand, COUNT(*) as count FROM Router_Models WHERE Brand IS NOT NULL AND Brand != '' GROUP BY Brand ORDER BY count DESC");
                 $brandStats = array_map(function($brand) {
-                    return ['name' => $brand->brand ?? 'Unknown', 'count' => $brand->count];
+                    return ['name' => $brand->Brand ?? 'Unknown', 'count' => $brand->count];
                 }, $brands);
             }
             

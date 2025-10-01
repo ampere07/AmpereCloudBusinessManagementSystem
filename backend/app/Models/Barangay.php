@@ -8,28 +8,17 @@ use Illuminate\Database\Eloquent\Model;
 class Barangay extends Model
 {
     use HasFactory;
+
+    protected $table = 'barangay_list';
     
     protected $fillable = [
+        'barangay',
         'city_id',
-        'code',
-        'name',
-        'description',
         'is_active'
     ];
-    
-    protected $casts = [
-        'is_active' => 'boolean',
-    ];
-    
-    protected $with = ['city'];
-    
+
     public function city()
     {
-        return $this->belongsTo(City::class);
-    }
-    
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
+        return $this->belongsTo(City::class, 'city_id');
     }
 }

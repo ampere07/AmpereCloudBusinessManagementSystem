@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare, Settings } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare, Settings, Network } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -55,6 +55,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'sms-blast-logs', label: 'SMS Blast Logs', icon: List },
     { id: 'disconnected-logs', label: 'Disconnected Logs', icon: AlertTriangle },
     { id: 'reconnection-logs', label: 'Reconnection Logs', icon: FileBarChart },
+    { id: 'inventory-category-list', label: 'Inventory Category List', icon: List },
     {
       id: 'configuration',
       label: 'Configuration',
@@ -63,6 +64,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'location-list', label: 'Location List', icon: MapPin },
         { id: 'plan-list', label: 'Plan List', icon: List },
         { id: 'router-models', label: 'Router Models', icon: Router },
+        { id: 'lcp', label: 'LCP', icon: Network },
+        { id: 'nap', label: 'NAP', icon: Network },
+        { id: 'lcp-nap-list', label: 'LCP NAP List', icon: MapPin },
         { id: 'inventory', label: 'Inventory', icon: Package },
         { id: 'logs', label: 'Logs', icon: FileText }
       ]
@@ -126,8 +130,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-16' : 'w-64'} h-full bg-gray-800 border-r border-gray-600 flex flex-col transition-all duration-300`}>
-      <nav className="flex-1 py-4 overflow-y-auto scrollbar-hide">
+    <div className={`${isCollapsed ? 'w-16' : 'w-64'} h-full bg-gray-800 border-r border-gray-600 flex flex-col transition-all duration-300 ease-in-out`}>
+      <nav className="flex-1 py-4 overflow-y-auto scrollbar-thin scrollbar-track-gray-700 scrollbar-thumb-gray-500 hover:scrollbar-thumb-gray-400">
         {menuItems.map(item => renderMenuItem(item))}
       </nav>
       

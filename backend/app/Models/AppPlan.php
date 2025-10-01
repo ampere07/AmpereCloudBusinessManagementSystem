@@ -15,7 +15,7 @@ class AppPlan extends Model
      *
      * @var string
      */
-    protected $table = 'app_plans';
+    protected $table = 'plan_list';
 
     /**
      * The attributes that are mass assignable.

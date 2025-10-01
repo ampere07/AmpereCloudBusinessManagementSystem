@@ -28,6 +28,9 @@ import ApplicationVisit from './ApplicationVisit';
 import LocationList from './LocationList';
 import PlanList from './PlanList';
 import RouterModelList from './RouterModelList';
+import LcpList from './LcpList';
+import NapList from './NapList';
+import LcpNapList from './LcpNapList';
 import Inventory from './Inventory';
 import ExpensesLog from './ExpensesLog';
 import DailyExpenses from './DailyExpenses';
@@ -35,6 +38,7 @@ import Logs from './Logs';
 import SalesAgentList from './SalesAgentList';
 import SOA from './SOA';
 import Invoice from './Invoice';
+import InventoryCategoryList from './InventoryCategoryList';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -120,8 +124,16 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <PlanList />;
       case 'router-models':
         return <RouterModelList />;
+      case 'lcp':
+        return <LcpList />;
+      case 'nap':
+        return <NapList />;
+      case 'lcp-nap-list':
+        return <LcpNapList />;
       case 'inventory':
         return <Inventory />;
+      case 'inventory-category-list':
+        return <InventoryCategoryList />;
       case 'expenses-log':
         return <ExpensesLog />;
       case 'daily-expenses':

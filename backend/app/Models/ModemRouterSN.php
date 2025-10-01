@@ -6,10 +6,10 @@ use Illuminate\Database\Eloquent\Model;
 
 class ModemRouterSN extends Model
 {
-    protected $table = 'modem_router_sn';
-    protected $primaryKey = 'SN';
-    public $incrementing = false;
-    protected $keyType = 'string';
+    protected $table = 'router_models';
+    protected $primaryKey = 'id';
+    public $incrementing = true;
+    protected $keyType = 'int';
     
     protected $fillable = [
         'SN',

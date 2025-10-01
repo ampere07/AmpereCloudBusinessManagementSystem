@@ -15,8 +15,228 @@ use App\Http\Controllers\ApplicationVisitController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\CityController;
 use App\Http\Controllers\RegionController;
+use App\Http\Controllers\DebugController;
+use App\Http\Controllers\EmergencyLocationController;
 use App\Models\User;
 use App\Services\ActivityLogService;
+
+// Fixed, reliable location endpoints that won't change
+Route::post('/fixed/location/region', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addRegion']);
+Route::post('/fixed/location/city', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addCity']);
+Route::post('/fixed/location/barangay', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addBarangay']);
+
+// Emergency region endpoints directly accessible in API routes
+Route::post('/emergency/regions', [EmergencyLocationController::class, 'addRegion']);
+Route::post('/emergency/cities', [EmergencyLocationController::class, 'addCity']);
+Route::post('/emergency/barangays', [EmergencyLocationController::class, 'addBarangay']);
+
+// Alternative endpoint formats for maximum compatibility
+Route::post('/locations/add-region', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+Route::post('/locations/add-city', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+Route::post('/locations/add-barangay', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+
+// Direct routes for location management - top level for maximum compatibility
+Route::post('/locations/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+Route::post('/locations/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+Route::post('/locations/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+Route::put('/locations/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::put('/locations/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::put('/locations/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::delete('/locations/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+Route::delete('/locations/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+Route::delete('/locations/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+
+// Direct test endpoint for troubleshooting
+Route::get('/locations-ping', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Locations API is responding',
+        'timestamp' => now()->toDateTimeString(),
+        'environment' => app()->environment(),
+        'routes' => [
+            '/locations/all' => 'getAllLocations',
+            '/locations/regions' => 'getRegions',
+            '/debug/model-test' => 'Database model test'
+        ]
+    ]);
+});
+
+// Mock data endpoint for locations
+Route::get('/locations/mock', function () {
+    return response()->json([
+        'success' => true,
+        'data' => [
+            [
+                'id' => 1,
+                'code' => '1',
+                'name' => 'Metro Manila',
+                'description' => 'National Capital Region',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'active_cities' => [
+                    [
+                        'id' => 101,
+                        'code' => '101',
+                        'name' => 'Quezon City',
+                        'description' => 'QC',
+                        'is_active' => true,
+                        'region_id' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 1001,
+                                'code' => '1001',
+                                'name' => 'Barangay A',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 101,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 1002,
+                                'code' => '1002',
+                                'name' => 'Barangay B',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 101,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ],
+                    [
+                        'id' => 102,
+                        'code' => '102',
+                        'name' => 'Manila',
+                        'description' => '',
+                        'is_active' => true,
+                        'region_id' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 1003,
+                                'code' => '1003',
+                                'name' => 'Barangay X',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 102,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 1004,
+                                'code' => '1004',
+                                'name' => 'Barangay Y',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 102,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'id' => 2,
+                'code' => '2',
+                'name' => 'CALABARZON',
+                'description' => 'Region IV-A',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'active_cities' => [
+                    [
+                        'id' => 201,
+                        'code' => '201',
+                        'name' => 'Binangonan',
+                        'description' => '',
+                        'is_active' => true,
+                        'region_id' => 2,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 2001,
+                                'code' => '2001',
+                                'name' => 'Angono',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 201,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 2002,
+                                'code' => '2002',
+                                'name' => 'Bilibiran',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 201,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]);
+});
+
+// Debug routes for troubleshooting
+Route::prefix('debug')->group(function () {
+    Route::get('/routes', [DebugController::class, 'listRoutes']);
+    Route::get('/location-test', [DebugController::class, 'locationTest']);
+    
+    // Direct location test routes - no controller method
+    Route::get('/location-echo', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Location echo test is working',
+            'timestamp' => now()
+        ]);
+    });
+    
+    // Direct model tests
+    Route::get('/model-test', function () {
+        try {
+            $regions = \App\Models\Region::count();
+            $cities = \App\Models\City::count();
+            $barangays = \App\Models\Barangay::count();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Model test successful',
+                'data' => [
+                    'region_count' => $regions,
+                    'city_count' => $cities,
+                    'barangay_count' => $barangays
+                ],
+                'database_config' => [
+                    'connection' => config('database.default'),
+                    'database' => config('database.connections.' . config('database.default') . '.database'),
+                ],
+                'tables_exist' => [
+                    'region_list' => \Illuminate\Support\Facades\Schema::hasTable('region_list'),
+                    'city_list' => \Illuminate\Support\Facades\Schema::hasTable('city_list'),
+                    'barangay_list' => \Illuminate\Support\Facades\Schema::hasTable('barangay_list')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Model test failed',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    });
+});
 
 // Authentication endpoints
 Route::post('/login-debug', function (Request $request) {
@@ -333,6 +553,7 @@ Route::prefix('application-visits')->middleware('ensure.database.tables')->group
 });
 
 // Location Management Routes - New centralized system
+// IMPORTANT: Remove the middleware that might be blocking this
 Route::prefix('locations')->group(function () {
     // Test endpoint
     Route::get('/test', function () {
@@ -343,23 +564,69 @@ Route::prefix('locations')->group(function () {
         ]);
     });
     
-    // Region routes  
-    Route::get('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'getRegions']);
+    // Debug endpoint for locations/all route
+    Route::get('/all-debug', function () {
+        try {
+            $controller = new \App\Http\Controllers\LocationController();
+            return $controller->getAllLocations();
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Debug error: ' . $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    });
+    
+    // Debug route to log all requests and trace route matching
+    Route::post('/locations/debug', function(Request $request) {
+        \Illuminate\Support\Facades\Log::info('[LocationDebug] Debug route hit', [
+            'method' => $request->method(),
+            'url' => $request->fullUrl(),
+            'path' => $request->path(),
+            'payload' => $request->all(),
+            'headers' => $request->headers->all()
+        ]);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Debug route working',
+            'data' => [
+                'method' => $request->method(),
+                'url' => $request->fullUrl(),
+                'path' => $request->path(),
+                'payload' => $request->all()
+            ]
+        ]);
+    });
+
+    // Direct API endpoints that match the frontend requests
+    Route::get('/all', [LocationController::class, 'getAllLocations']);
+    Route::get('/regions', [LocationController::class, 'getRegions']);
+    Route::get('/regions/{regionId}/cities', [LocationController::class, 'getCitiesByRegion']);
+    Route::get('/cities/{cityId}/barangays', [LocationController::class, 'getBarangaysByCity']);
+    
+    // Region routes - explicit path for frontend compatibility
     Route::post('/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
-    Route::get('/regions/{regionId}/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'getCitiesByRegion']);
     
-    // City routes
+    // City routes - explicit path for frontend compatibility
     Route::post('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
-    Route::get('/cities/{cityId}/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'getBarangaysByCity']);
     
-    // Barangay routes
+    // Barangay routes - explicit path for frontend compatibility
     Route::post('/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
     
     // General location routes
-    Route::get('/all', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllLocations']);
     Route::get('/statistics', [\App\Http\Controllers\Api\LocationApiController::class, 'getStatistics']);
     Route::put('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
     Route::delete('/{type}/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+    
+    // Specific update/delete routes for frontend compatibility
+    Route::put('/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+    Route::put('/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+    Route::put('/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+    Route::delete('/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+    Route::delete('/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+    Route::delete('/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
     
     // Legacy routes (keep for compatibility)
     Route::get('/', [LocationController::class, 'index']);
@@ -371,16 +638,6 @@ Route::prefix('locations')->group(function () {
     Route::put('/{id}', [LocationController::class, 'update']);
     Route::delete('/{id}', [LocationController::class, 'destroy']);
     Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
-});
-
-Route::prefix('app-cities')->middleware('ensure.database.tables')->group(function () {
-    Route::get('/', [CityController::class, 'index']);
-    Route::get('/{id}', [CityController::class, 'show']);
-    Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
-});
-Route::prefix('app-regions')->middleware('ensure.database.tables')->group(function () {
-    Route::get('/', [RegionController::class, 'index']);
-    Route::get('/{id}', [RegionController::class, 'show']);
 });
 
 // Plan Management Routes - Using app_plans table
@@ -396,14 +653,58 @@ Route::prefix('plans')->group(function () {
     Route::delete('/{id}/force', [\App\Http\Controllers\Api\PlanApiController::class, 'forceDelete']);
 });
 
-// Router Models Management Routes - Using modem_router_sn table
+// Router Models Management Routes - Using Router_Models table
 Route::prefix('router-models')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'store']);
     Route::get('/statistics', [\App\Http\Controllers\Api\RouterModelApiController::class, 'getStatistics']);
-    Route::get('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'show']);
-    Route::put('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'update']);
-    Route::delete('/{sn}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'destroy']);
+    Route::get('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'show']);
+    Route::put('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'update']);
+    Route::delete('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'destroy']);
+});
+
+// Inventory Management Routes - Using Inventory table
+Route::prefix('inventory')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\InventoryApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\InventoryApiController::class, 'store']);
+    Route::get('/debug', [\App\Http\Controllers\Api\InventoryApiController::class, 'debug']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\InventoryApiController::class, 'getStatistics']);
+    Route::get('/categories', [\App\Http\Controllers\Api\InventoryApiController::class, 'getCategories']);
+    Route::get('/suppliers', [\App\Http\Controllers\Api\InventoryApiController::class, 'getSuppliers']);
+    Route::get('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'show']);
+    Route::put('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'update']);
+    Route::delete('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'destroy']);
+});
+
+// LCP Management Routes - Using app_lcp table
+Route::prefix('lcp')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LcpApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LcpApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LcpApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LcpApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LcpApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LcpApiController::class, 'destroy']);
+});
+
+// NAP Management Routes - Using app_nap table
+Route::prefix('nap')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\NapApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\NapApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\NapApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'destroy']);
+});
+
+// LCP NAP List Management Routes - Using lcpnap table
+Route::prefix('lcp-nap-list')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'getStatistics']);
+    Route::get('/lookup', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'getLookupData']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'destroy']);
 });
 
 // Basic Cities endpoint for simple data (fallback)
@@ -418,6 +719,99 @@ Route::prefix('cities')->group(function () {
             ['id' => 5, 'region_id' => 1, 'name' => 'Manila']
         ]);
     });
+});
+
+// Routes to match frontend requests - using the *_list tables directly
+Route::prefix('region_list')->group(function () {
+    Route::get('/', [RegionController::class, 'index']);
+    Route::get('/{id}', [RegionController::class, 'show']);
+});
+
+Route::prefix('city_list')->group(function () {
+    Route::get('/', [CityController::class, 'index']);
+    Route::get('/{id}', [CityController::class, 'show']);
+    Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
+});
+
+Route::prefix('barangay_list')->group(function () {
+    Route::get('/', function() {
+        try {
+            $barangays = \App\Models\Barangay::all();
+            return response()->json([
+                'success' => true,
+                'data' => $barangays
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangays: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+    Route::get('/{id}', function($id) {
+        try {
+            $barangay = \App\Models\Barangay::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $barangay
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangay: ' . $e->getMessage()
+            ], 404);
+        }
+    });
+    Route::get('/city/{cityId}', function($cityId) {
+        try {
+            $barangays = \App\Models\Barangay::where('city_id', $cityId)->get();
+            return response()->json([
+                'success' => true,
+                'data' => $barangays
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangays: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
+// Add debug routes for location troubleshooting
+Route::get('/debug/location-tables', [\App\Http\Controllers\LocationDebugController::class, 'verifyTables']);
+
+// Add debug route to inspect database tables
+Route::get('/debug/tables', function () {
+    try {
+        $tables = [
+            'region_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM region_list LIMIT 10'),
+            'city_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM city_list LIMIT 10'),
+            'barangay_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM barangay_list LIMIT 10')
+        ];
+        
+        $hasAppTables = [
+            'app_regions' => \Illuminate\Support\Facades\Schema::hasTable('app_regions'),
+            'app_cities' => \Illuminate\Support\Facades\Schema::hasTable('app_cities'),
+            'app_barangays' => \Illuminate\Support\Facades\Schema::hasTable('app_barangays')
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'list_tables' => $tables,
+            'has_app_tables' => $hasAppTables,
+            'models' => [
+                'Region' => get_class_vars('\\App\\Models\\Region'),
+                'City' => get_class_vars('\\App\\Models\\City'),
+                'Barangay' => get_class_vars('\\App\\Models\\Barangay')
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error checking tables: ' . $e->getMessage()
+        ], 500);
+    }
 });
 
 // Service Orders Management Routes

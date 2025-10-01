@@ -242,7 +242,7 @@ const PlanList: React.FC = () => {
     const isActive = plan.is_active !== undefined ? plan.is_active : true;
     
     return (
-      <div key={plan.id} className="bg-gray-900 border-b border-gray-800 hover:bg-gray-850 transition-colors">
+      <div key={plan.id} className="bg-gray-900 border-b border-gray-800">
         <div className="px-6 py-4 flex items-center justify-between">
           <div className="flex-1">
             <div className="flex items-center gap-3">
@@ -267,7 +267,7 @@ const PlanList: React.FC = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleEdit(plan)}
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all"
+              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
               title="Edit"
             >
               <Edit2 className="h-4 w-4" />
@@ -275,7 +275,7 @@ const PlanList: React.FC = () => {
             <button
               onClick={() => handleDelete(plan)}
               disabled={deletingItems.has(plan.id)}
-              className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-800 rounded transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+              className="p-2 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded disabled:opacity-50 disabled:cursor-not-allowed"
               title={deletingItems.has(plan.id) ? 'Permanently Deleting...' : 'Permanently Delete'}
             >
               {deletingItems.has(plan.id) ? (
@@ -306,15 +306,15 @@ const PlanList: React.FC = () => {
                   resetForm();
                   setShowAddPanel(true);
                 }}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2 transition-all duration-200 hover:scale-105 hover:shadow-lg"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg flex items-center gap-2"
               >
                 <Plus className="h-4 w-4" />
                 Add
               </button>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all">
+              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded">
                 <Filter className="h-5 w-5" />
               </button>
-              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded transition-all">
+              <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded">
                 <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
                 </svg>
@@ -377,14 +377,14 @@ const PlanList: React.FC = () => {
               <div className="flex items-center gap-3">
                 <button
                   onClick={closePanel}
-                  className="px-6 py-2 text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg transition-all duration-150 border border-gray-600"
+                  className="px-6 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg border border-gray-600"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleSubmit}
                   disabled={savingForm}
-                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 hover:scale-105 hover:shadow-lg hover:shadow-red-600/25"
+                  className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                 >
                   {savingForm && <Loader2 className="h-4 w-4 animate-spin" />}
                   Save
@@ -404,7 +404,7 @@ const PlanList: React.FC = () => {
                     type="text"
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
                     placeholder="Enter plan name"
                   />
                 </div>
@@ -418,7 +418,7 @@ const PlanList: React.FC = () => {
                     value={formData.description}
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     rows={4}
-                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 transition-all duration-200 resize-none"
+                    className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none resize-none"
                     placeholder="Enter plan description"
                   />
                 </div>
@@ -436,7 +436,7 @@ const PlanList: React.FC = () => {
                       type="number"
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: Number(e.target.value) || 0 })}
-                      className="flex-1 px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:border-red-500 focus:outline-none focus:ring-2 focus:ring-red-500/20 text-center transition-all duration-200 border-l-0 border-r-0"
+                      className="flex-1 px-4 py-3 bg-gray-800 text-white border border-gray-700 focus:border-red-500 focus:outline-none text-center border-l-0 border-r-0"
                       step="0.01"
                       min="0"
                     />
@@ -444,16 +444,16 @@ const PlanList: React.FC = () => {
                       <button
                         type="button"
                         onClick={incrementPrice}
-                        className="flex-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-150 flex items-center justify-center border-b border-gray-700 group"
+                        className="flex-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-600 flex items-center justify-center border-b border-gray-700"
                       >
-                        <Plus className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Plus className="h-4 w-4" />
                       </button>
                       <button
                         type="button"
                         onClick={decrementPrice}
-                        className="flex-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-700 transition-all duration-150 flex items-center justify-center group"
+                        className="flex-1 px-3 py-1.5 text-gray-400 hover:text-white hover:bg-gray-600 flex items-center justify-center"
                       >
-                        <Minus className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                        <Minus className="h-4 w-4" />
                       </button>
                     </div>
                   </div>
