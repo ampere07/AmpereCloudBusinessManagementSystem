@@ -9,22 +9,13 @@ interface EditOrganizationFormProps {
   onOrganizationUpdated: (organization: Organization) => void;
 }
 
-const organizationTypeOptions = [
-  { value: '', label: 'Select Organization Type' },
-  { value: 'Corporation', label: 'Corporation' },
-  { value: 'LLC', label: 'Limited Liability Company (LLC)' },
-  { value: 'Partnership', label: 'Partnership' },
-  { value: 'Non-Profit', label: 'Non-Profit Organization' },
-  { value: 'Government', label: 'Government Agency' },
-  { value: 'Educational', label: 'Educational Institution' },
-  { value: 'Other', label: 'Other' }
-];
-
 const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organization, onCancel, onOrganizationUpdated }) => {
   
   const [formData, setFormData] = useState({
-    org_name: organization?.org_name || '',
-    org_type: organization?.org_type || ''
+    organization_name: organization?.organization_name || '',
+    address: organization?.address || '',
+    contact_number: organization?.contact_number || '',
+    email_address: organization?.email_address || ''
   });
 
   const [loading, setLoading] = useState(false);
@@ -33,8 +24,10 @@ const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organizatio
   useEffect(() => {
     if (organization) {
       setFormData({
-        org_name: organization.org_name || '',
-        org_type: organization.org_type || ''
+        organization_name: organization.organization_name || '',
+        address: organization.address || '',
+        contact_number: organization.contact_number || '',
+        email_address: organization.email_address || ''
       });
     }
   }, [organization]);
@@ -57,7 +50,7 @@ const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organizatio
     );
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -72,12 +65,8 @@ const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organizatio
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.org_name?.trim()) {
-      newErrors.org_name = 'Organization name is required';
-    }
-
-    if (!formData.org_type?.trim()) {
-      newErrors.org_type = 'Organization type is required';
+    if (!formData.organization_name?.trim()) {
+      newErrors.organization_name = 'Organization name is required';
     }
 
     setErrors(newErrors);
@@ -91,17 +80,30 @@ const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organizatio
 
     setLoading(true);
     try {
-      const dataToSend: { org_name?: string; org_type?: string } = {};
+      const dataToSend: { 
+        organization_name?: string;
+        address?: string | null;
+        contact_number?: string | null;
+        email_address?: string | null;
+      } = {};
       
-      if (formData.org_name.trim() !== (organization.org_name || '')) {
-        dataToSend.org_name = formData.org_name.trim();
+      if (formData.organization_name.trim() !== (organization.organization_name || '')) {
+        dataToSend.organization_name = formData.organization_name.trim();
       }
       
-      if (formData.org_type.trim() !== (organization.org_type || '')) {
-        dataToSend.org_type = formData.org_type.trim();
+      if (formData.address !== (organization.address || '')) {
+        dataToSend.address = formData.address.trim() || null;
+      }
+
+      if (formData.contact_number !== (organization.contact_number || '')) {
+        dataToSend.contact_number = formData.contact_number.trim() || null;
+      }
+
+      if (formData.email_address !== (organization.email_address || '')) {
+        dataToSend.email_address = formData.email_address.trim() || null;
       }
       
-      const response = await organizationService.updateOrganization(organization.org_id, dataToSend);
+      const response = await organizationService.updateOrganization(organization.id, dataToSend);
       
       if (response.success && response.data) {
         onOrganizationUpdated(response.data);
@@ -172,41 +174,74 @@ const EditOrganizationForm: React.FC<EditOrganizationFormProps> = ({ organizatio
                 </label>
                 <input
                   type="text"
-                  name="org_name"
-                  value={formData.org_name}
+                  name="organization_name"
+                  value={formData.organization_name}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.org_name ? 'border-red-600' : 'border-gray-600'
+                    errors.organization_name ? 'border-red-600' : 'border-gray-600'
                   }`}
                   placeholder="Enter organization name"
                   required
                 />
-                {errors.org_name && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_name}</p>
+                {errors.organization_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.organization_name}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Organization Type *
+                  Address
                 </label>
-                <select
-                  name="org_type"
-                  value={formData.org_type}
+                <textarea
+                  name="address"
+                  value={formData.address}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white focus:outline-none focus:border-gray-400 ${
-                    errors.org_type ? 'border-red-600' : 'border-gray-600'
+                  rows={3}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.address ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  required
-                >
-                  {organizationTypeOptions.map(option => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-                {errors.org_type && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_type}</p>
+                  placeholder="Enter organization address"
+                />
+                {errors.address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.address}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Contact Number
+                </label>
+                <input
+                  type="text"
+                  name="contact_number"
+                  value={formData.contact_number}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.contact_number ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter contact number"
+                />
+                {errors.contact_number && (
+                  <p className="text-red-400 text-sm mt-1">{errors.contact_number}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email Address
+                </label>
+                <input
+                  type="email"
+                  name="email_address"
+                  value={formData.email_address}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.email_address ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter email address"
+                />
+                {errors.email_address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email_address}</p>
                 )}
               </div>
             </div>

@@ -12,7 +12,7 @@ class OrganizationController extends Controller
     public function index()
     {
         try {
-            $organizations = Organization::with(['users', 'groups'])->get();
+            $organizations = Organization::with(['users'])->get();
             return response()->json([
                 'success' => true,
                 'data' => $organizations
@@ -29,8 +29,10 @@ class OrganizationController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'org_name' => 'required|string|max:255',
-            'org_type' => 'required|string|max:255',
+            'organization_name' => 'required|string|max:255',
+            'address' => 'nullable|string|max:500',
+            'contact_number' => 'nullable|string|max:50',
+            'email_address' => 'nullable|email|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -43,15 +45,15 @@ class OrganizationController extends Controller
 
         try {
             $organization = Organization::create([
-                'org_id' => Organization::generateOrgId(),
-                'org_name' => $request->org_name,
-                'org_type' => $request->org_type,
+                'organization_name' => $request->organization_name,
+                'address' => $request->address,
+                'contact_number' => $request->contact_number,
+                'email_address' => $request->email_address,
             ]);
 
-            // Try to log organization creation activity (but don't fail if logging fails)
             try {
                 ActivityLogService::organizationCreated(
-                    null, // For now, no authenticated user
+                    null,
                     $organization,
                     ['created_by' => 'system']
                 );
@@ -76,7 +78,7 @@ class OrganizationController extends Controller
     public function show($id)
     {
         try {
-            $organization = Organization::with(['users', 'groups'])->findOrFail($id);
+            $organization = Organization::with(['users'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $organization
@@ -93,8 +95,10 @@ class OrganizationController extends Controller
     public function update(Request $request, $id)
     {
         $validator = Validator::make($request->all(), [
-            'org_name' => 'sometimes|string|max:255',
-            'org_type' => 'sometimes|string|max:255',
+            'organization_name' => 'sometimes|string|max:255',
+            'address' => 'sometimes|nullable|string|max:500',
+            'contact_number' => 'sometimes|nullable|string|max:50',
+            'email_address' => 'sometimes|nullable|email|max:255',
         ]);
 
         if ($validator->fails()) {
@@ -108,13 +112,12 @@ class OrganizationController extends Controller
         try {
             $organization = Organization::findOrFail($id);
             $oldData = $organization->toArray();
-            $organization->update($request->only(['org_name', 'org_type']));
+            $organization->update($request->only(['organization_name', 'address', 'contact_number', 'email_address']));
 
-            // Try to log organization update activity (but don't fail if logging fails)
             try {
-                $changes = array_diff_assoc($request->only(['org_name', 'org_type']), $oldData);
+                $changes = array_diff_assoc($request->only(['organization_name', 'address', 'contact_number', 'email_address']), $oldData);
                 ActivityLogService::organizationUpdated(
-                    null, // For now, no authenticated user
+                    null,
                     $organization,
                     $changes
                 );
@@ -140,13 +143,12 @@ class OrganizationController extends Controller
     {
         try {
             $organization = Organization::findOrFail($id);
-            $orgName = $organization->org_name;
+            $orgName = $organization->organization_name;
             $organization->delete();
 
-            // Try to log organization deletion activity (but don't fail if logging fails)
             try {
                 ActivityLogService::organizationDeleted(
-                    null, // For now, no authenticated user
+                    null,
                     $id,
                     $orgName
                 );

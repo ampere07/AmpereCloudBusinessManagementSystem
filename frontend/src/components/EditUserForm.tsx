@@ -25,7 +25,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
     salutation: user?.salutation || '',
     full_name: user?.full_name || '',
     username: user?.username || '',
-    email: user?.email || '',
+    email: user?.email_address || '',
     mobile_number: user?.mobile_number || '',
     org_id: user?.org_id
   });
@@ -45,7 +45,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
         salutation: user.salutation || '',
         full_name: user.full_name || '',
         username: user.username || '',
-        email: user.email || '',
+        email: user.email_address || '',
         mobile_number: user.mobile_number || '',
         org_id: user.org_id
       });
@@ -157,7 +157,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
         dataToSend.username = formData.username.trim();
       }
       
-      if (formData.email && formData.email.trim() !== (user.email || '')) {
+      if (formData.email && formData.email.trim() !== (user.email_address || '')) {
         dataToSend.email = formData.email.trim();
       }
       
@@ -354,8 +354,8 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
                 >
                   <option value="">No Organization</option>
                   {organizations.map(org => (
-                    <option key={org.org_id} value={org.org_id}>
-                      {org.org_name} ({org.org_type})
+                    <option key={org.id} value={org.id}>
+                      {org.organization_name}
                     </option>
                   ))}
                 </select>

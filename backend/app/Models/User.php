@@ -20,7 +20,7 @@ class User extends Authenticatable
         'salutation',
         'full_name',
         'username',
-        'email',
+        'email_address',
         'mobile_number',
         'password_hash',
         'org_id',
@@ -48,16 +48,6 @@ class User extends Authenticatable
     public function organization()
     {
         return $this->belongsTo(Organization::class, 'org_id', 'org_id');
-    }
-
-    public function roles()
-    {
-        return $this->belongsToMany(Role::class, 'user_roles', 'user_id', 'role_id');
-    }
-
-    public function groups()
-    {
-        return $this->belongsToMany(Group::class, 'user_groups', 'user_id', 'group_id');
     }
 
     public static function generateUserId()

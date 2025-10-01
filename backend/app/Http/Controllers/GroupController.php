@@ -12,7 +12,7 @@ class GroupController extends Controller
     public function index()
     {
         try {
-            $groups = Group::with(['organization', 'users'])->get();
+            $groups = Group::with(['users'])->get();
             return response()->json([
                 'success' => true,
                 'data' => $groups
@@ -30,7 +30,6 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'required|string|max:255',
-            'org_id' => 'required|integer', // Temporarily removed exists validation
         ]);
 
         if ($validator->fails()) {
@@ -43,9 +42,7 @@ class GroupController extends Controller
 
         try {
             $group = Group::create([
-                'group_id' => Group::generateGroupId(),
                 'group_name' => $request->group_name,
-                'org_id' => $request->org_id,
             ]);
 
             // Try to log group creation activity (but don't fail if logging fails)
@@ -62,7 +59,7 @@ class GroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Group created successfully',
-                'data' => $group->load(['organization'])
+                'data' => $group
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -76,7 +73,7 @@ class GroupController extends Controller
     public function show($id)
     {
         try {
-            $group = Group::with(['organization', 'users'])->findOrFail($id);
+            $group = Group::with(['users'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $group
@@ -94,7 +91,6 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'sometimes|string|max:255',
-            'org_id' => 'sometimes|integer', // Temporarily removed exists validation
         ]);
 
         if ($validator->fails()) {
@@ -108,11 +104,11 @@ class GroupController extends Controller
         try {
             $group = Group::findOrFail($id);
             $oldData = $group->toArray();
-            $group->update($request->only(['group_name', 'org_id']));
+            $group->update($request->only(['group_name']));
 
             // Try to log group update activity (but don't fail if logging fails)
             try {
-                $changes = array_diff_assoc($request->only(['group_name', 'org_id']), $oldData);
+                $changes = array_diff_assoc($request->only(['group_name']), $oldData);
                 ActivityLogService::groupUpdated(
                     null, // For now, no authenticated user
                     $group,
@@ -125,7 +121,7 @@ class GroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Group updated successfully',
-                'data' => $group->load(['organization'])
+                'data' => $group
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -167,20 +163,5 @@ class GroupController extends Controller
         }
     }
 
-    public function getByOrganization($orgId)
-    {
-        try {
-            $groups = Group::where('org_id', $orgId)->with(['users'])->get();
-            return response()->json([
-                'success' => true,
-                'data' => $groups
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch groups',
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    }
+
 }

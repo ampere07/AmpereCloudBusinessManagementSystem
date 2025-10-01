@@ -19,6 +19,80 @@ use App\Models\User;
 use App\Services\ActivityLogService;
 
 // Authentication endpoints
+Route::post('/login-debug', function (Request $request) {
+    try {
+        $identifier = $request->input('email');
+        $password = $request->input('password');
+        
+        if (!$identifier || !$password) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email/username and password are required',
+                'step' => 'validation'
+            ], 400);
+        }
+        
+        // Step 1: Find user
+        $user = User::where('email_address', $identifier)
+                   ->orWhere('username', $identifier)
+                   ->first();
+        
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found',
+                'step' => 'user_lookup',
+                'identifier' => $identifier
+            ], 401);
+        }
+        
+        // Step 2: Check password
+        if (!Hash::check($password, $user->password_hash)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid password',
+                'step' => 'password_check'
+            ], 401);
+        }
+        
+        // Step 3: Load relationships
+        $user->load('organization', 'role', 'group');
+        
+        // Step 4: Get role
+        $primaryRole = $user->role ? $user->role->role_name : 'User';
+        
+        // Step 5: Build response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Login successful',
+            'step' => 'complete',
+            'data' => [
+                'user' => [
+                    'user_id' => $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email_address,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'role' => $primaryRole,
+                    'group' => $user->group,
+                    'organization' => $user->organization
+                ],
+                'token' => 'user_token_' . $user->id . '_' . time()
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Login failed',
+            'step' => 'exception',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+// Authentication endpoints
 Route::post('/login', function (Request $request) {
     $identifier = $request->input('email');
     $password = $request->input('password');
@@ -31,10 +105,10 @@ Route::post('/login', function (Request $request) {
     }
     
     try {
-        // Find user by email or username
-        $user = User::where('email', $identifier)
+        // Find user by email_address or username
+        $user = User::where('email_address', $identifier)
                    ->orWhere('username', $identifier)
-                   ->with(['organization', 'roles'])
+                   ->with(['organization', 'role', 'group'])
                    ->first();
         
         if (!$user) {
@@ -60,9 +134,8 @@ Route::post('/login', function (Request $request) {
         // Successful login
         ActivityLogService::userLogin($user->user_id, $user->username);
         
-        // Get user roles for response
-        $userRoles = $user->roles->pluck('role_name')->toArray();
-        $primaryRole = $userRoles[0] ?? 'User';
+        // Get user role for response
+        $primaryRole = $user->role ? $user->role->role_name : 'User';
         
         return response()->json([
             'status' => 'success',
@@ -71,12 +144,12 @@ Route::post('/login', function (Request $request) {
                 'user' => [
                     'user_id' => $user->user_id,
                     'username' => $user->username,
-                    'email' => $user->email,
+                    'email' => $user->email_address,
                     'full_name' => $user->full_name,
                     'salutation' => $user->salutation,
                     'mobile_number' => $user->mobile_number,
                     'role' => $primaryRole,
-                    'roles' => $userRoles,
+                    'group' => $user->group,
                     'organization' => $user->organization ? [
                         'org_id' => $user->organization->org_id,
                         'org_name' => $user->organization->org_name,
@@ -148,6 +221,44 @@ Route::prefix('organizations')->middleware('ensure.database.tables')->group(func
     Route::get('/{id}', [OrganizationController::class, 'show']);
     Route::put('/{id}', [OrganizationController::class, 'update']);
     Route::delete('/{id}', [OrganizationController::class, 'destroy']);
+});
+
+// Database diagnostic endpoint
+Route::get('/debug/organizations', function () {
+    try {
+        // Check if table exists
+        $tableExists = \Illuminate\Support\Facades\Schema::hasTable('organizations');
+        
+        if (!$tableExists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Organizations table does not exist',
+                'table_exists' => false
+            ]);
+        }
+        
+        // Get column information
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('organizations');
+        
+        // Try to get organizations
+        $organizations = \App\Models\Organization::all();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Organizations table exists',
+            'table_exists' => true,
+            'columns' => $columns,
+            'count' => $organizations->count(),
+            'data' => $organizations
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error checking organizations',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
 });
 
 // Group Management Routes
