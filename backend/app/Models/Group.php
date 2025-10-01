@@ -9,10 +9,13 @@ class Group extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'group_id';
-    protected $table = 'groups';
-    public $incrementing = false; // Disable auto-incrementing
+    protected $primaryKey = 'id';
+    protected $table = 'group_list';
+<<<<<<<<< Temporary merge branch 1
+=========
+    public $incrementing = true; // Enable auto-incrementing
     protected $keyType = 'int'; // Specify key type
+>>>>>>>>> Temporary merge branch 2
 
     protected $fillable = [
         'group_name',

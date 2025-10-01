@@ -8,8 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Application extends Model
 {
     use HasFactory;
-
-    protected $table = 'app_applications';
+    
+    protected $table = 'applications';
     
     // Disable Laravel's timestamp functionality
     public $timestamps = false;

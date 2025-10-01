@@ -20,6 +20,298 @@ use App\Http\Controllers\EmergencyLocationController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
+// Fixed, reliable location endpoints that won't change
+Route::post('/fixed/location/region', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addRegion']);
+Route::post('/fixed/location/city', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addCity']);
+Route::post('/fixed/location/barangay', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addBarangay']);
+
+// Emergency region endpoints directly accessible in API routes
+Route::post('/emergency/regions', [EmergencyLocationController::class, 'addRegion']);
+Route::post('/emergency/cities', [EmergencyLocationController::class, 'addCity']);
+Route::post('/emergency/barangays', [EmergencyLocationController::class, 'addBarangay']);
+
+// Alternative endpoint formats for maximum compatibility
+Route::post('/locations/add-region', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+Route::post('/locations/add-city', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+Route::post('/locations/add-barangay', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+
+// Direct routes for location management - top level for maximum compatibility
+Route::post('/locations/regions', [\App\Http\Controllers\Api\LocationApiController::class, 'addRegion']);
+Route::post('/locations/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'addCity']);
+Route::post('/locations/barangays', [\App\Http\Controllers\Api\LocationApiController::class, 'addBarangay']);
+Route::put('/locations/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::put('/locations/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::put('/locations/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'updateLocation']);
+Route::delete('/locations/region/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+Route::delete('/locations/city/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+Route::delete('/locations/barangay/{id}', [\App\Http\Controllers\Api\LocationApiController::class, 'deleteLocation']);
+
+// Direct test endpoint for troubleshooting
+Route::get('/locations-ping', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Locations API is responding',
+        'timestamp' => now()->toDateTimeString(),
+        'environment' => app()->environment(),
+        'routes' => [
+            '/locations/all' => 'getAllLocations',
+            '/locations/regions' => 'getRegions',
+            '/debug/model-test' => 'Database model test'
+        ]
+    ]);
+});
+
+// Mock data endpoint for locations
+Route::get('/locations/mock', function () {
+    return response()->json([
+        'success' => true,
+        'data' => [
+            [
+                'id' => 1,
+                'code' => '1',
+                'name' => 'Metro Manila',
+                'description' => 'National Capital Region',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'active_cities' => [
+                    [
+                        'id' => 101,
+                        'code' => '101',
+                        'name' => 'Quezon City',
+                        'description' => 'QC',
+                        'is_active' => true,
+                        'region_id' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 1001,
+                                'code' => '1001',
+                                'name' => 'Barangay A',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 101,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 1002,
+                                'code' => '1002',
+                                'name' => 'Barangay B',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 101,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ],
+                    [
+                        'id' => 102,
+                        'code' => '102',
+                        'name' => 'Manila',
+                        'description' => '',
+                        'is_active' => true,
+                        'region_id' => 1,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 1003,
+                                'code' => '1003',
+                                'name' => 'Barangay X',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 102,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 1004,
+                                'code' => '1004',
+                                'name' => 'Barangay Y',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 102,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ]
+                ]
+            ],
+            [
+                'id' => 2,
+                'code' => '2',
+                'name' => 'CALABARZON',
+                'description' => 'Region IV-A',
+                'is_active' => true,
+                'created_at' => now(),
+                'updated_at' => now(),
+                'active_cities' => [
+                    [
+                        'id' => 201,
+                        'code' => '201',
+                        'name' => 'Binangonan',
+                        'description' => '',
+                        'is_active' => true,
+                        'region_id' => 2,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                        'active_barangays' => [
+                            [
+                                'id' => 2001,
+                                'code' => '2001',
+                                'name' => 'Angono',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 201,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ],
+                            [
+                                'id' => 2002,
+                                'code' => '2002',
+                                'name' => 'Bilibiran',
+                                'description' => '',
+                                'is_active' => true,
+                                'city_id' => 201,
+                                'created_at' => now(),
+                                'updated_at' => now()
+                            ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
+    ]);
+});
+
+// Debug routes for troubleshooting
+Route::prefix('debug')->group(function () {
+    Route::get('/routes', [DebugController::class, 'listRoutes']);
+    Route::get('/location-test', [DebugController::class, 'locationTest']);
+    
+    // Direct location test routes - no controller method
+    Route::get('/location-echo', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Location echo test is working',
+            'timestamp' => now()
+        ]);
+    });
+    
+    // Direct model tests
+    Route::get('/model-test', function () {
+        try {
+            $regions = \App\Models\Region::count();
+            $cities = \App\Models\City::count();
+            $barangays = \App\Models\Barangay::count();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Model test successful',
+                'data' => [
+                    'region_count' => $regions,
+                    'city_count' => $cities,
+                    'barangay_count' => $barangays
+                ],
+                'database_config' => [
+                    'connection' => config('database.default'),
+                    'database' => config('database.connections.' . config('database.default') . '.database'),
+                ],
+                'tables_exist' => [
+                    'region_list' => \Illuminate\Support\Facades\Schema::hasTable('region_list'),
+                    'city_list' => \Illuminate\Support\Facades\Schema::hasTable('city_list'),
+                    'barangay_list' => \Illuminate\Support\Facades\Schema::hasTable('barangay_list')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Model test failed',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    });
+});
+
+// Authentication endpoints
+Route::post('/login-debug', function (Request $request) {
+    try {
+        $identifier = $request->input('email');
+        $password = $request->input('password');
+        
+        if (!$identifier || !$password) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Email/username and password are required',
+                'step' => 'validation'
+            ], 400);
+        }
+        
+        // Step 1: Find user
+        $user = User::where('email_address', $identifier)
+                   ->orWhere('username', $identifier)
+                   ->first();
+        
+        if (!$user) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'User not found',
+                'step' => 'user_lookup',
+                'identifier' => $identifier
+            ], 401);
+        }
+        
+        // Step 2: Check password
+        if (!Hash::check($password, $user->password_hash)) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid password',
+                'step' => 'password_check'
+            ], 401);
+        }
+        
+        // Step 3: Load relationships
+        $user->load('organization', 'role', 'group');
+        
+        // Step 4: Get role
+        $primaryRole = $user->role ? $user->role->role_name : 'User';
+        
+        // Step 5: Build response
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Login successful',
+            'step' => 'complete',
+            'data' => [
+                'user' => [
+                    'user_id' => $user->id,
+                    'username' => $user->username,
+                    'email' => $user->email_address,
+                    'first_name' => $user->first_name,
+                    'last_name' => $user->last_name,
+                    'role' => $primaryRole,
+                    'group' => $user->group,
+                    'organization' => $user->organization
+                ],
+                'token' => 'user_token_' . $user->id . '_' . time()
+            ]
+        ]);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => 'Login failed',
+            'step' => 'exception',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 // Authentication endpoints
 Route::post('/login', function (Request $request) {
     $identifier = $request->input('email');
@@ -348,17 +640,6 @@ Route::prefix('locations')->group(function () {
     Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
 });
 
-Route::prefix('city_list')->group(function () {
-    Route::get('/', [CityController::class, 'index']);
-    Route::get('/{id}', [CityController::class, 'show']);
-    Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
-});
-
-Route::prefix('region_list')->group(function () {
-    Route::get('/', [RegionController::class, 'index']);
-    Route::get('/{id}', [RegionController::class, 'show']);
-});
-
 // Plan Management Routes - Using app_plans table
 Route::prefix('plans')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\PlanApiController::class, 'index']);
@@ -438,4 +719,133 @@ Route::prefix('cities')->group(function () {
             ['id' => 5, 'region_id' => 1, 'name' => 'Manila']
         ]);
     });
+});
+
+// Routes to match frontend requests - using the *_list tables directly
+Route::prefix('region_list')->group(function () {
+    Route::get('/', [RegionController::class, 'index']);
+    Route::get('/{id}', [RegionController::class, 'show']);
+});
+
+Route::prefix('city_list')->group(function () {
+    Route::get('/', [CityController::class, 'index']);
+    Route::get('/{id}', [CityController::class, 'show']);
+    Route::get('/region/{regionId}', [CityController::class, 'getByRegion']);
+});
+
+Route::prefix('barangay_list')->group(function () {
+    Route::get('/', function() {
+        try {
+            $barangays = \App\Models\Barangay::all();
+            return response()->json([
+                'success' => true,
+                'data' => $barangays
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangays: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+    Route::get('/{id}', function($id) {
+        try {
+            $barangay = \App\Models\Barangay::findOrFail($id);
+            return response()->json([
+                'success' => true,
+                'data' => $barangay
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangay: ' . $e->getMessage()
+            ], 404);
+        }
+    });
+    Route::get('/city/{cityId}', function($cityId) {
+        try {
+            $barangays = \App\Models\Barangay::where('city_id', $cityId)->get();
+            return response()->json([
+                'success' => true,
+                'data' => $barangays
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching barangays: ' . $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
+// Add debug routes for location troubleshooting
+Route::get('/debug/location-tables', [\App\Http\Controllers\LocationDebugController::class, 'verifyTables']);
+
+// Add debug route to inspect database tables
+Route::get('/debug/tables', function () {
+    try {
+        $tables = [
+            'region_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM region_list LIMIT 10'),
+            'city_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM city_list LIMIT 10'),
+            'barangay_list' => \Illuminate\Support\Facades\DB::select('SELECT * FROM barangay_list LIMIT 10')
+        ];
+        
+        $hasAppTables = [
+            'app_regions' => \Illuminate\Support\Facades\Schema::hasTable('app_regions'),
+            'app_cities' => \Illuminate\Support\Facades\Schema::hasTable('app_cities'),
+            'app_barangays' => \Illuminate\Support\Facades\Schema::hasTable('app_barangays')
+        ];
+        
+        return response()->json([
+            'success' => true,
+            'list_tables' => $tables,
+            'has_app_tables' => $hasAppTables,
+            'models' => [
+                'Region' => get_class_vars('\\App\\Models\\Region'),
+                'City' => get_class_vars('\\App\\Models\\City'),
+                'Barangay' => get_class_vars('\\App\\Models\\Barangay')
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error checking tables: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Service Orders Management Routes
+Route::prefix('service-orders')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
+});
+
+// Also add underscore version for compatibility
+Route::prefix('service_orders')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
+});
+
+// Billing Details API Routes
+Route::prefix('billing-details')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'destroy']);
+});
+
+// Also add underscore version for compatibility
+Route::prefix('billing_details')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'destroy']);
 });
