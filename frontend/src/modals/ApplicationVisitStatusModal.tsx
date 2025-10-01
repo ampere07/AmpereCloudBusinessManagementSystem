@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { updateApplicationVisit } from '../services/applicationVisitService';
-import { getRegions, getCitiesByRegion, getBarangaysByCity, getCities } from '../services/cityService';
+import { getRegionsFromLocations, getCitiesByRegion, getBarangaysByCity, getCities } from '../services/cityService';
 import { getRegions as getRegionsLegacy } from '../services/regionService';
 import { Location } from '../types/location';
 
@@ -127,7 +127,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           console.log('Loading regions...');
           
           // First try the location management system
-          let regionsData = await getRegions();
+          let regionsData = await getRegionsFromLocations();
           console.log('Location system regions:', regionsData);
           
           // If no data from location system, try legacy regions service

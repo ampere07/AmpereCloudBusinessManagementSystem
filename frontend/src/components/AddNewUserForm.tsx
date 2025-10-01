@@ -115,15 +115,13 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
 
     setLoading(true);
     try {
-      // Clean and prepare the data with proper typing
       const dataToSend: CreateUserRequest = {
         full_name: formData.full_name.trim(),
-        username: formData.username.trim().toLowerCase(), // Ensure lowercase
-        email: formData.email.trim().toLowerCase(), // Ensure lowercase  
+        username: formData.username.trim().toLowerCase(),
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
       };
       
-      // Add optional fields only if they have values
       if (formData.salutation && formData.salutation.trim() && formData.salutation !== '') {
         dataToSend.salutation = formData.salutation.trim();
       }
@@ -132,7 +130,6 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
         dataToSend.mobile_number = formData.mobile_number.trim();
       }
       
-      // Only include org_id if it's a valid number greater than 0
       if (formData.org_id && formData.org_id > 0) {
         dataToSend.org_id = formData.org_id;
       }
@@ -181,7 +178,7 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
     <div className="p-6">
       <Breadcrumb items={[
         { label: 'Users', onClick: onCancel },
-        { label: 'Add a User' }
+        { label: 'Add User' }
       ]} />
       <div className="bg-gray-800 rounded-lg border border-gray-600 overflow-hidden text-white">
         <div className="p-6">
@@ -190,7 +187,7 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
               Add New User
             </h2>
             <p className="text-gray-400 text-sm">
-              Create a new user account
+              Create a new user account in the system
             </p>
           </div>
 
@@ -301,7 +298,7 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Organization (Optional)
+                  Organization
                 </label>
                 <select
                   name="org_id"
@@ -313,8 +310,8 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
                 >
                   <option value="">No Organization (Optional)</option>
                   {organizations.map(org => (
-                    <option key={org.org_id} value={org.org_id}>
-                      {org.org_name} ({org.org_type})
+                    <option key={org.id} value={org.id}>
+                      {org.organization_name}
                     </option>
                   ))}
                 </select>

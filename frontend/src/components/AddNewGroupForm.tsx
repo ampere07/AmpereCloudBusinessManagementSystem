@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { Group, Organization } from '../types/api';
-import { groupService, organizationService } from '../services/userService';
+import React, { useState } from 'react';
+import { Group } from '../types/api';
+import { groupService } from '../services/userService';
 import Breadcrumb from '../pages/Breadcrumb';
 
 interface AddNewGroupFormProps {
@@ -11,43 +11,25 @@ interface AddNewGroupFormProps {
 const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCreated }) => {
   const [formData, setFormData] = useState({
     group_name: '',
-    org_id: 0
+    fb_page_link: '',
+    fb_messenger_link: '',
+    template: '',
+    company_name: '',
+    portal_url: '',
+    hotline: '',
+    email: ''
   });
 
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  useEffect(() => {
-    loadOrganizations();
-  }, []);
-
-  const loadOrganizations = async () => {
-    try {
-      const response = await organizationService.getAllOrganizations();
-      if (response.success && response.data) {
-        setOrganizations(response.data);
-      }
-    } catch (error) {
-      console.error('Failed to load organizations:', error);
-    }
-  };
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     
-    if (name === 'org_id') {
-      const orgValue = value && value !== '' ? parseInt(value, 10) : 0;
-      setFormData(prev => ({
-        ...prev,
-        [name]: orgValue
-      }));
-    } else {
-      setFormData(prev => ({
-        ...prev,
-        [name]: value
-      }));
-    }
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -61,8 +43,8 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
       newErrors.group_name = 'Group name is required';
     }
 
-    if (!formData.org_id || formData.org_id <= 0) {
-      newErrors.org_id = 'Organization is required';
+    if (formData.email && formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = 'Please enter a valid email address';
     }
 
     setErrors(newErrors);
@@ -78,7 +60,13 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
     try {
       const dataToSend = {
         group_name: formData.group_name.trim(),
-        org_id: formData.org_id
+        fb_page_link: formData.fb_page_link.trim() || null,
+        fb_messenger_link: formData.fb_messenger_link.trim() || null,
+        template: formData.template.trim() || null,
+        company_name: formData.company_name.trim() || null,
+        portal_url: formData.portal_url.trim() || null,
+        hotline: formData.hotline.trim() || null,
+        email: formData.email.trim() || null
       };
       
       const response = await groupService.createGroup(dataToSend);
@@ -142,7 +130,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
               Add New Group
             </h2>
             <p className="text-gray-400 text-sm">
-              Create a new group within an organization
+              Create a new group in the system
             </p>
           </div>
 
@@ -153,8 +141,8 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
           )}
 
           <div className="max-w-2xl">
-            <div className="grid grid-cols-1 gap-6">
-              <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Group Name *
                 </label>
@@ -176,26 +164,134 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Organization *
+                  Company Name
                 </label>
-                <select
-                  name="org_id"
-                  value={formData.org_id || ''}
+                <input
+                  type="text"
+                  name="company_name"
+                  value={formData.company_name}
                   onChange={handleInputChange}
-                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white focus:outline-none focus:border-gray-400 ${
-                    errors.org_id ? 'border-red-600' : 'border-gray-600'
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.company_name ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  required
-                >
-                  <option value="">Select Organization</option>
-                  {organizations.map(org => (
-                    <option key={org.org_id} value={org.org_id}>
-                      {org.org_name} ({org.org_type})
-                    </option>
-                  ))}
-                </select>
-                {errors.org_id && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_id}</p>
+                  placeholder="Enter company name"
+                />
+                {errors.company_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.company_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.email ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter email address"
+                />
+                {errors.email && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Hotline
+                </label>
+                <input
+                  type="text"
+                  name="hotline"
+                  value={formData.hotline}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.hotline ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter hotline number"
+                />
+                {errors.hotline && (
+                  <p className="text-red-400 text-sm mt-1">{errors.hotline}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Portal URL
+                </label>
+                <input
+                  type="url"
+                  name="portal_url"
+                  value={formData.portal_url}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.portal_url ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter portal URL"
+                />
+                {errors.portal_url && (
+                  <p className="text-red-400 text-sm mt-1">{errors.portal_url}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Facebook Page Link
+                </label>
+                <input
+                  type="url"
+                  name="fb_page_link"
+                  value={formData.fb_page_link}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.fb_page_link ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter Facebook page link"
+                />
+                {errors.fb_page_link && (
+                  <p className="text-red-400 text-sm mt-1">{errors.fb_page_link}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Facebook Messenger Link
+                </label>
+                <input
+                  type="url"
+                  name="fb_messenger_link"
+                  value={formData.fb_messenger_link}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.fb_messenger_link ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter Facebook Messenger link"
+                />
+                {errors.fb_messenger_link && (
+                  <p className="text-red-400 text-sm mt-1">{errors.fb_messenger_link}</p>
+                )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Template
+                </label>
+                <textarea
+                  name="template"
+                  value={formData.template}
+                  onChange={handleInputChange}
+                  rows={3}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.template ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter template content"
+                />
+                {errors.template && (
+                  <p className="text-red-400 text-sm mt-1">{errors.template}</p>
                 )}
               </div>
             </div>

@@ -36,8 +36,8 @@ const GroupManagement: React.FC = () => {
 
   const filteredGroups = groups.filter(group =>
     group.group_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.organization?.org_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    group.organization?.org_type.toLowerCase().includes(searchTerm.toLowerCase())
+    (group.company_name && group.company_name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (group.email && group.email.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   const totalItems = filteredGroups.length;
@@ -97,7 +97,7 @@ const GroupManagement: React.FC = () => {
 
   const handleGroupUpdated = (updatedGroup: Group) => {
     setGroups(prev => prev.map(group => 
-      group.group_id === updatedGroup.group_id ? updatedGroup : group
+      group.id === updatedGroup.id ? updatedGroup : group
     ));
     setEditingGroup(null);
   };
@@ -114,10 +114,10 @@ const GroupManagement: React.FC = () => {
     if (!deletingGroup) return;
 
     try {
-      const response = await groupService.deleteGroup(deletingGroup.group_id);
+      const response = await groupService.deleteGroup(deletingGroup.id);
       
       if (response.success) {
-        setGroups(prev => prev.filter(group => group.group_id !== deletingGroup.group_id));
+        setGroups(prev => prev.filter(group => group.id !== deletingGroup.id));
         setDeletingGroup(null);
       } else {
         const errorMessage = response.message || 'Failed to delete group';
@@ -150,14 +150,14 @@ const GroupManagement: React.FC = () => {
               Group Management
             </h2>
             <p className="text-gray-400 text-sm">
-              Manage user groups and their permissions
+              Manage user groups and their settings
             </p>
           </div>
 
           <div className="flex justify-between items-center mb-8">
             <input
               type="text"
-              placeholder="Search groups by name or organization..."
+              placeholder="Search groups by name, company, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-100 w-80"
@@ -181,10 +181,10 @@ const GroupManagement: React.FC = () => {
                   <thead>
                     <tr className="">
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Group Name</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Organization</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Organization Type</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Created</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Updated</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Company Name</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Hotline</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Modified Date</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Actions</th>
                     </tr>
                   </thead>
@@ -197,21 +197,21 @@ const GroupManagement: React.FC = () => {
                       </tr>
                     ) : (
                       currentGroups.map((group: Group) => (
-                        <tr key={group.group_id} className="border-b border-gray-700 hover:bg-gray-750">
+                        <tr key={group.id} className="border-b border-gray-700 hover:bg-gray-750">
                           <td className="px-4 py-4 text-sm text-white font-medium">
                             {group.group_name}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {group.organization?.org_name || 'No Organization'}
+                            {group.company_name || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {group.organization?.org_type || '-'}
+                            {group.email || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {new Date(group.created_at).toLocaleDateString()}
+                            {group.hotline || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {new Date(group.updated_at).toLocaleDateString()}
+                            {group.modified_date ? new Date(group.modified_date).toLocaleDateString() : '-'}
                           </td>
                           <td className="px-4 py-4">
                             <div className="flex gap-2">

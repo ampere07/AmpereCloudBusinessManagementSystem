@@ -14,8 +14,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run()
     {
-        // Call the LocationSeeder to populate location data
+        // Call seeders in order
         $this->call([
+            InitialDataSeeder::class,
             LocationSeeder::class,
         ]);
         

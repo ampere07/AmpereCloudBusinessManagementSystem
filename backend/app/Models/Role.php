@@ -9,25 +9,16 @@ class Role extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'role_id';
+    protected $primaryKey = 'id';
     protected $table = 'roles';
 
     protected $fillable = [
-        'role_id',
         'role_name',
+        'description',
     ];
 
     public function users()
     {
-        return $this->belongsToMany(User::class, 'user_roles', 'role_id', 'user_id');
-    }
-
-    public static function generateRoleId()
-    {
-        do {
-            $roleId = random_int(10000000, 99999999);
-        } while (self::where('role_id', $roleId)->exists());
-        
-        return $roleId;
+        return $this->hasMany(User::class, 'role_id', 'id');
     }
 }

@@ -9,33 +9,26 @@ class Organization extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'org_id';
+    protected $primaryKey = 'id';
     protected $table = 'organizations';
-    public $incrementing = false; // Disable auto-incrementing
-    protected $keyType = 'int'; // Specify key type
+    public $timestamps = true;
 
     protected $fillable = [
-        'org_id',
-        'org_name',
-        'org_type',
+        'organization_name',
+        'address',
+        'contact_number',
+        'email_address',
+        'created_by_user_id',
+        'updated_by_user_id',
+    ];
+
+    protected $casts = [
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
     public function users()
     {
-        return $this->hasMany(User::class, 'org_id', 'org_id');
-    }
-
-    public function groups()
-    {
-        return $this->hasMany(Group::class, 'org_id', 'org_id');
-    }
-
-    public static function generateOrgId()
-    {
-        do {
-            $orgId = random_int(10000000, 99999999);
-        } while (self::where('org_id', $orgId)->exists());
-        
-        return $orgId;
+        return $this->hasMany(User::class, 'org_id', 'id');
     }
 }
