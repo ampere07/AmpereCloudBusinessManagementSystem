@@ -41,8 +41,8 @@ class JobOrder extends Model
         'router_reading_image_url',
         'port_label_image_url',
         'house_front_picture_url',
-        'created_by_user_id',
-        'updated_by_user_id',
+        'created_by_user_email',
+        'updated_by_user_email',
     ];
 
     protected $dates = [
@@ -61,15 +61,5 @@ class JobOrder extends Model
     public function application()
     {
         return $this->belongsTo(Application::class, 'application_id', 'id');
-    }
-
-    public function createdByUser()
-    {
-        return $this->belongsTo(User::class, 'created_by_user_id');
-    }
-
-    public function updatedByUser()
-    {
-        return $this->belongsTo(User::class, 'updated_by_user_id');
     }
 }

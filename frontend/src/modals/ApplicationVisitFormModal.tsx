@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { createApplicationVisit, ApplicationVisitData } from '../services/applicationVisitService';
+import { UserData } from '../types/api';
 
 interface ApplicationVisitFormModalProps {
   isOpen: boolean;
@@ -40,7 +41,21 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   onSave,
   applicationData
 }) => {
-  // Log initial application data
+  const getCurrentUser = (): UserData | null => {
+    try {
+      const authData = localStorage.getItem('authData');
+      if (authData) {
+        return JSON.parse(authData);
+      }
+    } catch (error) {
+      console.error('Error getting current user:', error);
+    }
+    return null;
+  };
+
+  const currentUser = getCurrentUser();
+  const currentUserEmail = currentUser?.email || 'unknown@ampere.com';
+
   useEffect(() => {
     if (isOpen && applicationData) {
       console.log('DEBUG - Initial ApplicationVisitFormModal data:', {
@@ -84,8 +99,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       visitType: 'Initial Visit',
       visitNotes: '',
       status: 'Scheduled',
-      createdBy: 'ravenampere0123@gmail.com',
-      modifiedBy: 'ravenampere0123@gmail.com'
+      createdBy: currentUserEmail,
+      modifiedBy: currentUserEmail
     };
   });
 
@@ -159,7 +174,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       applicationId,
       parsedAppId: appId,
       assignedEmail: formData.assignedEmail,
-      visitStatus: formData.status
+      visitStatus: formData.status,
+      createdByEmail: currentUserEmail
     });
     
     return {
@@ -169,7 +185,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       visit_with: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : (formData.visitWith === 'Other' ? formData.visitWithOther : null),
       visit_status: formData.status,
       visit_remarks: formData.remarks || formData.visitNotes || null,
-      application_status: 'Scheduled'
+      application_status: 'Scheduled',
+      created_by_user_email: currentUserEmail,
+      updated_by_user_email: currentUserEmail
     };
   };
 

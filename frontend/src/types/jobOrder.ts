@@ -20,13 +20,16 @@ export interface JobOrder {
   Middle_Initial?: string | null;
   Last_Name?: string | null;
   Contact_Number?: string | null;
+  Mobile_Number?: string | null;
   Second_Contact_Number?: string | null;
+  Secondary_Mobile_Number?: string | null;
   Email_Address?: string | null;
   Applicant_Email_Address?: string | null;
   
   // Address Information
   Address?: string | null;
   Location?: string | null;
+  Village?: string | null;
   Barangay?: string | null;
   City?: string | null;
   Region?: string | null;
@@ -35,6 +38,7 @@ export interface JobOrder {
   
   // Service Information
   Choose_Plan?: string | null;
+  Desired_Plan?: string | null;
   Connection_Type?: string | null;
   Usage_Type?: string | null;
   Username?: string | null;

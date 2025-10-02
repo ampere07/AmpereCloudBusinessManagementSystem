@@ -57,6 +57,8 @@ const JobOrderPage: React.FC = () => {
         console.log('Fetching job orders from job_orders table...');
         const response = await getJobOrders();
         console.log('Job Orders API Response:', response);
+        console.log('Job Orders API Response - First Item:', response.data?.[0]);
+        console.log('Job Orders API - Secondary_Mobile_Number in first item:', response.data?.[0]?.Secondary_Mobile_Number);
         
         if (response.success && Array.isArray(response.data)) {
           console.log(`Found ${response.data.length} job orders`);
@@ -120,7 +122,15 @@ const JobOrderPage: React.FC = () => {
 
   // Get client full address
   const getClientFullAddress = (jobOrder: JobOrder): string => {
-    return jobOrder.Address || 'No address provided';
+    const addressParts = [
+      jobOrder.Address,
+      jobOrder.Village,
+      jobOrder.Barangay,
+      jobOrder.City,
+      jobOrder.Region
+    ].filter(Boolean);
+    
+    return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
   };
 
   // Generate location items from cities data
@@ -399,40 +409,42 @@ const JobOrderPage: React.FC = () => {
                         className={`hover:bg-gray-800 cursor-pointer ${selectedJobOrder?.id === jobOrder.id ? 'bg-gray-800' : ''}`}
                         onClick={() => handleRowClick(jobOrder)}
                       >
-                        <td className="px-4 py-1 whitespace-nowrap text-gray-300 text-xs">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {formatDate(jobOrder.Timestamp)}
                         </td>
-                        <td className="px-4 py-1 whitespace-nowrap text-gray-300 text-xs">
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
                           {getClientFullName(jobOrder)}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 max-w-xs truncate text-xs whitespace-nowrap overflow-hidden">
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs whitespace-nowrap overflow-hidden">
                           {getClientFullAddress(jobOrder)}
                         </td>
-                        <td className="px-4 py-1 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
                           <StatusText status={jobOrder.Onsite_Status} type="onsite" />
                         </td>
-                        <td className="px-4 py-1 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
                           <StatusText status={jobOrder.Billing_Status} type="billing" />
                         </td>
-                        <td className="px-4 py-1 text-gray-300 max-w-xs truncate text-xs">
+                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
                           {jobOrder.Status_Remarks || 'No remarks'}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 text-xs">
+                        <td className="px-4 py-3 text-gray-300 text-xs">
                           {jobOrder.Assigned_Email || 'Unassigned'}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs">
                           {jobOrder.Contract_Template || 'Standard'}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-center text-xs">
-                          {jobOrder.Billing_Day || '-'}
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-center text-xs">
+                          {(jobOrder.Billing_Day === '0' || Number(jobOrder.Billing_Day) === 0)
+                            ? 'Every end of month' 
+                            : (jobOrder.Billing_Day || '-')}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs">
                           {formatPrice(jobOrder.Installation_Fee)}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs">
                           {jobOrder.Modified_By || 'System'}
                         </td>
-                        <td className="px-4 py-1 text-gray-300 whitespace-nowrap text-xs">
+                        <td className="px-4 py-3 text-gray-300 whitespace-nowrap text-xs">
                           {formatDate(jobOrder.Modified_Date)}
                         </td>
                       </tr>

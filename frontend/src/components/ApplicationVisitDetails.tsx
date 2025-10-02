@@ -14,33 +14,22 @@ interface ApplicationVisitDetailsProps {
   applicationVisit: {
     id: string;
     application_id: string;
-    scheduled_date?: string;
-    visit_by?: string;
+    timestamp?: string;
+    assigned_email?: string;
+    visit_by_user_id?: string;
     visit_with?: string;
-    visit_with_other?: string;
-    visit_type?: string;
     visit_status?: string;
     visit_remarks?: string;
-    visit_notes?: string;
-    first_name: string;
-    middle_initial?: string;
-    last_name: string;
-    contact_number: string;
-    second_contact_number?: string;
-    email_address: string;
-    address: string;
-    location?: string;
-    barangay?: string;
-    city?: string;
-    region?: string;
-    choose_plan?: string;
-    installation_landmark?: string;
-    assigned_email?: string;
-    modified_by?: string;
-    modified_date?: string;
+    application_status?: string;
+    full_name: string;
+    full_address: string;
+    referred_by?: string;
+    updated_by_user_email: string;
     created_at?: string;
     updated_at?: string;
-    application_status?: string;
+    first_name?: string;
+    middle_initial?: string;
+    last_name?: string;
     [key: string]: any;
   };
   onClose: () => void;
@@ -119,9 +108,8 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     }
   };
 
-  // Create full name from components
   const getFullName = () => {
-    return `${currentVisitData.first_name || ''} ${currentVisitData.middle_initial || ''} ${currentVisitData.last_name || ''}`.trim();
+    return currentVisitData.full_name || `${currentVisitData.first_name || ''} ${currentVisitData.middle_initial || ''} ${currentVisitData.last_name || ''}`.trim();
   };
 
   // Handle status update
@@ -170,7 +158,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             title="Edit Visit Details"
           >
             <Edit size={16} className="mr-1" />
-            <span>Edit Visit</span>
+            <span>Visit Status</span>
           </button>
           <button className="hover:text-white text-gray-400"><ArrowLeft size={16} /></button>
           <button className="hover:text-white text-gray-400"><ArrowRight size={16} /></button>
@@ -250,7 +238,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Contact Number</div>
               <div className="text-white flex-1 flex items-center">
-                {currentVisitData.contact_number || applicationDetails?.mobile_number || 'Not provided'}
+                {applicationDetails?.mobile_number || 'Not provided'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Phone size={16} />
                 </button>
@@ -263,8 +251,8 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Second Contact Number</div>
               <div className="text-white flex-1 flex items-center">
-                {currentVisitData.second_contact_number || applicationDetails?.secondary_number || 'Not provided'}
-                {currentVisitData.second_contact_number && (
+                {applicationDetails?.secondary_mobile_number || 'Not provided'}
+                {applicationDetails?.secondary_mobile_number && (
                   <>
                     <button className="text-gray-400 hover:text-white ml-2">
                       <Phone size={16} />
@@ -280,7 +268,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Email Address</div>
               <div className="text-white flex-1 flex items-center">
-                {currentVisitData.email_address || applicationDetails?.email || 'Not provided'}
+                {applicationDetails?.email_address || 'Not provided'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Mail size={16} />
                 </button>
@@ -289,24 +277,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Address</div>
-              <div className="text-white flex-1">{currentVisitData.address || 'Not provided'}</div>
-            </div>
-            
-            <div className="flex border-b border-gray-800 py-2">
-              <div className="w-40 text-gray-400 text-sm">Location</div>
-              <div className="text-white flex-1">
-                {[
-                  currentVisitData.barangay, 
-                  currentVisitData.city, 
-                  currentVisitData.region
-                ].filter(Boolean).join(', ') || 'Location not specified'}
-              </div>
+              <div className="text-white flex-1">{currentVisitData.full_address || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Chosen Plan</div>
               <div className="text-white flex-1 flex items-center">
-                {currentVisitData.choose_plan || 'Not specified'}
+                {applicationDetails?.desired_plan || 'Not specified'}
                 <button className="ml-2 text-gray-400">
                   <Info size={16} />
                 </button>
@@ -315,26 +292,24 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Landmark</div>
-              <div className="text-white flex-1">{currentVisitData.installation_landmark || 'Not provided'}</div>
+              <div className="text-white flex-1">{applicationDetails?.landmark || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit By</div>
-              <div className="text-white flex-1">{currentVisitData.visit_by || 'Not assigned'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_by_user_id || 'Not assigned'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit With</div>
               <div className="text-white flex-1">
-                {currentVisitData.visit_with === 'Other' 
-                  ? (currentVisitData.visit_with_other || 'Other (not specified)') 
-                  : (currentVisitData.visit_with || 'None')}
+                {currentVisitData.visit_with || 'None'}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Type</div>
-              <div className="text-white flex-1">{currentVisitData.visit_type || 'Initial Visit'}</div>
+              <div className="text-white flex-1">Initial Visit</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
@@ -346,7 +321,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Notes</div>
-              <div className="text-white flex-1">{currentVisitData.visit_notes || 'No notes'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_remarks || 'No notes'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
@@ -370,14 +345,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Modified By</div>
-              <div className="text-white flex-1">{currentVisitData.modified_by || 'Not modified'}</div>
+              <div className="text-white flex-1">{currentVisitData.updated_by_user_email || 'System'}</div>
             </div>
             
             <div className="flex py-2">
               <div className="w-40 text-gray-400 text-sm">Modified Date</div>
               <div className="text-white flex-1">
-                {currentVisitData.modified_date || 
-                 (currentVisitData.updated_at ? new Date(currentVisitData.updated_at).toLocaleString() : 'Not modified')}
+                {formatDate(currentVisitData.updated_at) || 'Not modified'}
               </div>
             </div>
           </div>
@@ -402,18 +376,19 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         onSave={handleSaveJOForm}
         applicationData={{
           id: currentVisitData.application_id,
-          first_name: currentVisitData.first_name,
-          middle_initial: currentVisitData.middle_initial,
-          last_name: currentVisitData.last_name,
-          email: currentVisitData.email_address,
-          mobile: currentVisitData.contact_number,
-          mobile_alt: currentVisitData.second_contact_number,
-          address_line: currentVisitData.address,
-          barangay: currentVisitData.barangay,
-          city: currentVisitData.city,
-          region: currentVisitData.region,
-          plan_id: currentVisitData.choose_plan,
-          landmark: currentVisitData.installation_landmark,
+          referred_by: applicationDetails?.referred_by || currentVisitData.referred_by,
+          first_name: applicationDetails?.first_name || currentVisitData.first_name,
+          middle_initial: applicationDetails?.middle_initial || currentVisitData.middle_initial,
+          last_name: applicationDetails?.last_name || currentVisitData.last_name,
+          email_address: applicationDetails?.email_address,
+          mobile_number: applicationDetails?.mobile_number,
+          secondary_mobile_number: applicationDetails?.secondary_mobile_number,
+          installation_address: applicationDetails?.installation_address,
+          barangay: applicationDetails?.barangay,
+          city: applicationDetails?.city,
+          region: applicationDetails?.region,
+          desired_plan: applicationDetails?.desired_plan,
+          landmark: applicationDetails?.landmark,
         }}
       />
 
@@ -424,26 +399,26 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         onSave={handleSaveEditedVisit}
         visitData={{
           id: currentVisitData.id,
-          first_name: currentVisitData.first_name,
-          middle_initial: currentVisitData.middle_initial,
-          last_name: currentVisitData.last_name,
-          contact_number: currentVisitData.contact_number,
-          second_contact_number: currentVisitData.second_contact_number,
-          email_address: currentVisitData.email_address,
-          address: currentVisitData.address,
-          barangay: currentVisitData.barangay,
-          city: currentVisitData.city,
-          region: currentVisitData.region,
-          choose_plan: currentVisitData.choose_plan,
-          visit_remarks: currentVisitData.visit_remarks,
-          status_remarks: currentVisitData.status_remarks,
-          visit_notes: currentVisitData.visit_notes,
-          assigned_email: currentVisitData.assigned_email,
-          visit_by: currentVisitData.visit_by,
-          visit_with: currentVisitData.visit_with,
-          visit_with_other: currentVisitData.visit_with_other,
-          application_status: currentVisitData.application_status,
-          visit_status: currentVisitData.visit_status
+          first_name: applicationDetails?.first_name || currentVisitData.first_name || '',
+          middle_initial: applicationDetails?.middle_initial || currentVisitData.middle_initial || '',
+          last_name: applicationDetails?.last_name || currentVisitData.last_name || '',
+          contact_number: applicationDetails?.mobile_number || '',
+          second_contact_number: applicationDetails?.secondary_mobile_number || '',
+          email_address: applicationDetails?.email_address || '',
+          address: currentVisitData.full_address || '',
+          barangay: applicationDetails?.barangay || '',
+          city: applicationDetails?.city || '',
+          region: applicationDetails?.region || '',
+          choose_plan: applicationDetails?.desired_plan || '',
+          visit_remarks: currentVisitData.visit_remarks || '',
+          status_remarks: currentVisitData.status_remarks || '',
+          visit_notes: currentVisitData.visit_remarks || '',
+          assigned_email: currentVisitData.assigned_email || '',
+          visit_by: currentVisitData.visit_by_user_id || '',
+          visit_with: currentVisitData.visit_with || '',
+          visit_with_other: '',
+          application_status: currentVisitData.application_status || '',
+          visit_status: currentVisitData.visit_status || ''
         }}
       />
     </div>

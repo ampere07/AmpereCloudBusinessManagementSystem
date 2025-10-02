@@ -24,8 +24,10 @@ export interface ApplicationVisitData {
   house_front_picture_url?: string | null;
   created_at?: string;
   created_by_user_id?: number | null;
+  created_by_user_email?: string;
   updated_at?: string;
   updated_by_user_id?: number | null;
+  updated_by_user_email?: string;
 }
 
 export const createApplicationVisit = async (visitData: ApplicationVisitData) => {
