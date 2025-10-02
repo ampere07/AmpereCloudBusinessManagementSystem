@@ -13,13 +13,57 @@ class ApplicationVisitController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $visits = ApplicationVisit::all();
+            $visits = ApplicationVisit::with('application')->get();
+            
+            $visitsWithApplicationData = $visits->map(function ($visit) {
+                $application = $visit->application;
+                
+                $fullName = $application 
+                    ? trim("{$application->first_name} {$application->middle_initial} {$application->last_name}")
+                    : '';
+                
+                $fullAddress = $application
+                    ? trim("{$application->installation_address}, {$application->village}, {$application->barangay}, {$application->city}, {$application->region}")
+                    : '';
+                
+                return [
+                    'id' => $visit->id,
+                    'application_id' => $visit->application_id,
+                    'timestamp' => $visit->timestamp,
+                    'assigned_email' => $visit->assigned_email,
+                    'visit_by_user_id' => $visit->visit_by_user_id,
+                    'visit_with' => $visit->visit_with,
+                    'visit_status' => $visit->visit_status,
+                    'visit_remarks' => $visit->visit_remarks,
+                    'application_status' => $visit->application_status,
+                    'status_remarks_id' => $visit->status_remarks_id,
+                    'image1_url' => $visit->image1_url,
+                    'image2_url' => $visit->image2_url,
+                    'image3_url' => $visit->image3_url,
+                    'house_front_picture_url' => $visit->house_front_picture_url,
+                    'created_at' => $visit->created_at,
+                    'created_by_user_email' => $visit->created_by_user_email,
+                    'updated_at' => $visit->updated_at,
+                    'updated_by_user_email' => $visit->updated_by_user_email,
+                    'full_name' => $fullName,
+                    'full_address' => $fullAddress,
+                    'referred_by' => $application ? $application->referred_by : null,
+                    'first_name' => $application ? $application->first_name : null,
+                    'middle_initial' => $application ? $application->middle_initial : null,
+                    'last_name' => $application ? $application->last_name : null,
+                    'installation_address' => $application ? $application->installation_address : null,
+                    'village' => $application ? $application->village : null,
+                    'barangay' => $application ? $application->barangay : null,
+                    'city' => $application ? $application->city : null,
+                    'region' => $application ? $application->region : null,
+                ];
+            });
             
             Log::info("Fetched {$visits->count()} application visits from database");
             
             return response()->json([
                 'success' => true,
-                'data' => $visits,
+                'data' => $visitsWithApplicationData,
                 'count' => $visits->count()
             ]);
         } catch (\Exception $e) {
@@ -51,13 +95,14 @@ class ApplicationVisitController extends Controller
                 'image1_url' => 'nullable|string|max:255',
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
-                'house_front_picture_url' => 'nullable|string|max:255'
+                'house_front_picture_url' => 'nullable|string|max:255',
+                'created_by_user_email' => 'nullable|email|max:255',
+                'updated_by_user_email' => 'nullable|email|max:255'
             ]);
 
             Log::info('Validation passed', ['validated_data' => $validatedData]);
 
             $validatedData['timestamp'] = now();
-            $validatedData['created_by_user_id'] = auth()->id();
             
             Log::info('Creating application visit', ['data' => $validatedData]);
             
@@ -180,10 +225,9 @@ class ApplicationVisitController extends Controller
                 'image1_url' => 'nullable|string|max:255',
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
-                'house_front_picture_url' => 'nullable|string|max:255'
+                'house_front_picture_url' => 'nullable|string|max:255',
+                'updated_by_user_email' => 'nullable|email|max:255'
             ]);
-            
-            $validatedData['updated_by_user_id'] = auth()->id();
             
             $visit->update($validatedData);
             

@@ -31,9 +31,43 @@ class JobOrderController extends Controller
                 \Log::info('First job order example:', $jobOrders->first()->toArray());
             }
 
+            $formattedJobOrders = $jobOrders->map(function ($jobOrder) {
+                $application = $jobOrder->application;
+                
+                return [
+                    'id' => $jobOrder->id,
+                    'JobOrder_ID' => $jobOrder->id,
+                    'Timestamp' => $jobOrder->timestamp ? $jobOrder->timestamp->format('Y-m-d H:i:s') : null,
+                    'Installation_Fee' => $jobOrder->installation_fee,
+                    'Billing_Day' => $jobOrder->billing_day,
+                    'Onsite_Status' => $jobOrder->onsite_status,
+                    'Billing_Status' => $jobOrder->billing_status_id,
+                    'Status_Remarks' => $jobOrder->status_remarks_id,
+                    'Assigned_Email' => null,
+                    'Contract_Template' => $jobOrder->modem_router_sn,
+                    'Modified_By' => $jobOrder->created_by_user_email,
+                    'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
+                    'Username' => $jobOrder->username,
+                    
+                    'First_Name' => $application ? $application->first_name : null,
+                    'Middle_Initial' => $application ? $application->middle_initial : null,
+                    'Last_Name' => $application ? $application->last_name : null,
+                    'Address' => $application ? $application->installation_address : null,
+                    'Village' => $application ? $application->village : null,
+                    'City' => $application ? $application->city : null,
+                    'Region' => $application ? $application->region : null,
+                    'Barangay' => $application ? $application->barangay : null,
+                    'Email_Address' => $application ? $application->email_address : null,
+                    'Mobile_Number' => $application ? $application->mobile_number : null,
+                    'Secondary_Mobile_Number' => $application ? $application->secondary_mobile_number : null,
+                    'Desired_Plan' => $application ? $application->desired_plan : null,
+                    'Referred_By' => $application ? $application->referred_by : null,
+                ];
+            });
+
             return response()->json([
                 'success' => true,
-                'data' => $jobOrders,
+                'data' => $formattedJobOrders,
                 'table' => 'job_orders',
                 'count' => $jobOrders->count()
             ]);
@@ -58,8 +92,11 @@ class JobOrderController extends Controller
                 'application_id' => 'nullable|integer|exists:applications,id',
                 'timestamp' => 'nullable|date',
                 'installation_fee' => 'nullable|numeric|min:0',
-                'billing_day' => 'nullable|integer|min:1',
+                'billing_day' => 'nullable|integer|min:0',
                 'onsite_status' => 'nullable|string|max:255',
+                'username' => 'nullable|string|max:255',
+                'created_by_user_email' => 'nullable|email|max:255',
+                'updated_by_user_email' => 'nullable|email|max:255',
             ]);
 
             if ($validator->fails()) {
@@ -117,8 +154,11 @@ class JobOrderController extends Controller
                 'application_id' => 'nullable|integer|exists:applications,id',
                 'timestamp' => 'nullable|date',
                 'installation_fee' => 'nullable|numeric|min:0',
-                'billing_day' => 'nullable|integer|min:1',
+                'billing_day' => 'nullable|integer|min:0',
                 'onsite_status' => 'nullable|string|max:255',
+                'username' => 'nullable|string|max:255',
+                'created_by_user_email' => 'nullable|email|max:255',
+                'updated_by_user_email' => 'nullable|email|max:255',
             ]);
 
             if ($validator->fails()) {

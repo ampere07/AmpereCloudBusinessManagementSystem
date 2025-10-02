@@ -8,35 +8,23 @@ import { getApplication } from '../services/applicationService';
 interface ApplicationVisit {
   id: string;
   application_id: string;
-  scheduled_date: string;
-  visit_by: string;
+  timestamp: string;
+  assigned_email?: string;
+  visit_by_user_id?: string;
   visit_with?: string;
-  visit_with_other?: string;
-  visit_type: string;
   visit_status: string;
   visit_remarks?: string;
   status_remarks?: string;
+  application_status?: string;
+  full_name: string;
+  full_address: string;
   referred_by?: string;
-  visit_notes?: string;
-  first_name: string;
-  middle_initial?: string;
-  last_name: string;
-  contact_number: string;
-  second_contact_number?: string;
-  email_address: string;
-  address: string;
-  location: string;
-  barangay?: string;
-  city?: string;
-  region?: string;
-  choose_plan?: string;
-  installation_landmark?: string;
-  assigned_email?: string;
-  modified_by: string;
-  modified_date: string;
+  updated_by_user_email: string;
   created_at: string;
   updated_at: string;
-  application_status?: string;
+  first_name?: string;
+  middle_initial?: string;
+  last_name?: string;
 }
 
 interface LocationItem {
@@ -85,59 +73,28 @@ const ApplicationVisit: React.FC = () => {
             console.log('First item example:', response.data[0]);
           }
           
-          // Map the API response to our interface using actual database columns
-          const visits: ApplicationVisit[] = response.data.map((visit: any) => {
-            // Log the raw visit data to see what we're working with
-            console.log('Raw visit data from API:', visit);
-            
-            const mappedVisit = {
-              id: visit.ID || visit.id || '',
-              application_id: visit.Application_ID || '',
-              scheduled_date: visit.Timestamp || visit.created_at || '',
-              visit_by: visit.Visit_By || '',
-              visit_with: visit.Visit_With || '',
-              visit_with_other: visit.Visit_With_Other || '',
-              visit_type: 'Initial Visit', // Not in database, keeping default
-              visit_status: visit.Visit_Status || 'Scheduled',
-              visit_remarks: visit.Visit_Remarks || '',
-              status_remarks: visit.Status_Remarks || '',
-              referred_by: visit.Referred_By || '',
-              visit_notes: visit.Remarks || '',
-              first_name: visit.First_Name || '',
-              middle_initial: visit.Middle_Initial || '',
-              last_name: visit.Last_Name || '',
-              contact_number: visit.Contact_Number || '',
-              second_contact_number: visit.Second_Contact_Number || '',
-              email_address: visit.Email_Address || visit.Applicant_Email_Address || '',
-              address: visit.Address || '',
-              location: visit.Location || '',
-              barangay: visit.Barangay || '',
-              city: visit.City || '',
-              region: visit.Region || '',
-              choose_plan: visit.Choose_Plan || '',
-              installation_landmark: visit.Installation_Landmark || '',
-              assigned_email: visit.Assigned_Email || '',
-              modified_by: visit.Modified_By || '',
-              modified_date: visit.Modified_Date || '',
-              created_at: visit.Timestamp || visit.created_at || '',
-              updated_at: visit.updated_at || visit.Modified_Date || '',
-              application_status: visit.Application_Status || 'Pending',
-            };
-            
-            // Log the mapped result to compare
-            console.log('Mapped visit result:', {
-              originalId: visit.ID || visit.id,
-              mappedId: mappedVisit.id,
-              originalFirstName: visit.First_Name,
-              mappedFirstName: mappedVisit.first_name,
-              originalVisitStatus: visit.Visit_Status,
-              mappedVisitStatus: mappedVisit.visit_status,
-              originalAddress: visit.Address,
-              mappedAddress: mappedVisit.address
-            });
-            
-            return mappedVisit;
-          });
+          // Map the API response to our interface
+          const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
+            id: visit.id || '',
+            application_id: visit.application_id || '',
+            timestamp: visit.timestamp || visit.created_at || '',
+            assigned_email: visit.assigned_email || '',
+            visit_by_user_id: visit.visit_by_user_id || '',
+            visit_with: visit.visit_with || '',
+            visit_status: visit.visit_status || 'Scheduled',
+            visit_remarks: visit.visit_remarks || '',
+            status_remarks: visit.status_remarks || '',
+            application_status: visit.application_status || 'Pending',
+            full_name: visit.full_name || '',
+            full_address: visit.full_address || '',
+            referred_by: visit.referred_by || '',
+            updated_by_user_email: visit.updated_by_user_email || 'System',
+            created_at: visit.created_at || '',
+            updated_at: visit.updated_at || '',
+            first_name: visit.first_name || '',
+            middle_initial: visit.middle_initial || '',
+            last_name: visit.last_name || '',
+          }));
           
           setApplicationVisits(visits);
           setError(null);
@@ -172,12 +129,12 @@ const ApplicationVisit: React.FC = () => {
     }
   ];
 
-  // Add unique locations from the data
   const locationSet = new Set<string>();
   applicationVisits.forEach(visit => {
-    const location = (visit.location || visit.city || '').toLowerCase();
-    if (location) {
-      locationSet.add(location);
+    const addressParts = visit.full_address.split(',');
+    const city = addressParts.length > 3 ? addressParts[3].trim() : '';
+    if (city) {
+      locationSet.add(city.toLowerCase());
     }
   });
   const uniqueLocations = Array.from(locationSet);
@@ -186,22 +143,24 @@ const ApplicationVisit: React.FC = () => {
     if (location) {
       locationItems.push({
         id: location,
-        name: location.charAt(0).toUpperCase() + location.slice(1), // Capitalize
-        count: applicationVisits.filter(visit => 
-          (visit.location || visit.city || '').toLowerCase() === location).length
+        name: location.charAt(0).toUpperCase() + location.slice(1),
+        count: applicationVisits.filter(visit => {
+          const addressParts = visit.full_address.split(',');
+          const city = addressParts.length > 3 ? addressParts[3].trim() : '';
+          return city.toLowerCase() === location;
+        }).length
       });
     }
   });
 
-  // Filter application visits based on location and search query
   const filteredVisits = applicationVisits.filter(visit => {
-    const visitLocation = (visit.location || visit.city || '').toLowerCase();
-    const matchesLocation = selectedLocation === 'all' || visitLocation === selectedLocation;
+    const addressParts = visit.full_address.split(',');
+    const city = addressParts.length > 3 ? addressParts[3].trim().toLowerCase() : '';
+    const matchesLocation = selectedLocation === 'all' || city === selectedLocation;
     
-    const fullName = `${visit.first_name} ${visit.middle_initial || ''} ${visit.last_name}`.toLowerCase();
     const matchesSearch = searchQuery === '' || 
-                         fullName.includes(searchQuery.toLowerCase()) ||
-                         visit.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         visit.full_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         visit.full_address.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          (visit.assigned_email || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesLocation && matchesSearch;
@@ -454,10 +413,10 @@ const ApplicationVisit: React.FC = () => {
                         onClick={() => handleRowClick(visit)}
                       >
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {formatDate(visit.scheduled_date)}
+                          {formatDate(visit.timestamp)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {`${visit.first_name} ${visit.middle_initial || ''} ${visit.last_name}`.trim()}
+                          {visit.full_name}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
                           {visit.assigned_email || 'Unassigned'}
@@ -475,25 +434,25 @@ const ApplicationVisit: React.FC = () => {
                           {visit.referred_by || 'None'}
                         </td>
                         <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
-                          {visit.address || 'No address'}
+                          {visit.full_address || 'No address'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visit_by || 'Unassigned'}
+                          {visit.visit_by_user_id || 'Unassigned'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
                           {visit.visit_with || 'None'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visit_with_other || 'N/A'}
+                          N/A
                         </td>
                         <td className="px-4 py-3 text-gray-300 max-w-xs truncate">
                           {visit.visit_remarks || 'No remarks'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.modified_date || formatDate(visit.updated_at)}
+                          {formatDate(visit.updated_at)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.modified_by || 'System'}
+                          {visit.updated_by_user_email}
                         </td>
                       </tr>
                     ))

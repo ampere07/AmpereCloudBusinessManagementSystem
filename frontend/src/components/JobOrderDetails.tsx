@@ -10,6 +10,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
+  // Debug logging
+  console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
+  console.log('JobOrderDetails - Secondary_Mobile_Number:', jobOrder.Secondary_Mobile_Number);
+  console.log('JobOrderDetails - Second_Contact_Number:', jobOrder.Second_Contact_Number);
+  
   // Format date function
   const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return 'Not scheduled';
@@ -34,6 +39,19 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
       jobOrder.Middle_Initial ? jobOrder.Middle_Initial + '.' : '',
       jobOrder.Last_Name || ''
     ].filter(Boolean).join(' ').trim() || 'Unknown Client';
+  };
+
+  // Get client full address
+  const getClientFullAddress = (): string => {
+    const addressParts = [
+      jobOrder.Address,
+      jobOrder.Village,
+      jobOrder.Barangay,
+      jobOrder.City,
+      jobOrder.Region
+    ].filter(Boolean);
+    
+    return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
   };
 
   // Helper function for status text color
@@ -166,7 +184,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Billing Day:</div>
-              <div className="text-white flex-1">{jobOrder.Billing_Day || 'Not set'}</div>
+              <div className="text-white flex-1">
+                {(jobOrder.Billing_Day === '0' || Number(jobOrder.Billing_Day) === 0)
+                  ? 'Every end of month' 
+                  : (jobOrder.Billing_Day || 'Not set')}
+              </div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
@@ -186,14 +208,14 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Full Address of Client:</div>
-              <div className="text-white flex-1">{jobOrder.Address || 'No address provided'}</div>
+              <div className="text-white flex-1">{getClientFullAddress()}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Contact Number:</div>
               <div className="text-white flex-1 flex items-center">
-                {jobOrder.Contact_Number || 'Not provided'}
-                {jobOrder.Contact_Number && (
+                {jobOrder.Mobile_Number || jobOrder.Contact_Number || 'Not provided'}
+                {(jobOrder.Mobile_Number || jobOrder.Contact_Number) && (
                   <>
                     <button className="text-gray-400 hover:text-white ml-2">
                       <Phone size={16} />
@@ -209,8 +231,8 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Second Contact Number:</div>
               <div className="text-white flex-1 flex items-center">
-                {jobOrder.Second_Contact_Number || 'Not provided'}
-                {jobOrder.Second_Contact_Number && (
+                {jobOrder.Secondary_Mobile_Number || 'Not provided'}
+                {jobOrder.Secondary_Mobile_Number && (
                   <>
                     <button className="text-gray-400 hover:text-white ml-2">
                       <Phone size={16} />
@@ -241,14 +263,24 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Village:</div>
+              <div className="text-white flex-1">{jobOrder.Village || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">City:</div>
               <div className="text-white flex-1">{jobOrder.City || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Region:</div>
+              <div className="text-white flex-1">{jobOrder.Region || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Choose Plan:</div>
               <div className="text-white flex-1 flex items-center">
-                {jobOrder.Choose_Plan || 'Not specified'}
+                {jobOrder.Desired_Plan || jobOrder.Choose_Plan || 'Not specified'}
                 <button className="text-gray-400 hover:text-white ml-2">
                   <Info size={16} />
                 </button>

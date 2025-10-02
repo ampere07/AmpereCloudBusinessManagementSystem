@@ -472,7 +472,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.firstName}
                 onChange={(e) => handleInputChange('firstName', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -487,7 +486,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 onChange={(e) => handleInputChange('middleInitial', e.target.value)}
                 maxLength={1}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -501,7 +499,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.lastName}
                 onChange={(e) => handleInputChange('lastName', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -515,7 +512,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.contactNumber}
                 onChange={(e) => handleInputChange('contactNumber', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -529,7 +525,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.secondContactNumber || ''}
                 onChange={(e) => handleInputChange('secondContactNumber', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -543,7 +538,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.email}
                 onChange={(e) => handleInputChange('email', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -557,7 +551,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 value={formData.address}
                 onChange={(e) => handleInputChange('address', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -569,8 +562,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               <input
                 type="text"
                 value={formData.barangay}
+                onChange={(e) => handleInputChange('barangay', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -582,8 +575,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               <input
                 type="text"
                 value={formData.city}
+                onChange={(e) => handleInputChange('city', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -595,8 +588,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               <input
                 type="text"
                 value={formData.region}
+                onChange={(e) => handleInputChange('region', e.target.value)}
                 className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
               />
             </div>
 
@@ -605,12 +598,16 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choose Plan
               </label>
-              <input
-                type="text"
+              <select
                 value={formData.choosePlan}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                readOnly
-              />
+                onChange={(e) => handleInputChange('choosePlan', e.target.value)}
+                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+              >
+                <option value="SwitchConnect - P799">SwitchConnect - P799</option>
+                <option value="SwitchConnect - P999">SwitchConnect - P999</option>
+                <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
+                <option value="SwitchConnect - P1599">SwitchConnect - P1599</option>
+              </select>
             </div>
 
             {/* Remarks */}

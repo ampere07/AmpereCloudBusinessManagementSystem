@@ -32,6 +32,7 @@ interface JOFormData {
   installationFee: number;
   contractTemplate: string;
   billingDay: string;
+  isLastDayOfMonth: boolean;
   onsiteStatus: string;
   assignedEmail: string;
   modifiedBy: string;
@@ -64,27 +65,28 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   const [formData, setFormData] = useState<JOFormData>({
     timestamp: new Date().toLocaleString('sv-SE').replace(' ', ' '),
     provider: '',
-    status: 'Confirmed',
-    referredBy: applicationData?.referred_by || '',
-    firstName: applicationData?.first_name || '',
-    middleInitial: applicationData?.middle_initial || '',
-    lastName: applicationData?.last_name || '',
-    contactNumber: applicationData?.mobile_number || '',
-    email: applicationData?.email_address || '',
-    address: applicationData?.installation_address || '',
-    barangay: applicationData?.barangay || '',
-    city: applicationData?.city || '',
-    region: applicationData?.region || '',
-    choosePlan: applicationData?.desired_plan || '',
+    status: '',
+    referredBy: '',
+    firstName: '',
+    middleInitial: '',
+    lastName: '',
+    contactNumber: '',
+    email: '',
+    address: '',
+    barangay: '',
+    city: '',
+    region: '',
+    choosePlan: '',
     remarks: '',
     installationFee: 0.00,
     contractTemplate: '0',
     billingDay: '30',
+    isLastDayOfMonth: false,
     onsiteStatus: 'In Progress',
     assignedEmail: '',
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('sv-SE').replace(' ', ' '),
-    installationLandmark: applicationData?.landmark || ''
+    installationLandmark: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -173,29 +175,50 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (applicationData) {
-      console.log('JO Form - Application Data:', applicationData);
+    console.log('JO Form Modal - useEffect triggered');
+    console.log('JO Form Modal - Full applicationData:', JSON.stringify(applicationData, null, 2));
+    
+    if (applicationData && isOpen) {
+      console.log('JO Form - Application Data exists and modal is open');
+      console.log('JO Form - Referred By value:', applicationData.referred_by);
+      console.log('JO Form - First Name:', applicationData.first_name);
+      console.log('JO Form - Last Name:', applicationData.last_name);
       
-      setFormData(prev => ({
-        ...prev,
-        referredBy: applicationData.referred_by || prev.referredBy,
-        firstName: applicationData.first_name || prev.firstName,
-        middleInitial: applicationData.middle_initial || prev.middleInitial,
-        lastName: applicationData.last_name || prev.lastName,
-        contactNumber: applicationData.mobile_number || prev.contactNumber,
-        email: applicationData.email_address || prev.email,
-        address: applicationData.installation_address || prev.address,
-        barangay: applicationData.barangay || prev.barangay,
-        city: applicationData.city || prev.city,
-        region: applicationData.region || prev.region,
-        choosePlan: applicationData.desired_plan || prev.choosePlan,
-        installationLandmark: applicationData.landmark || prev.installationLandmark
-      }));
+      setFormData(prev => {
+        const newFormData = {
+          ...prev,
+          referredBy: applicationData.referred_by || '',
+          firstName: applicationData.first_name || '',
+          middleInitial: applicationData.middle_initial || '',
+          lastName: applicationData.last_name || '',
+          contactNumber: applicationData.mobile_number || '',
+          email: applicationData.email_address || '',
+          address: applicationData.installation_address || '',
+          barangay: applicationData.barangay || '',
+          city: applicationData.city || '',
+          region: applicationData.region || '',
+          choosePlan: applicationData.desired_plan || '',
+          installationLandmark: applicationData.landmark || ''
+        };
+        
+        console.log('JO Form - New form data to set:', JSON.stringify(newFormData, null, 2));
+        return newFormData;
+      });
+    } else {
+      console.log('JO Form - No applicationData available or modal closed');
     }
-  }, [applicationData]);
+  }, [applicationData, isOpen]);
 
-  const handleInputChange = (field: keyof JOFormData, value: string | number) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const handleInputChange = (field: keyof JOFormData, value: string | number | boolean) => {
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      
+      if (field === 'isLastDayOfMonth' && value === true) {
+        newData.billingDay = '0';
+      }
+      
+      return newData;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -222,8 +245,15 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           ...prev,
           [field]: increment ? prev[field] + 0.01 : Math.max(0, prev[field] - 0.01)
         };
+      } else if (field === 'billingDay') {
+        const currentValue = parseInt(prev[field]) || 1;
+        const newValue = increment ? currentValue + 1 : Math.max(1, currentValue - 1);
+        return {
+          ...prev,
+          [field]: newValue.toString()
+        };
       } else {
-        const currentValue = field === 'contractTemplate' ? parseInt(prev[field]) || 0 : parseInt(prev[field]) || 1;
+        const currentValue = parseInt(prev[field]) || 0;
         const newValue = increment ? currentValue + 1 : Math.max(0, currentValue - 1);
         return {
           ...prev,
@@ -268,10 +298,12 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     
     // Validate billing day
     const billingDayNum = parseInt(formData.billingDay);
-    if (isNaN(billingDayNum) || billingDayNum < 1) {
-      newErrors.billingDay = 'Billing Day must be at least 1';
-    } else if (billingDayNum > 1000) {
-      newErrors.billingDay = 'Billing Day cannot exceed 1000';
+    if (!formData.isLastDayOfMonth) {
+      if (isNaN(billingDayNum) || billingDayNum < 1) {
+        newErrors.billingDay = 'Billing Day must be at least 1';
+      } else if (billingDayNum > 1000) {
+        newErrors.billingDay = 'Billing Day cannot exceed 1000';
+      }
     }
     
     // Validate contract template (must be a valid number if provided)
@@ -306,17 +338,24 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       new Date(data.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
       currentTimestamp;
 
+    const generateUsername = (): string => {
+      const lastName = (data.lastName || '').trim().toLowerCase().replace(/\s+/g, '');
+      const mobileNumber = (data.contactNumber || '').trim().replace(/[^0-9]/g, '');
+      return `${lastName}${mobileNumber}`;
+    };
+
     return {
       application_id: applicationId,
       timestamp: formattedTimestamp,
       installation_fee: data.installationFee || 0,
-      billing_day: parseInt(data.billingDay) || 30,
+      billing_day: data.isLastDayOfMonth ? 0 : (parseInt(data.billingDay) || 30),
       modem_router_sn: toNullIfEmpty(data.contractTemplate),
       onsite_status: data.onsiteStatus || 'In Progress',
       onsite_remarks: toNullIfEmpty(data.remarks),
       contract_link: null,
-      created_by_user_id: null,
-      updated_by_user_id: null,
+      username: generateUsername(),
+      created_by_user_email: data.modifiedBy,
+      updated_by_user_email: data.modifiedBy,
     };
   };
 
@@ -483,9 +522,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   onChange={(e) => handleInputChange('status', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
                 >
+                  <option value="" disabled>Select Status</option>
                   <option value="Confirmed">Confirmed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="In Progress">In Progress</option>
+                  <option value="For Confirmation">For Confirmation</option>
+                  <option value="Cancelled">Cancelled</option>
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
@@ -762,26 +802,43 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   max="1000"
                   value={formData.billingDay}
                   onChange={(e) => handleInputChange('billingDay', e.target.value)}
-                  className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none ${errors.billingDay ? 'border-red-500' : ''}`}
+                  disabled={formData.isLastDayOfMonth}
+                  className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed ${errors.billingDay ? 'border-red-500' : ''}`}
                 />
                 <div className="flex">
                   <button
                     type="button"
                     onClick={() => handleNumberChange('billingDay', false)}
-                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700"
+                    disabled={formData.isLastDayOfMonth}
+                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Minus size={16} />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleNumberChange('billingDay', true)}
-                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700"
+                    disabled={formData.isLastDayOfMonth}
+                    className="px-3 py-2 text-gray-400 hover:text-white border-l border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus size={16} />
                   </button>
                 </div>
               </div>
-              {parseInt(formData.billingDay) > 1000 && (
+              
+              <div className="mt-2 flex items-center">
+                <input
+                  type="checkbox"
+                  id="isLastDayOfMonth"
+                  checked={formData.isLastDayOfMonth}
+                  onChange={(e) => handleInputChange('isLastDayOfMonth', e.target.checked)}
+                  className="w-4 h-4 bg-gray-800 border-gray-700 rounded text-orange-600 focus:ring-orange-500 focus:ring-2"
+                />
+                <label htmlFor="isLastDayOfMonth" className="ml-2 text-sm text-gray-300 cursor-pointer">
+                  Always use last day of the month
+                </label>
+              </div>
+              
+              {parseInt(formData.billingDay) > 1000 && !formData.isLastDayOfMonth && (
                 <p className="text-orange-500 text-xs mt-1 flex items-center">
                   <span className="mr-1">⚠</span>
                   Billing Day count cannot exceed 1000
@@ -792,42 +849,46 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           </div>
 
           <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Onsite Status<span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.onsiteStatus}
-                  onChange={(e) => handleInputChange('onsiteStatus', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                >
-                  <option value="In Progress">In Progress</option>
-                  <option value="Completed">Completed</option>
-                  <option value="Pending">Pending</option>
-                  <option value="Cancelled">Cancelled</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+            {formData.status === 'Confirmed' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Onsite Status<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.onsiteStatus}
+                    onChange={(e) => handleInputChange('onsiteStatus', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  >
+                    <option value="In Progress">In Progress</option>
+                    <option value="Done">Done</option>
+                    <option value="Failed">Failed</option>
+                    <option value="Reschedule">Reschedule</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+                </div>
               </div>
-            </div>
+            )}
 
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Assigned Email<span className="text-red-500">*</span>
-              </label>
-              <div className="relative">
-                <select
-                  value={formData.assignedEmail}
-                  onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                >
-                  <option value=""></option>
-                  <option value="tech1@ampere.com">tech1@ampere.com</option>
-                  <option value="tech2@ampere.com">tech2@ampere.com</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+            {formData.status === 'Confirmed' && formData.onsiteStatus !== 'Failed' && (
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Assigned Email<span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.assignedEmail}
+                    onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  >
+                    <option value=""></option>
+                    <option value="tech1@ampere.com">tech1@ampere.com</option>
+                    <option value="tech2@ampere.com">tech2@ampere.com</option>
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+                </div>
               </div>
-            </div>
+            )}
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">

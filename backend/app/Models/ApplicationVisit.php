@@ -28,8 +28,8 @@ class ApplicationVisit extends Model
         'image2_url',
         'image3_url',
         'house_front_picture_url',
-        'created_by_user_id',
-        'updated_by_user_id'
+        'created_by_user_email',
+        'updated_by_user_email'
     ];
     
     protected $casts = [
@@ -38,8 +38,6 @@ class ApplicationVisit extends Model
         'timestamp' => 'datetime',
         'visit_by_user_id' => 'integer',
         'status_remarks_id' => 'integer',
-        'created_by_user_id' => 'integer',
-        'updated_by_user_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -52,15 +50,5 @@ class ApplicationVisit extends Model
     public function visitByUser()
     {
         return $this->belongsTo(User::class, 'visit_by_user_id', 'id');
-    }
-    
-    public function createdByUser()
-    {
-        return $this->belongsTo(User::class, 'created_by_user_id', 'id');
-    }
-    
-    public function updatedByUser()
-    {
-        return $this->belongsTo(User::class, 'updated_by_user_id', 'id');
     }
 }
