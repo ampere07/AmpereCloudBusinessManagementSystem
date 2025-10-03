@@ -1,21 +1,58 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
   ExternalLink, Mail, Edit
 } from 'lucide-react';
 import { updateJobOrder } from '../services/jobOrderService';
+import { getBillingStatuses, BillingStatus } from '../services/lookupService';
 import { JobOrderDetailsProps } from '../types/jobOrder';
+import JobOrderDoneFormModal from '../modals/JobOrderDoneFormModal';
+import JobOrderEditFormModal from '../modals/JobOrderEditFormModal';
 
 const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isDoneModalOpen, setIsDoneModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
   
-  // Debug logging
   console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
   console.log('JobOrderDetails - Secondary_Mobile_Number:', jobOrder.Secondary_Mobile_Number);
   console.log('JobOrderDetails - Second_Contact_Number:', jobOrder.Second_Contact_Number);
   
-  // Format date function
+  // Fetch billing statuses on mount
+  useEffect(() => {
+    const fetchBillingStatuses = async () => {
+      try {
+        const statuses = await getBillingStatuses();
+        setBillingStatuses(statuses);
+      } catch (error) {
+        console.error('Error fetching billing statuses:', error);
+      }
+    };
+    fetchBillingStatuses();
+  }, []);
+  
+  // Get billing status name by ID
+  const getBillingStatusName = (statusId?: number | null): string => {
+    if (!statusId) return 'Not Set';
+    
+    // If billing statuses haven't loaded yet, show a default based on common IDs
+    if (billingStatuses.length === 0) {
+      const defaultStatuses: { [key: number]: string } = {
+        1: 'In Progress',
+        2: 'Active',
+        3: 'Suspended',
+        4: 'Cancelled',
+        5: 'Overdue'
+      };
+      return defaultStatuses[statusId] || 'Loading...';
+    }
+    
+    const status = billingStatuses.find(s => s.id === statusId);
+    return status ? status.status_name : `Unknown (ID: ${statusId})`;
+  };
+  
   const formatDate = (dateStr?: string | null): string => {
     if (!dateStr) return 'Not scheduled';
     try {
@@ -25,14 +62,12 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     }
   };
   
-  // Format price function
   const formatPrice = (price?: string | number | null): string => {
     if (price === null || price === undefined) return '₱0.00';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Get client full name
   const getClientFullName = (): string => {
     return [
       jobOrder.First_Name || '',
@@ -41,7 +76,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     ].filter(Boolean).join(' ').trim() || 'Unknown Client';
   };
 
-  // Get client full address
   const getClientFullAddress = (): string => {
     const addressParts = [
       jobOrder.Address,
@@ -54,7 +88,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
   };
 
-  // Helper function for status text color
   const getStatusColor = (status: string | undefined | null, type: 'onsite' | 'billing') => {
     if (!status) return 'text-gray-400';
     
@@ -84,12 +117,139 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     }
   };
   
-  // Handle status update
+  const handleDoneClick = () => {
+    setIsDoneModalOpen(true);
+  };
+
+  const handleEditClick = () => {
+    setIsEditModalOpen(true);
+  };
+
+  const handleDoneSave = async (formData: any) => {
+    try {
+      setLoading(true);
+      
+      if (!jobOrder.id) {
+        throw new Error('Cannot update job order: Missing ID');
+      }
+      
+      await updateJobOrder(jobOrder.id, {
+        Onsite_Status: formData.onsiteStatus,
+        Modified_By: formData.modifiedBy,
+        Modified_Date: formData.modifiedDate,
+        Contract_Link: formData.contractLink,
+        Contract_Template: formData.contractTemplate,
+        Assigned_Email: formData.assignedEmail
+      });
+      
+      alert('Job Order updated successfully!');
+      setIsDoneModalOpen(false);
+    } catch (err: any) {
+      setError(`Failed to update job order: ${err.message}`);
+      console.error('Update error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditSave = async (formData: any) => {
+    try {
+      setLoading(true);
+      
+      if (!jobOrder.id) {
+        throw new Error('Cannot update job order: Missing ID');
+      }
+      
+      await updateJobOrder(jobOrder.id, {
+        Referred_By: formData.referredBy,
+        Date_Installed: formData.dateInstalled,
+        Usage_Type: formData.usageType,
+        First_Name: formData.firstName,
+        Middle_Initial: formData.middleInitial,
+        Last_Name: formData.lastName,
+        Contact_Number: formData.contactNumber,
+        Second_Contact_Number: formData.secondContactNumber,
+        Email_Address: formData.email,
+        Address: formData.address,
+        Barangay: formData.barangay,
+        City: formData.city,
+        Region: formData.region,
+        Address_Coordinates: formData.addressCoordinates,
+        Choose_Plan: formData.choosePlan,
+        Status: formData.status,
+        Connection_Type: formData.connectionType,
+        Router_Model: formData.routerModel,
+        Modem_SN: formData.modemSN,
+        Provider: formData.provider,
+        LCP: formData.lcp,
+        NAP: formData.nap,
+        PORT: formData.port,
+        VLAN: formData.vlan,
+        Username: formData.username,
+        Onsite_Status: formData.onsiteStatus,
+        Onsite_Remarks: formData.onsiteRemarks,
+        Modified_By: formData.modifiedBy,
+        Modified_Date: formData.modifiedDate,
+        Contract_Link: formData.contractLink,
+        Contract_Template: formData.contractTemplate,
+        Assigned_Email: formData.assignedEmail,
+        Item_Name_1: formData.itemName1,
+        Visit_By: formData.visitBy,
+        Visit_With: formData.visitWith,
+        Visit_With_Other: formData.visitWithOther,
+        Status_Remarks: formData.statusRemarks
+      });
+      
+      alert('Job Order updated successfully!');
+      setIsEditModalOpen(false);
+    } catch (err: any) {
+      setError(`Failed to update job order: ${err.message}`);
+      console.error('Update error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const handleApproveClick = async () => {
+    try {
+      setLoading(true);
+      
+      if (!jobOrder.id) {
+        throw new Error('Cannot approve job order: Missing ID');
+      }
+      
+      const approvedStatusId = 2;
+      
+      await updateJobOrder(jobOrder.id, {
+        billing_status_id: approvedStatusId,
+        Modified_By: 'current_user@ampere.com',
+        Modified_Date: new Date().toISOString()
+      });
+      
+      jobOrder.billing_status_id = approvedStatusId;
+      jobOrder.Billing_Status_ID = approvedStatusId;
+      
+      alert('Job Order billing status approved successfully!');
+      window.location.reload();
+    } catch (err: any) {
+      setError(`Failed to approve job order: ${err.message}`);
+      console.error('Approve error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const shouldShowApproveButton = () => {
+    const onsiteStatus = (jobOrder.Onsite_Status || '').toLowerCase();
+    const billingStatusId = jobOrder.billing_status_id || jobOrder.Billing_Status_ID;
+    
+    return onsiteStatus === 'done' && billingStatusId === 1;
+  };
+  
   const handleStatusUpdate = async (newStatus: string) => {
     try {
       setLoading(true);
       
-      // Check if id exists, otherwise use a fallback
       if (!jobOrder.id) {
         throw new Error('Cannot update job order: Missing ID');
       }
@@ -101,7 +261,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
       
       jobOrder.Onsite_Status = newStatus;
       
-      // Show success message
       alert(`Status updated to ${newStatus}`);
     } catch (err: any) {
       setError(`Failed to update status: ${err.message}`);
@@ -113,7 +272,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   
   return (
     <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
-      {/* Header */}
       <div className="bg-gray-800 p-3 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center">
           <h2 className="text-white font-medium">{getClientFullName()}</h2>
@@ -127,9 +285,18 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
           <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
             <ExternalLink size={16} />
           </button>
+          {shouldShowApproveButton() && (
+            <button 
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-sm flex items-center"
+              onClick={handleApproveClick}
+              disabled={loading}
+            >
+              <span>Approve</span>
+            </button>
+          )}
           <button 
             className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center"
-            onClick={() => handleStatusUpdate('Done')}
+            onClick={handleDoneClick}
             disabled={loading}
           >
             <span>Done</span>
@@ -147,9 +314,12 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         </div>
       </div>
       
-      {/* Action Buttons */}
       <div className="bg-gray-900 py-3 border-b border-gray-700 flex items-center justify-center px-4">
-        <button className="flex flex-col items-center text-center p-2 rounded-md">
+        <button 
+          onClick={handleEditClick}
+          disabled={loading}
+          className="flex flex-col items-center text-center p-2 rounded-md hover:bg-gray-800 transition-colors"
+        >
           <div className="bg-orange-600 p-2 rounded-full">
             <div className="text-white">
               <Edit size={18} />
@@ -159,14 +329,12 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         </button>
       </div>
       
-      {/* Error display */}
       {error && (
         <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-400 p-3 m-3 rounded">
           {error}
         </div>
       )}
       
-      {/* Job Order Details */}
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto py-6 px-4 bg-gray-950">
           <div className="space-y-4">
@@ -177,8 +345,8 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Billing Status:</div>
-              <div className={`${getStatusColor(jobOrder.Billing_Status, 'billing')} flex-1 capitalize`}>
-                {jobOrder.Billing_Status || 'Not set'}
+              <div className={`${getStatusColor(getBillingStatusName(jobOrder.Billing_Status_ID || jobOrder.billing_status_id), 'billing')} flex-1 capitalize`}>
+                {getBillingStatusName(jobOrder.Billing_Status_ID || jobOrder.billing_status_id)}
               </div>
             </div>
             
@@ -353,6 +521,20 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
           </div>
         </div>
       </div>
+
+      <JobOrderDoneFormModal
+        isOpen={isDoneModalOpen}
+        onClose={() => setIsDoneModalOpen(false)}
+        onSave={handleDoneSave}
+        jobOrderData={jobOrder}
+      />
+
+      <JobOrderEditFormModal
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        onSave={handleEditSave}
+        jobOrderData={jobOrder}
+      />
     </div>
   );
 };

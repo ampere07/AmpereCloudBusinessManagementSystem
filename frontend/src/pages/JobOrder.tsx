@@ -3,6 +3,7 @@ import { FileText, Search, ChevronDown } from 'lucide-react';
 import JobOrderDetails from '../components/JobOrderDetails';
 import { getJobOrders } from '../services/jobOrderService';
 import { getCities, City } from '../services/cityService';
+import { getBillingStatuses, BillingStatus } from '../services/lookupService';
 import { JobOrder } from '../types/jobOrder';
 
 interface LocationItem {
@@ -17,6 +18,7 @@ const JobOrderPage: React.FC = () => {
   const [selectedJobOrder, setSelectedJobOrder] = useState<JobOrder | null>(null);
   const [jobOrders, setJobOrders] = useState<JobOrder[]>([]);
   const [cities, setCities] = useState<City[]>([]);
+  const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,6 +38,26 @@ const JobOrderPage: React.FC = () => {
     return `₱${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
+  // Get billing status name by ID
+  const getBillingStatusName = (statusId?: number | null): string => {
+    if (!statusId) return 'Not Set';
+    
+    // If billing statuses haven't loaded yet, show a default based on common IDs
+    if (billingStatuses.length === 0) {
+      const defaultStatuses: { [key: number]: string } = {
+        1: 'In Progress',
+        2: 'Active',
+        3: 'Suspended',
+        4: 'Cancelled',
+        5: 'Overdue'
+      };
+      return defaultStatuses[statusId] || 'Loading...';
+    }
+    
+    const status = billingStatuses.find(s => s.id === statusId);
+    return status ? status.status_name : `Unknown (ID: ${statusId})`;
+  };
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -52,6 +74,12 @@ const JobOrderPage: React.FC = () => {
           console.log('Cities data sample:', citiesData[0]);
         }
         setCities(citiesData);
+        
+        // Fetch billing statuses
+        console.log('Fetching billing statuses...');
+        const billingStatusesData = await getBillingStatuses();
+        console.log(`Found ${billingStatusesData.length} billing statuses`);
+        setBillingStatuses(billingStatusesData);
         
         // Fetch job orders data from job_orders table
         console.log('Fetching job orders from job_orders table...');
@@ -422,7 +450,7 @@ const JobOrderPage: React.FC = () => {
                           <StatusText status={jobOrder.Onsite_Status} type="onsite" />
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-xs">
-                          <StatusText status={jobOrder.Billing_Status} type="billing" />
+                          <StatusText status={getBillingStatusName(jobOrder.billing_status_id)} type="billing" />
                         </td>
                         <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
                           {jobOrder.Status_Remarks || 'No remarks'}

@@ -901,3 +901,12 @@ Route::prefix('billing_details')->group(function () {
     Route::put('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'destroy']);
 });
+
+// Billing Status API Routes
+Route::prefix('billing-statuses')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'destroy']);
+});

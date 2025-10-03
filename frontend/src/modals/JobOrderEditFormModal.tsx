@@ -4,14 +4,14 @@ import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
 
-interface JobOrderDoneFormModalProps {
+interface JobOrderEditFormModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (formData: any) => void;
   jobOrderData?: any;
 }
 
-interface JobOrderDoneFormData {
+interface JobOrderEditFormData {
   referredBy: string;
   dateInstalled: string;
   usageType: string;
@@ -56,7 +56,7 @@ interface JobOrderDoneFormData {
   statusRemarks: string;
 }
 
-const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
+const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   isOpen,
   onClose,
   onSave,
@@ -77,7 +77,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   const currentUser = getCurrentUser();
   const currentUserEmail = currentUser?.email || 'unknown@ampere.com';
 
-  const [formData, setFormData] = useState<JobOrderDoneFormData>({
+  const [formData, setFormData] = useState<JobOrderEditFormData>({
     referredBy: '',
     dateInstalled: '',
     usageType: '',
@@ -135,7 +135,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
-      console.log('JobOrderDoneFormModal - Received jobOrderData:', jobOrderData);
+      console.log('JobOrderEditFormModal - Received jobOrderData:', jobOrderData);
       
       const loadedStatus = jobOrderData.Status || jobOrderData.status || 'Confirmed';
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
@@ -181,7 +181,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
   }, [jobOrderData, isOpen]);
 
-  const handleInputChange = (field: keyof JobOrderDoneFormData, value: string | File | null) => {
+  const handleInputChange = (field: keyof JobOrderEditFormData, value: string | File | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -559,7 +559,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               <select value={formData.choosePlan} onChange={(e) => handleInputChange('choosePlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                 <option value="">Select Plan</option>
                 {formData.choosePlan && !['SwitchNet - P999', 'SwitchNet - P1299', 'SwitchNet - P1599'].includes(formData.choosePlan) && (
-                  <option value={formData.choosePlan}>{formData.choosePlan}</option>
+                  <option value={formData.choosePlan}>{formData.choosePlan} (Current)</option>
                 )}
                 <option value="SwitchNet - P999">SwitchNet - P999</option>
                 <option value="SwitchNet - P1299">SwitchNet - P1299</option>
@@ -999,4 +999,4 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   );
 };
 
-export default JobOrderDoneFormModal;
+export default JobOrderEditFormModal;
