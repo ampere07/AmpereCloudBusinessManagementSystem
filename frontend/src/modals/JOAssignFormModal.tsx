@@ -338,22 +338,17 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       new Date(data.timestamp).toISOString().slice(0, 19).replace('T', ' ') : 
       currentTimestamp;
 
-    const generateUsername = (): string => {
-      const lastName = (data.lastName || '').trim().toLowerCase().replace(/\s+/g, '');
-      const mobileNumber = (data.contactNumber || '').trim().replace(/[^0-9]/g, '');
-      return `${lastName}${mobileNumber}`;
-    };
-
     return {
       application_id: applicationId,
       timestamp: formattedTimestamp,
       installation_fee: data.installationFee || 0,
       billing_day: data.isLastDayOfMonth ? 0 : (parseInt(data.billingDay) || 30),
+      billing_status_id: 1,
       modem_router_sn: toNullIfEmpty(data.contractTemplate),
       onsite_status: data.onsiteStatus || 'In Progress',
       onsite_remarks: toNullIfEmpty(data.remarks),
       contract_link: null,
-      username: generateUsername(),
+      username: null,
       created_by_user_email: data.modifiedBy,
       updated_by_user_email: data.modifiedBy,
     };

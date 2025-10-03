@@ -6,6 +6,14 @@ export interface ContractTemplate {
   Description: string;
 }
 
+export interface BillingStatus {
+  id: number;
+  status_name: string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
+}
+
 // Response interface
 interface ApiResponse<T> {
   success: boolean;
@@ -20,6 +28,16 @@ export const getContractTemplates = async (): Promise<ContractTemplate[]> => {
     return response.data.data;
   } catch (error) {
     console.error('Error fetching contract templates:', error);
+    return []; // Return empty array instead of throwing error
+  }
+};
+
+export const getBillingStatuses = async (): Promise<BillingStatus[]> => {
+  try {
+    const response = await apiClient.get<ApiResponse<BillingStatus[]>>('/billing-statuses');
+    return response.data.data;
+  } catch (error) {
+    console.error('Error fetching billing statuses:', error);
     return []; // Return empty array instead of throwing error
   }
 };

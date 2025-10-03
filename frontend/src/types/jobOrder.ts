@@ -67,6 +67,8 @@ export interface JobOrder {
   // Status Information
   Status?: string | null;
   Onsite_Status?: string | null;
+  Billing_Status_ID?: number | null;
+  billing_status_id?: number | null;
   
   // Assignment and Tracking
   Assigned_Email?: string | null;
