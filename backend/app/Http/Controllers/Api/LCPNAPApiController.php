@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\LCPNAP;
+use App\Models\LCP;
+use App\Models\NAP;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Storage;
@@ -17,15 +19,13 @@ class LCPNAPApiController extends Controller
     public function index(Request $request)
     {
         try {
-            $query = LCPNAP::query();
+            $query = LCPNAP::with(['lcp', 'nap']);
 
             // Search functionality
             if ($request->has('search') && !empty($request->search)) {
                 $search = $request->search;
                 $query->where(function ($q) use ($search) {
                     $q->where('LCPNAP_ID', 'LIKE', "%{$search}%")
-                    ->orWhere('lcp', 'LIKE', "%{$search}%")
-                    ->orWhere('nap', 'LIKE', "%{$search}%")
                     ->orWhere('street', 'LIKE', "%{$search}%")
                     ->orWhere('barangay', 'LIKE', "%{$search}%")
                     ->orWhere('city', 'LIKE', "%{$search}%")
@@ -36,13 +36,13 @@ class LCPNAPApiController extends Controller
 
             // Filtering
             if ($request->has('region') && !empty($request->region)) {
-                $query->byRegion($request->region);
+                $query->where('region', $request->region);
             }
             if ($request->has('city') && !empty($request->city)) {
-                $query->byCity($request->city);
+                $query->where('city', $request->city);
             }
             if ($request->has('port_total') && !empty($request->port_total)) {
-                $query->byPortTotal($request->port_total);
+                $query->where('port_total', $request->port_total);
             }
 
             // Pagination
@@ -55,10 +55,12 @@ class LCPNAPApiController extends Controller
             // Transform data to include image URLs
             $transformedData = $lcpnapItems->getCollection()->map(function ($item) {
                 return [
-                    'id' => $item->LCPNAP_ID, // Use original primary key
+                    'id' => $item->id,
                     'lcpnap' => $item->LCPNAP_ID,
-                    'lcp' => $item->lcp,
-                    'nap' => $item->nap,
+                    'lcp_id' => $item->lcp_id,
+                    'lcp' => $item->lcp ? $item->lcp->lcp_name : null,
+                    'nap_id' => $item->nap_id,
+                    'nap' => $item->nap ? $item->nap->nap_name : null,
                     'port_total' => $item->port_total,
                     'street' => $item->street,
                     'barangay' => $item->barangay,
@@ -66,11 +68,11 @@ class LCPNAPApiController extends Controller
                     'region' => $item->region,
                     'coordinates' => $item->coordinates,
                     'image' => $item->image,
-                    'image_url' => $item->image_url,
+                    'image_url' => $item->image ? asset('storage/lcpnap/images/' . $item->image) : null,
                     'image2' => $item->image2,
-                    'image2_url' => $item->image2_url,
+                    'image2_url' => $item->image2 ? asset('storage/lcpnap/images/' . $item->image2) : null,
                     'reading_image' => $item->reading_image,
-                    'reading_image_url' => $item->reading_image_url,
+                    'reading_image_url' => $item->reading_image ? asset('storage/lcpnap/reading-images/' . $item->reading_image) : null,
                     'modified_by' => $item->modified_by,
                     'modified_date' => $item->modified_date,
                     'related_billing_details' => $item->Combined_Location,
@@ -109,9 +111,9 @@ class LCPNAPApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'lcpnap' => 'required|string|max:255|unique:lcpnap,LCPNAP_ID',
-                'lcp' => 'required|string|max:255',
-                'nap' => 'required|string|max:255',
+                'lcpnap' => 'required|string|max:255',
+                'lcp_id' => 'required|integer|exists:lcp,id',
+                'nap_id' => 'required|integer|exists:nap,id',
                 'port_total' => 'required|integer|in:8,16,32',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
@@ -132,14 +134,30 @@ class LCPNAPApiController extends Controller
                 ], 422);
             }
 
-            $data = $validator->validated();
-            $data['LCPNAP_ID'] = $data['lcpnap']; // Set primary key
-            $data['Combined_Location'] = $data['related_billing_details'] ?? '';
-            $data['modified_by'] = $request->get('modified_by', 'ravenampere0123@gmail.com');
-            $data['modified_date'] = now();
-            
-            unset($data['lcpnap']); // Remove since we use LCPNAP_ID
-            unset($data['related_billing_details']); // Remove since we use Combined_Location
+            // Check for duplicate LCPNAP_ID
+            $exists = LCPNAP::where('LCPNAP_ID', $request->lcpnap)->first();
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'LCPNAP with this ID already exists',
+                    'errors' => ['lcpnap' => ['LCPNAP ID must be unique']]
+                ], 422);
+            }
+
+            $data = [
+                'LCPNAP_ID' => $request->lcpnap,
+                'lcp_id' => $request->lcp_id,
+                'nap_id' => $request->nap_id,
+                'port_total' => $request->port_total,
+                'street' => $request->street,
+                'barangay' => $request->barangay,
+                'city' => $request->city,
+                'region' => $request->region,
+                'coordinates' => $request->coordinates,
+                'Combined_Location' => $request->related_billing_details ?? '',
+                'modified_by' => $request->get('modified_by', 'ravenampere0123@gmail.com'),
+                'modified_date' => now(),
+            ];
 
             // Handle file uploads
             if ($request->hasFile('image')) {
@@ -156,7 +174,7 @@ class LCPNAPApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $lcpnapItem,
+                'data' => $lcpnapItem->load(['lcp', 'nap']),
                 'message' => 'LCP NAP item created successfully'
             ], 201);
 
@@ -175,15 +193,17 @@ class LCPNAPApiController extends Controller
     public function show($id)
     {
         try {
-            $lcpnapItem = LCPNAP::findOrFail($id);
+            $lcpnapItem = LCPNAP::with(['lcp', 'nap'])->findOrFail($id);
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'id' => $lcpnapItem->id,
-                    'lcpnap' => $lcpnapItem->lcpnap,
-                    'lcp' => $lcpnapItem->lcp,
-                    'nap' => $lcpnapItem->nap,
+                    'lcpnap' => $lcpnapItem->LCPNAP_ID,
+                    'lcp_id' => $lcpnapItem->lcp_id,
+                    'lcp' => $lcpnapItem->lcp ? $lcpnapItem->lcp->lcp_name : null,
+                    'nap_id' => $lcpnapItem->nap_id,
+                    'nap' => $lcpnapItem->nap ? $lcpnapItem->nap->nap_name : null,
                     'port_total' => $lcpnapItem->port_total,
                     'street' => $lcpnapItem->street,
                     'barangay' => $lcpnapItem->barangay,
@@ -191,14 +211,14 @@ class LCPNAPApiController extends Controller
                     'region' => $lcpnapItem->region,
                     'coordinates' => $lcpnapItem->coordinates,
                     'image' => $lcpnapItem->image,
-                    'image_url' => $lcpnapItem->image_url,
+                    'image_url' => $lcpnapItem->image ? asset('storage/lcpnap/images/' . $lcpnapItem->image) : null,
                     'image2' => $lcpnapItem->image2,
-                    'image2_url' => $lcpnapItem->image2_url,
+                    'image2_url' => $lcpnapItem->image2 ? asset('storage/lcpnap/images/' . $lcpnapItem->image2) : null,
                     'reading_image' => $lcpnapItem->reading_image,
-                    'reading_image_url' => $lcpnapItem->reading_image_url,
+                    'reading_image_url' => $lcpnapItem->reading_image ? asset('storage/lcpnap/reading-images/' . $lcpnapItem->reading_image) : null,
                     'modified_by' => $lcpnapItem->modified_by,
                     'modified_date' => $lcpnapItem->modified_date,
-                    'related_billing_details' => $lcpnapItem->related_billing_details,
+                    'related_billing_details' => $lcpnapItem->Combined_Location,
                     'created_at' => $lcpnapItem->created_at,
                     'updated_at' => $lcpnapItem->updated_at,
                 ],
@@ -228,9 +248,9 @@ class LCPNAPApiController extends Controller
             $lcpnapItem = LCPNAP::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'lcpnap' => 'required|string|max:255|unique:lcpnap,LCPNAP_ID,' . $id . ',LCPNAP_ID',
-                'lcp' => 'required|string|max:255',
-                'nap' => 'required|string|max:255',
+                'lcpnap' => 'required|string|max:255',
+                'lcp_id' => 'required|integer|exists:lcp,id',
+                'nap_id' => 'required|integer|exists:nap,id',
                 'port_total' => 'required|integer|in:8,16,32',
                 'street' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
@@ -251,14 +271,32 @@ class LCPNAPApiController extends Controller
                 ], 422);
             }
 
-            $data = $validator->validated();
-            $data['LCPNAP_ID'] = $data['lcpnap']; // Update primary key if changed
-            $data['Combined_Location'] = $data['related_billing_details'] ?? '';
-            $data['modified_by'] = $request->get('modified_by', 'ravenampere0123@gmail.com');
-            $data['modified_date'] = now();
-            
-            unset($data['lcpnap']); // Remove since we use LCPNAP_ID
-            unset($data['related_billing_details']); // Remove since we use Combined_Location
+            // Check for duplicate LCPNAP_ID (excluding current item)
+            $exists = LCPNAP::where('LCPNAP_ID', $request->lcpnap)
+                ->where('id', '!=', $id)
+                ->first();
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'LCPNAP with this ID already exists',
+                    'errors' => ['lcpnap' => ['LCPNAP ID must be unique']]
+                ], 422);
+            }
+
+            $data = [
+                'LCPNAP_ID' => $request->lcpnap,
+                'lcp_id' => $request->lcp_id,
+                'nap_id' => $request->nap_id,
+                'port_total' => $request->port_total,
+                'street' => $request->street,
+                'barangay' => $request->barangay,
+                'city' => $request->city,
+                'region' => $request->region,
+                'coordinates' => $request->coordinates,
+                'Combined_Location' => $request->related_billing_details ?? '',
+                'modified_by' => $request->get('modified_by', 'ravenampere0123@gmail.com'),
+                'modified_date' => now(),
+            ];
 
             // Handle file uploads and deletions
             if ($request->hasFile('image')) {
@@ -289,7 +327,7 @@ class LCPNAPApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $lcpnapItem->fresh(),
+                'data' => $lcpnapItem->fresh()->load(['lcp', 'nap']),
                 'message' => 'LCP NAP item updated successfully'
             ]);
 
@@ -366,7 +404,15 @@ class LCPNAPApiController extends Controller
                     ->orderBy('count', 'desc')
                     ->limit(10)
                     ->pluck('count', 'region'),
-                'recent_additions' => LCPNAP::latest()->limit(5)->get(['id', 'lcpnap', 'lcp', 'nap', 'created_at'])
+                'recent_additions' => LCPNAP::with(['lcp', 'nap'])->latest()->limit(5)->get()->map(function($item) {
+                    return [
+                        'id' => $item->id,
+                        'lcpnap' => $item->LCPNAP_ID,
+                        'lcp' => $item->lcp ? $item->lcp->lcp_name : null,
+                        'nap' => $item->nap ? $item->nap->nap_name : null,
+                        'created_at' => $item->created_at
+                    ];
+                })
             ];
 
             return response()->json([
@@ -401,8 +447,8 @@ class LCPNAPApiController extends Controller
     {
         try {
             $data = [
-                'lcps' => LCPNAP::distinct()->pluck('lcp')->filter()->values(),
-                'naps' => LCPNAP::distinct()->pluck('nap')->filter()->values(),
+                'lcps' => LCP::select('id', 'lcp_name')->get(),
+                'naps' => NAP::select('id', 'nap_name')->get(),
                 'regions' => LCPNAP::distinct()->pluck('region')->filter()->values(),
                 'cities' => LCPNAP::distinct()->pluck('city')->filter()->values(),
                 'barangays' => LCPNAP::distinct()->pluck('barangay')->filter()->values(),

@@ -17,8 +17,8 @@ class LCPNAP extends Model
     protected $fillable = [
         'LCPNAP_ID',
         'Combined_Location',
-        'lcp',
-        'nap',
+        'lcp_id',
+        'nap_id',
         'port_total',
         'street',
         'barangay',
@@ -33,6 +33,8 @@ class LCPNAP extends Model
     ];
 
     protected $casts = [
+        'lcp_id' => 'integer',
+        'nap_id' => 'integer',
         'port_total' => 'integer',
         'modified_date' => 'datetime',
         'created_at' => 'datetime',
@@ -44,6 +46,22 @@ class LCPNAP extends Model
         'created_at',
         'updated_at'
     ];
+
+    // Relationships
+    public function lcp()
+    {
+        return $this->belongsTo(LCP::class, 'lcp_id');
+    }
+
+    public function nap()
+    {
+        return $this->belongsTo(NAP::class, 'nap_id');
+    }
+
+    public function jobOrders()
+    {
+        return $this->hasMany(JobOrder::class, 'LCPNAP', 'LCPNAP_ID');
+    }
 
     // Accessor to make it compatible with frontend expectations
     public function getIdAttribute()
@@ -59,12 +77,6 @@ class LCPNAP extends Model
     public function getRelatedBillingDetailsAttribute()
     {
         return $this->Combined_Location;
-    }
-
-    // Relationships
-    public function jobOrders()
-    {
-        return $this->hasMany(JobOrder::class, 'LCPNAP', 'LCPNAP_ID');
     }
 
     // Accessors for image URLs

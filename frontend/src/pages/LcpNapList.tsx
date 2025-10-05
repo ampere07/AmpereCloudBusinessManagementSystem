@@ -37,8 +37,8 @@ const LcpNapList: React.FC = () => {
   // Add/Edit form states
   const [formData, setFormData] = useState({
     lcpnap: '',
-    lcp: '',
-    nap: '',
+    lcp_id: '',
+    nap_id: '',
     port_total: 8,
     image: null as File | null,
     image2: null as File | null,
@@ -368,8 +368,8 @@ const LcpNapList: React.FC = () => {
     setEditingItem(item);
     setFormData({
       lcpnap: item.lcpnap,
-      lcp: item.lcp,
-      nap: item.nap,
+      lcp_id: (item as any).lcp_id?.toString() || '',
+      nap_id: (item as any).nap_id?.toString() || '',
       port_total: item.port_total,
       image: null,
       image2: null,
@@ -392,12 +392,12 @@ const LcpNapList: React.FC = () => {
       return;
     }
     
-    if (!formData.lcp.trim()) {
+    if (!formData.lcp_id) {
       alert('LCP is required');
       return;
     }
     
-    if (!formData.nap.trim()) {
+    if (!formData.nap_id) {
       alert('NAP is required');
       return;
     }
@@ -407,8 +407,8 @@ const LcpNapList: React.FC = () => {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('lcpnap', formData.lcpnap.trim());
-      formDataToSend.append('lcp', formData.lcp.trim());
-      formDataToSend.append('nap', formData.nap.trim());
+      formDataToSend.append('lcp_id', formData.lcp_id.toString());
+      formDataToSend.append('nap_id', formData.nap_id.toString());
       formDataToSend.append('port_total', formData.port_total.toString());
       formDataToSend.append('street', formData.street.trim());
       formDataToSend.append('barangay', formData.barangay.trim());
@@ -467,8 +467,8 @@ const LcpNapList: React.FC = () => {
   const resetForm = () => {
     setFormData({
       lcpnap: '',
-      lcp: '',
-      nap: '',
+      lcp_id: '',
+      nap_id: '',
       port_total: 8,
       image: null,
       image2: null,
@@ -922,14 +922,14 @@ const LcpNapList: React.FC = () => {
                     LCP<span className="text-red-500 ml-1">*</span>
                   </label>
                   <select
-                    value={formData.lcp}
-                    onChange={(e) => setFormData({ ...formData, lcp: e.target.value })}
+                    value={formData.lcp_id}
+                    onChange={(e) => setFormData({ ...formData, lcp_id: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none appearance-none"
                   >
                     <option value="">Select LCP</option>
                     {lcpList.map(lcp => (
-                      <option key={lcp.id} value={lcp.name}>
-                        {lcp.name}
+                      <option key={lcp.id} value={lcp.id.toString()}>
+                        {lcp.lcp_name}
                       </option>
                     ))}
                   </select>
@@ -944,14 +944,14 @@ const LcpNapList: React.FC = () => {
                     NAP<span className="text-red-500 ml-1">*</span>
                   </label>
                   <select
-                    value={formData.nap}
-                    onChange={(e) => setFormData({ ...formData, nap: e.target.value })}
+                    value={formData.nap_id}
+                    onChange={(e) => setFormData({ ...formData, nap_id: e.target.value })}
                     className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none appearance-none"
                   >
                     <option value="">Select NAP</option>
                     {napList.map(nap => (
-                      <option key={nap.id} value={nap.name}>
-                        {nap.name}
+                      <option key={nap.id} value={nap.id.toString()}>
+                        {nap.nap_name}
                       </option>
                     ))}
                   </select>
