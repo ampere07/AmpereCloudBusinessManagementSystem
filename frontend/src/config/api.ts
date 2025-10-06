@@ -10,7 +10,7 @@ const getApiBaseUrl = (): string => {
     return 'http://localhost:8000/api';
   }
   
-  return 'https://atssfiber.ph/sync/api';
+  return `${window.location.protocol}//${window.location.host}/sync/api`;
 };
 
 const API_BASE_URL = getApiBaseUrl();
