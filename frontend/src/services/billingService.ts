@@ -1,6 +1,19 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://atssfiber.ph/sync/api';
+const getApiBaseUrl = (): string => {
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+  
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8000/api';
+  }
+  
+  return 'https://atssfiber.ph/sync/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 export interface BillingRecord {
   id: string;

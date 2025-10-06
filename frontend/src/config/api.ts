@@ -1,6 +1,24 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_BASE_URL || 'https://atssfiber.ph/sync/api';
+const getApiBaseUrl = (): string => {
+  if (process.env.REACT_APP_API_BASE_URL) {
+    return process.env.REACT_APP_API_BASE_URL;
+  }
+  
+  const hostname = window.location.hostname;
+  if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    return 'http://localhost:8000/api';
+  }
+  
+  return 'https://atssfiber.ph/sync/api';
+};
+
+const API_BASE_URL = getApiBaseUrl();
+const isDevelopment = process.env.NODE_ENV === 'development';
+
+console.log('Environment:', process.env.NODE_ENV);
+console.log('Hostname:', window.location.hostname);
+console.log('API Base URL:', API_BASE_URL);
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -9,13 +27,15 @@ const apiClient = axios.create({
     'Accept': 'application/json',
     'X-Requested-With': 'XMLHttpRequest',
   },
-  timeout: 30000, // Increased timeout to 30 seconds
-  withCredentials: true, // Enable cookies and authentication headers for CORS
+  timeout: 30000,
+  withCredentials: true,
 });
 
 apiClient.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || 'No data');
+    if (isDevelopment) {
+      console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || 'No data');
+    }
     return config;
   },
   (error) => {
@@ -26,7 +46,9 @@ apiClient.interceptors.request.use(
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.status} ${response.config.url}`, response.data);
+    if (isDevelopment) {
+      console.log(`API Response: ${response.status} ${response.config.url}`, response.data);
+    }
     return response;
   },
   (error) => {
@@ -45,3 +67,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
+export { API_BASE_URL, isDevelopment };
