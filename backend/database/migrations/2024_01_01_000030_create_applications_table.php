@@ -23,8 +23,8 @@ return new class extends Migration
             $table->string('city', 255)->nullable();
             $table->string('barangay', 255)->nullable();
             $table->string('village', 255)->nullable();
-            $table->string('desired_plan', 255)->nullable();
-            $table->string('promo', 255)->nullable();
+            $table->unsignedBigInteger('desired_plan_id')->nullable();
+            $table->unsignedBigInteger('promo_id')->nullable();
             $table->unsignedBigInteger('referrer_account_id')->nullable();
             $table->string('referred_by', 255)->nullable();
             $table->string('proof_of_billing_url', 255)->nullable();

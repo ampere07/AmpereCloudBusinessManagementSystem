@@ -6,6 +6,7 @@ interface InventoryFormModalProps {
   onClose: () => void;
   onSave: (formData: InventoryFormData) => void;
   editData?: InventoryFormData | null;
+  initialCategory?: string;
 }
 
 interface InventoryFormData {
@@ -26,7 +27,8 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   isOpen,
   onClose,
   onSave,
-  editData
+  editData,
+  initialCategory = ''
 }) => {
   const [formData, setFormData] = useState<InventoryFormData>({
     itemName: '',
@@ -44,6 +46,24 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [categories, setCategories] = useState<string[]>([]);
+
+  // Fetch categories from API
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch('http://localhost:8000/api/inventory-categories');
+        const data = await response.json();
+        if (data.success) {
+          const categoryNames = data.data.map((cat: { id: number; name: string }) => cat.name);
+          setCategories(categoryNames);
+        }
+      } catch (error) {
+        console.error('Error fetching categories:', error);
+      }
+    };
+    fetchCategories();
+  }, []);
 
   // Update form data when editData changes
   useEffect(() => {
@@ -72,14 +92,14 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
         modifiedBy: 'ravenampere0123@gmail.com',
         modifiedDate: new Date().toISOString().slice(0, 16),
         userEmail: 'ravenampere0123@gmail.com',
-        category: '',
+        category: initialCategory,
         totalStockAvailable: 0,
         totalStockIn: 0
       });
     }
     // Clear errors when editData changes
     setErrors({});
-  }, [editData]);
+  }, [editData, initialCategory]);
 
   if (!isOpen) return null;
 
@@ -136,24 +156,7 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     onClose();
   };
 
-  const suppliers = [
-    'Supplier 1',
-    'Supplier 2',
-    'Supplier 3'
-  ];
 
-  const categories = [
-    'CABLE TIES',
-    'ETC',
-    'EVENT',
-    'FOC',
-    'FTTH',
-    'LADDER',
-    'OFFICE',
-    'OSP',
-    'SERVER',
-    'TAPE'
-  ];
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
@@ -223,23 +226,6 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
               placeholder="Enter item description"
             />
             {errors.itemDescription && <p className="text-red-500 text-xs mt-1">{errors.itemDescription}</p>}
-          </div>
-
-          {/* Supplier */}
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Supplier
-            </label>
-            <select
-              value={formData.supplier}
-              onChange={(e) => handleInputChange('supplier', e.target.value)}
-              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-            >
-              <option value="">Select supplier</option>
-              {suppliers.map(supplier => (
-                <option key={supplier} value={supplier}>{supplier}</option>
-              ))}
-            </select>
           </div>
 
           {/* Quantity Alert */}

@@ -1,21 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Eye, Edit, Trash2 } from 'lucide-react';
-
-interface InventoryCategory {
-  id: string;
-  name: string;
-  created_at?: string;
-  modified_date?: string;
-  modified_by?: string;
-}
-
-const API_BASE_URL = 'http://localhost:8000/api';
+import AddInventoryCategoryModal from '../modals/AddInventoryCategoryModal';
+import { 
+  getInventoryCategories, 
+  createInventoryCategory, 
+  deleteInventoryCategory,
+  InventoryCategory 
+} from '../services/inventoryCategoryService';
 
 const InventoryCategoryList: React.FC = () => {
   const [categories, setCategories] = useState<InventoryCategory[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   useEffect(() => {
     fetchCategories();
@@ -26,60 +24,9 @@ const InventoryCategoryList: React.FC = () => {
       setLoading(true);
       setError(null);
       
-      // For now, we'll create some sample data since we don't have a dedicated API endpoint
-      // In a real implementation, you would fetch from an API endpoint like `/api/inventory-categories`
-      const sampleCategories: InventoryCategory[] = [
-        {
-          id: '1',
-          name: 'FTTH',
-          modified_date: '2024-12-16T11:22:09.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '2', 
-          name: 'OSP',
-          modified_date: '2024-12-14T15:22:34.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '3',
-          name: 'SERVER',
-          modified_date: '2024-12-14T15:19:57.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '4',
-          name: 'ETC.',
-          modified_date: '2024-12-10T10:15:30.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '5',
-          name: 'EVENT',
-          modified_date: '2023-11-29T18:41:29.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '6',
-          name: 'CABLE TIES',
-          modified_date: '2024-12-14T15:19:57.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '7',
-          name: 'FOC',
-          modified_date: '2024-12-14T15:22:34.000Z',
-          modified_by: 'admin'
-        },
-        {
-          id: '8',
-          name: 'TAPE',
-          modified_date: '2024-12-16T11:22:09.000Z',
-          modified_by: 'admin'
-        }
-      ];
+      const data = await getInventoryCategories();
+      setCategories(data);
       
-      setCategories(sampleCategories);
     } catch (error) {
       console.error('Error fetching inventory categories:', error);
       setError('Failed to fetch inventory categories');
@@ -102,12 +49,27 @@ const InventoryCategoryList: React.FC = () => {
     console.log('Edit category:', category);
   };
 
-  const handleDelete = (category: InventoryCategory) => {
-    // Implement delete functionality
+  const handleDelete = async (category: InventoryCategory) => {
     if (window.confirm(`Are you sure you want to delete the category "${category.name}"?`)) {
-      console.log('Delete category:', category);
-      // Remove from state for now
-      setCategories(prev => prev.filter(c => c.id !== category.id));
+      try {
+        await deleteInventoryCategory(category.id);
+        setCategories(prev => prev.filter(c => c.id !== category.id));
+        console.log('Category deleted:', category);
+      } catch (error) {
+        console.error('Error deleting category:', error);
+        alert('Failed to delete category. Please try again.');
+      }
+    }
+  };
+
+  const handleAddCategory = async (categoryData: { name: string; modified_by?: string }) => {
+    try {
+      const newCategory = await createInventoryCategory(categoryData);
+      setCategories(prev => [newCategory, ...prev]);
+      console.log('Category added:', newCategory);
+    } catch (error) {
+      console.error('Error adding category:', error);
+      alert('Failed to add category. Please try again.');
     }
   };
 
@@ -191,7 +153,10 @@ const InventoryCategoryList: React.FC = () => {
             />
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
           </div>
-          <button className="bg-orange-600 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 hover:bg-orange-700 transition-colors ml-4">
+          <button 
+            onClick={() => setIsAddModalOpen(true)}
+            className="bg-orange-600 text-white px-4 py-2 rounded text-sm flex items-center space-x-2 hover:bg-orange-700 transition-colors ml-4"
+          >
             <Plus size={16} />
             <span>Add</span>
           </button>
@@ -211,9 +176,9 @@ const InventoryCategoryList: React.FC = () => {
                   <div className="text-white font-medium text-lg">
                     {category.name}
                   </div>
-                  {category.modified_date && (
+                  {(category.modified_date || category.updated_at) && (
                     <div className="text-gray-400 text-sm mt-1">
-                      {formatDateTime(category.modified_date)}
+                      {formatDateTime(category.modified_date || category.updated_at || '')}
                     </div>
                   )}
                 </div>
@@ -255,6 +220,12 @@ const InventoryCategoryList: React.FC = () => {
           </div>
         )}
       </div>
+
+      <AddInventoryCategoryModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={handleAddCategory}
+      />
     </div>
   );
 };

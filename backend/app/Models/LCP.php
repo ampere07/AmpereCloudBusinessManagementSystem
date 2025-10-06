@@ -12,12 +12,18 @@ class LCP extends Model
     protected $keyType = 'int';
     
     protected $fillable = [
-        'LCP_ID',
-        'Name',
+        'lcp_name',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
+
+    public function lcpnaps()
+    {
+        return $this->hasMany(LCPNAP::class, 'lcp_id');
+    }
 
     public function jobOrders()
     {
-        return $this->hasMany(JobOrder::class, 'LCP', 'LCP_ID');
+        return $this->hasMany(JobOrder::class, 'LCP', 'id');
     }
 }

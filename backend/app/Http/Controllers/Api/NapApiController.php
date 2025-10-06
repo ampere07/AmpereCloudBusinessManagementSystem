@@ -25,11 +25,11 @@ class NapApiController extends Controller
     {
         try {
             // First check if table exists
-            $tableExists = DB::select("SHOW TABLES LIKE 'app_nap'");
+            $tableExists = DB::select("SHOW TABLES LIKE 'nap'");
             if (empty($tableExists)) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'app_nap table does not exist'
+                    'message' => 'nap table does not exist'
                 ], 500);
             }
 
@@ -45,12 +45,12 @@ class NapApiController extends Controller
             $params = [];
             
             if (!empty($search)) {
-                $whereClause = 'WHERE name LIKE ?';
+                $whereClause = 'WHERE nap_name LIKE ?';
                 $params[] = '%' . $search . '%';
             }
 
             // Get total count
-            $countQuery = "SELECT COUNT(*) as total FROM app_nap $whereClause";
+            $countQuery = "SELECT COUNT(*) as total FROM nap $whereClause";
             $totalResult = DB::select($countQuery, $params);
             $totalItems = $totalResult[0]->total ?? 0;
             
@@ -58,9 +58,9 @@ class NapApiController extends Controller
             $totalPages = ceil($totalItems / $limit);
             
             // Get paginated data
-            $dataQuery = "SELECT id, name, modified_by, modified_date, created_at, updated_at 
-                         FROM app_nap $whereClause 
-                         ORDER BY name 
+            $dataQuery = "SELECT id, nap_name, created_at, updated_at 
+                         FROM nap $whereClause 
+                         ORDER BY nap_name 
                          LIMIT ? OFFSET ?";
             $dataParams = array_merge($params, [$limit, $offset]);
             
@@ -117,8 +117,8 @@ class NapApiController extends Controller
             $currentUser = $this->getCurrentUser();
             $now = now();
             
-            // Check for duplicate NAP name in app_nap table
-            $existing = DB::select('SELECT id FROM app_nap WHERE LOWER(name) = LOWER(?)', [$name]);
+            // Check for duplicate NAP name in nap table
+            $existing = DB::select('SELECT id FROM nap WHERE LOWER(nap_name) = LOWER(?)', [$name]);
             if (!empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -128,17 +128,15 @@ class NapApiController extends Controller
             
             // Insert new NAP
             $insertData = [
-                'name' => $name,
-                'modified_by' => $currentUser,
-                'modified_date' => $now,
+                'nap_name' => $name,
                 'created_at' => $now,
                 'updated_at' => $now
             ];
             
-            $id = DB::table('app_nap')->insertGetId($insertData);
+            $id = DB::table('nap')->insertGetId($insertData);
             
             // Get the inserted record
-            $nap = DB::select('SELECT id, name, modified_by, modified_date, created_at, updated_at FROM app_nap WHERE id = ?', [$id])[0];
+            $nap = DB::select('SELECT id, nap_name, created_at, updated_at FROM nap WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
@@ -162,7 +160,7 @@ class NapApiController extends Controller
     public function show($id)
     {
         try {
-            $nap = DB::select('SELECT id, name, modified_by, modified_date, created_at, updated_at FROM app_nap WHERE id = ?', [$id]);
+            $nap = DB::select('SELECT id, nap_name, created_at, updated_at FROM nap WHERE id = ?', [$id]);
             
             if (empty($nap)) {
                 return response()->json([
@@ -201,8 +199,8 @@ class NapApiController extends Controller
                 ], 422);
             }
 
-            // Check if NAP exists in app_nap table
-            $existing = DB::select('SELECT * FROM app_nap WHERE id = ?', [$id]);
+            // Check if NAP exists in nap table
+            $existing = DB::select('SELECT * FROM nap WHERE id = ?', [$id]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -217,7 +215,7 @@ class NapApiController extends Controller
             $now = now();
             
             // Check for duplicate name (excluding current NAP)
-            $duplicates = DB::select('SELECT id FROM app_nap WHERE LOWER(name) = LOWER(?) AND id != ?', [$name, $id]);
+            $duplicates = DB::select('SELECT id FROM nap WHERE LOWER(nap_name) = LOWER(?) AND id != ?', [$name, $id]);
             if (!empty($duplicates)) {
                 return response()->json([
                     'success' => false,
@@ -227,16 +225,14 @@ class NapApiController extends Controller
             
             // Update NAP
             $updateData = [
-                'name' => $name,
-                'modified_by' => $currentUser,
-                'modified_date' => $now,
+                'nap_name' => $name,
                 'updated_at' => $now
             ];
             
-            DB::table('app_nap')->where('id', $id)->update($updateData);
+            DB::table('nap')->where('id', $id)->update($updateData);
             
             // Get updated record
-            $nap = DB::select('SELECT id, name, modified_by, modified_date, created_at, updated_at FROM app_nap WHERE id = ?', [$id])[0];
+            $nap = DB::select('SELECT id, nap_name, created_at, updated_at FROM nap WHERE id = ?', [$id])[0];
             
             return response()->json([
                 'success' => true,
@@ -259,7 +255,7 @@ class NapApiController extends Controller
     {
         try {
             // Check if NAP exists
-            $existing = DB::select('SELECT * FROM app_nap WHERE id = ?', [$id]);
+            $existing = DB::select('SELECT * FROM nap WHERE id = ?', [$id]);
             if (empty($existing)) {
                 return response()->json([
                     'success' => false,
@@ -268,7 +264,7 @@ class NapApiController extends Controller
             }
             
             // HARD DELETE - permanently remove from database
-            $deleted = DB::table('app_nap')->where('id', $id)->delete();
+            $deleted = DB::table('nap')->where('id', $id)->delete();
             
             if ($deleted) {
                 return response()->json([
@@ -296,7 +292,7 @@ class NapApiController extends Controller
     public function getStatistics()
     {
         try {
-            $totalNap = DB::select("SELECT COUNT(*) as count FROM app_nap")[0]->count ?? 0;
+            $totalNap = DB::select("SELECT COUNT(*) as count FROM nap")[0]->count ?? 0;
             
             return response()->json([
                 'success' => true,

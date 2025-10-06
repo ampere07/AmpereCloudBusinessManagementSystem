@@ -47,11 +47,40 @@ const Inventory: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [dbCategories, setDbCategories] = useState<{ id: number; name: string }[]>([]);
 
-  // Fetch inventory data from API
+  // Fetch inventory data and categories from API
   useEffect(() => {
     fetchInventoryData();
+    fetchCategories();
   }, []);
+
+  // Calculate and update category counts whenever items or db categories change
+  useEffect(() => {
+    if (dbCategories.length > 0) {
+      const categoriesWithCount: Category[] = [
+        {
+          id: 'all',
+          name: 'ALL',
+          count: inventoryItems.length
+        },
+        ...dbCategories.map((cat) => {
+          const categoryId = cat.name.toLowerCase().replace(/\s+/g, '-');
+          const count = inventoryItems.filter(item => {
+            const itemCategory = (item.category || '').toLowerCase().replace(/\s+/g, '-');
+            return itemCategory === categoryId;
+          }).length;
+          return {
+            id: categoryId,
+            name: cat.name,
+            count
+          };
+        })
+      ];
+      setCategories(categoriesWithCount);
+    }
+  }, [inventoryItems, dbCategories]);
 
   const fetchInventoryData = async () => {
     try {
@@ -75,27 +104,25 @@ const Inventory: React.FC = () => {
     }
   };
 
-  // Generate categories with counts
-  const categories: Category[] = [
-    {
-      id: 'all',
-      name: 'All',
-      count: inventoryItems.length
-    },
-    ...Array.from(new Set(inventoryItems.map(item => item.category || 'Uncategorized')))
-      .map(category => ({
-        id: category.toLowerCase().replace(/\s+/g, '-'),
-        name: category,
-        count: inventoryItems.filter(item => (item.category || 'Uncategorized') === category).length
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name))
-  ];
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/inventory-categories`);
+      const data = await response.json();
+      
+      if (data.success) {
+        setDbCategories(data.data || []);
+      } else {
+        console.error('Failed to fetch categories:', data.message);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
 
   // Filter items based on selected category and search query
   const filteredItems = selectedCategory === '' ? [] : inventoryItems.filter(item => {
-    const itemCategory = item.category || 'Uncategorized';
-    const matchesCategory = selectedCategory === 'all' || 
-                           itemCategory.toLowerCase().replace(/\s+/g, '-') === selectedCategory;
+    const itemCategory = (item.category || '').toLowerCase().replace(/\s+/g, '-');
+    const matchesCategory = selectedCategory === 'all' || itemCategory === selectedCategory;
     
     const matchesSearch = searchQuery === '' || 
                          item.item_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -117,6 +144,14 @@ const Inventory: React.FC = () => {
     setShowInventoryForm(true);
   };
 
+  const getSelectedCategoryName = (): string => {
+    if (selectedCategory === 'all' || selectedCategory === '') {
+      return '';
+    }
+    const category = categories.find(cat => cat.id === selectedCategory);
+    return category ? category.name : '';
+  };
+
   const handleEditItem = (item: InventoryItem) => {
     setEditingItem(item);
     setShowInventoryForm(true);
@@ -132,11 +167,9 @@ const Inventory: React.FC = () => {
       
       if (data.success) {
         alert('Inventory item deleted successfully!');
-        // Close the details panel if the deleted item was selected
         if (selectedItem?.item_name === item.item_name) {
           setSelectedItem(null);
         }
-        // Refresh the inventory list
         await fetchInventoryData();
       } else {
         alert('Failed to delete inventory item: ' + data.message);
@@ -169,8 +202,8 @@ const Inventory: React.FC = () => {
           supplier: formData.supplier,
           quantity_alert: formData.quantityAlert,
           category: formData.category,
-          item_id: null, // Auto-generated or null
-          image: '', // Handle file upload separately if needed
+          item_id: null,
+          image: '',
         }),
       });
 
@@ -181,8 +214,8 @@ const Inventory: React.FC = () => {
         alert(message);
         setShowInventoryForm(false);
         setEditingItem(null);
-        // Refresh the inventory list
         await fetchInventoryData();
+        await fetchCategories();
       } else {
         alert('Failed to save inventory item: ' + data.message);
         console.error('Save Error:', data);
@@ -245,15 +278,13 @@ const Inventory: React.FC = () => {
               }`}
             >
               <span className="uppercase font-medium">{category.name}</span>
-              {category.count > 0 && (
-                <span className={`px-2 py-1 rounded text-xs ${
-                  selectedCategory === category.id
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-700 text-gray-300'
-                }`}>
-                  {category.count}
-                </span>
-              )}
+              <span className={`px-2 py-1 rounded text-xs ${
+                selectedCategory === category.id
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300'
+              }`}>
+                {category.count}
+              </span>
             </button>
           ))}
         </div>
@@ -282,7 +313,6 @@ const Inventory: React.FC = () => {
                 <Plus size={16} />
                 <span>Add Item</span>
               </button>
-
             </div>
           </div>
           
@@ -405,6 +435,7 @@ const Inventory: React.FC = () => {
           setEditingItem(null);
         }}
         onSave={handleSaveInventoryItem}
+        initialCategory={getSelectedCategoryName()}
         editData={editingItem ? {
           itemName: editingItem.item_name,
           itemDescription: editingItem.item_description || '',

@@ -12,12 +12,18 @@ class NAP extends Model
     protected $keyType = 'int';
     
     protected $fillable = [
-        'NAP_ID',
-        'Location',
+        'nap_name',
+        'created_by_user_id',
+        'updated_by_user_id',
     ];
+
+    public function lcpnaps()
+    {
+        return $this->hasMany(LCPNAP::class, 'nap_id');
+    }
 
     public function jobOrders()
     {
-        return $this->hasMany(JobOrder::class, 'NAP', 'NAP_ID');
+        return $this->hasMany(JobOrder::class, 'NAP', 'id');
     }
 }
