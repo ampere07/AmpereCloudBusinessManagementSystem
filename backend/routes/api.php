@@ -704,18 +704,53 @@ Route::prefix('locations')->group(function () {
     Route::patch('/{id}/toggle-status', [LocationController::class, 'toggleStatus']);
 });
 
-// Plan Management Routes - Using app_plans table
-Route::prefix('plans')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\PlanApiController::class, 'index']);
-    Route::post('/', [\App\Http\Controllers\Api\PlanApiController::class, 'store']);
-    Route::get('/all', [\App\Http\Controllers\Api\PlanApiController::class, 'getAllPlans']);
-    Route::get('/statistics', [\App\Http\Controllers\Api\PlanApiController::class, 'getStatistics']);
-    Route::get('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'show']);
-    Route::put('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
-    Route::delete('/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
-    Route::post('/{id}/restore', [\App\Http\Controllers\Api\PlanApiController::class, 'restore']);
-    Route::delete('/{id}/force', [\App\Http\Controllers\Api\PlanApiController::class, 'forceDelete']);
+// Test endpoint for plan routes - MUST BE BEFORE other plan routes
+Route::get('/plans-test', function () {
+    return response()->json([
+        'success' => true,
+        'message' => 'Plan routes are working',
+        'timestamp' => now()->toDateTimeString(),
+        'database' => [
+            'plan_list_exists' => \Illuminate\Support\Facades\Schema::hasTable('plan_list'),
+            'plan_count' => \Illuminate\Support\Facades\DB::table('plan_list')->count()
+        ]
+    ]);
 });
+
+// Direct test route that doesn't use controller
+Route::get('/plans-direct', function () {
+    try {
+        $plans = \Illuminate\Support\Facades\DB::table('plan_list')
+            ->select(
+                'id',
+                'plan_name as name',
+                'description',
+                'price',
+                'modified_date',
+                'modified_by_user_id as modified_by'
+            )
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $plans,
+            'message' => 'Direct query successful'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Plan Management Routes - Direct routes at API root level for maximum compatibility
+Route::get('/plans', [\App\Http\Controllers\Api\PlanApiController::class, 'index']);
+Route::post('/plans', [\App\Http\Controllers\Api\PlanApiController::class, 'store']);
+Route::get('/plans/statistics', [\App\Http\Controllers\Api\PlanApiController::class, 'getStatistics']);
+Route::get('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'show']);
+Route::put('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
+Route::delete('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
 
 // Router Models Management Routes - Using Router_Models table
 Route::prefix('router-models')->group(function () {
