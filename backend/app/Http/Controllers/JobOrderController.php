@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\JobOrder;
+use App\Models\Customer;
+use App\Models\TechnicalDetail;
+use App\Models\BillingAccount;
+use App\Models\Application;
 use App\Models\ModemRouterSN;
 use App\Models\ContractTemplate;
 use App\Models\LCP;
@@ -13,6 +17,7 @@ use App\Models\LCPNAP;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 
 class JobOrderController extends Controller
 {
@@ -209,7 +214,139 @@ class JobOrderController extends Controller
         }
     }
 
-    // Lookup table methods
+    public function approve($id): JsonResponse
+    {
+        try {
+            DB::beginTransaction();
+
+            $jobOrder = JobOrder::with('application')->findOrFail($id);
+            
+            if (!$jobOrder->application) {
+                throw new \Exception('Job order must have an associated application');
+            }
+
+            $application = $jobOrder->application;
+            
+            $defaultUserId = 1;
+
+            $customer = Customer::create([
+                'first_name' => $application->first_name,
+                'middle_initial' => $application->middle_initial,
+                'last_name' => $application->last_name,
+                'email_address' => $application->email_address,
+                'contact_number_primary' => $application->mobile_number,
+                'contact_number_secondary' => $application->secondary_mobile_number,
+                'address' => $application->installation_address,
+                'location' => $application->village,
+                'barangay' => $application->barangay,
+                'city' => $application->city,
+                'region' => $application->region,
+                'address_coordinates' => null,
+                'housing_status' => null,
+                'referred_by' => $application->referred_by,
+                'desired_plan' => $application->desired_plan,
+                'group_id' => $jobOrder->group_id,
+                'created_by' => $defaultUserId,
+                'updated_by' => $defaultUserId,
+            ]);
+
+            $currentYear = date('Y');
+            $yearPrefix = $currentYear;
+            
+            $latestAccount = BillingAccount::where('account_no', 'LIKE', $yearPrefix . '%')
+                ->orderBy('account_no', 'desc')
+                ->first();
+            
+            if ($latestAccount) {
+                $lastNumber = (int) substr($latestAccount->account_no, 4);
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = 1;
+            }
+            
+            $accountNumber = $yearPrefix . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+
+            $billingAccount = BillingAccount::create([
+                'customer_id' => $customer->id,
+                'account_no' => $accountNumber,
+                'date_installed' => $jobOrder->date_installed ?? now(),
+                'plan_id' => null,
+                'account_balance' => 0,
+                'balance_update_date' => now(),
+                'billing_day' => $jobOrder->billing_day,
+                'billing_status_id' => 2,
+                'created_by' => $defaultUserId,
+                'updated_by' => $defaultUserId,
+            ]);
+
+            $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? 'user'));
+            $mobileNumber = preg_replace('/[^0-9]/', '', $application->mobile_number ?? '');
+            $usernameForTechnical = $lastName . $mobileNumber;
+            
+            $existingUsername = TechnicalDetail::where('username', $usernameForTechnical)->first();
+            if ($existingUsername) {
+                $usernameForTechnical = $usernameForTechnical . '_' . time();
+            }
+
+            $modemSN = $jobOrder->modem_router_sn;
+            if ($modemSN) {
+                $existingModemSN = TechnicalDetail::where('router_modem_sn', $modemSN)->first();
+                if ($existingModemSN) {
+                    $modemSN = $modemSN . '_' . time();
+                }
+            }
+
+            $technicalDetail = TechnicalDetail::create([
+                'account_id' => $billingAccount->id,
+                'username' => $usernameForTechnical,
+                'username_status' => $jobOrder->username_status,
+                'connection_type' => $jobOrder->connection_type,
+                'router_model' => $jobOrder->router_model,
+                'router_modem_sn' => $modemSN,
+                'ip_address' => $jobOrder->ip_address,
+                'lcp' => null,
+                'nap' => null,
+                'port' => $jobOrder->port,
+                'vlan' => $jobOrder->vlan,
+                'lcpnap' => $jobOrder->lcpnap,
+                'usage_type_id' => $jobOrder->usage_type_id,
+                'created_by' => $defaultUserId,
+                'updated_by' => $defaultUserId,
+            ]);
+
+            $jobOrder->update([
+                'billing_status_id' => 2,
+                'account_id' => $billingAccount->id,
+                'updated_by_user_email' => 'system@ampere.com'
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Job order approved successfully',
+                'data' => [
+                    'customer_id' => $customer->id,
+                    'billing_account_id' => $billingAccount->id,
+                    'technical_detail_id' => $technicalDetail->id,
+                    'account_number' => $accountNumber,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            
+            \Log::error('Error approving job order: ' . $e->getMessage());
+            \Log::error('Stack trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve job order',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function getModemRouterSNs(): JsonResponse
     {
         try {

@@ -12,6 +12,7 @@ export interface BillingRecord {
   billingStatus?: string;
   dateInstalled?: string;
   contactNumber?: string;
+  secondContactNumber?: string;
   emailAddress?: string;
   plan?: string;
   username?: string;
@@ -35,7 +36,6 @@ export interface BillingRecord {
 
 export interface BillingDetailRecord extends BillingRecord {
   usageType?: string;
-  secondContactNumber?: string;
   referredBy?: string;
   referralContactNo?: string;
   groupName?: string;

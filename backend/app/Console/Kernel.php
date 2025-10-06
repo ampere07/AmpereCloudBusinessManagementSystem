@@ -15,7 +15,24 @@ class Kernel extends ConsoleKernel
      */
     protected function schedule(Schedule $schedule)
     {
-        // $schedule->command('inspire')->hourly();
+        // Generate daily billings at 1:00 AM every day
+        $schedule->command('billing:generate-daily')
+                 ->dailyAt('01:00')
+                 ->withoutOverlapping()
+                 ->runInBackground()
+                 ->onSuccess(function () {
+                     \Illuminate\Support\Facades\Log::info('Scheduled billing generation completed successfully');
+                 })
+                 ->onFailure(function () {
+                     \Illuminate\Support\Facades\Log::error('Scheduled billing generation failed');
+                 });
+
+        // Additional hourly generation during business hours (optional backup)
+        // Uncomment if you want hourly checks during business hours
+        // $schedule->command('billing:generate-daily')
+        //          ->hourly()
+        //          ->between('08:00', '18:00')
+        //          ->withoutOverlapping();
     }
 
     /**

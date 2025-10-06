@@ -152,7 +152,7 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Usage Type */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Usage Type</span>
-          <span className="text-white font-medium">{billingRecord.usageType || 'Regular Browsing'}</span>
+          <span className="text-white font-medium">{billingRecord.usageType || ''}</span>
         </div>
 
         {/* Full Name */}
@@ -170,13 +170,13 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Provider */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Provider</span>
-          <span className="text-white font-medium">{billingRecord.provider || 'SWITCH'}</span>
+          <span className="text-white font-medium">{billingRecord.provider || ''}</span>
         </div>
 
         {/* Billing Day */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Billing Day</span>
-          <span className="text-white font-medium">{billingRecord.billingDay || '23'}</span>
+          <span className="text-white font-medium">{billingRecord.billingDay === 0 ? 'Every end of month' : (billingRecord.billingDay || '-')}</span>
         </div>
 
         {/* Account No */}
@@ -188,49 +188,49 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Date Installed */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Date Installed</span>
-          <span className="text-white font-medium">{billingRecord.dateInstalled || '9/18/2025'}</span>
+          <span className="text-white font-medium">{billingRecord.dateInstalled || ''}</span>
         </div>
 
         {/* Contact Number */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Contact Number</span>
-          <span className="text-white font-medium">{billingRecord.contactNumber || '9673080816'}</span>
+          <span className="text-white font-medium">{billingRecord.contactNumber || ''}</span>
         </div>
 
         {/* Second Contact Number */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Second Contact Number</span>
-          <span className="text-white font-medium">{billingRecord.secondContactNumber || '9536424625'}</span>
+          <span className="text-white font-medium">{billingRecord.secondContactNumber || ''}</span>
         </div>
 
         {/* Email Address */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Email Address</span>
-          <span className="text-white font-medium">{billingRecord.email || 'franckiepemyra18@gmail.com'}</span>
+          <span className="text-white font-medium">{billingRecord.emailAddress || ''}</span>
         </div>
 
         {/* Address */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Address</span>
-          <span className="text-white font-medium">{billingRecord.address.split(',')[0] || 'Block 78 Lot 16 Mabuhay Homes Phase 2A'}</span>
+          <span className="text-white font-medium">{billingRecord.address?.split(',')[0] || ''}</span>
         </div>
 
         {/* Barangay */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Barangay</span>
-          <span className="text-white font-medium">{billingRecord.barangay || 'Darangan'}</span>
+          <span className="text-white font-medium">{billingRecord.barangay || ''}</span>
         </div>
 
         {/* City */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">City</span>
-          <span className="text-white font-medium">{billingRecord.city || 'Binangonan'}</span>
+          <span className="text-white font-medium">{billingRecord.city || ''}</span>
         </div>
 
         {/* Region */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Region</span>
-          <span className="text-white font-medium">{billingRecord.region || 'Rizal'}</span>
+          <span className="text-white font-medium">{billingRecord.region || ''}</span>
         </div>
 
         {/* Address Coordinates - Map placeholder */}
@@ -244,7 +244,7 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Plan */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Plan</span>
-          <span className="text-white font-medium">{billingRecord.plan || 'SwitchLite - P699'}</span>
+          <span className="text-white font-medium">{billingRecord.plan || ''}</span>
         </div>
 
         {/* Account Balance */}
@@ -262,37 +262,37 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Referred By */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Referred By:</span>
-          <span className="text-white font-medium">{billingRecord.referredBy || 'Vilma S. Divinagracia'}</span>
+          <span className="text-white font-medium">{billingRecord.referredBy || ''}</span>
         </div>
 
         {/* Referral Contact No */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Referral Contact No.</span>
-          <span className="text-white font-medium">{billingRecord.referralContactNo || '9932273769'}</span>
+          <span className="text-white font-medium">{billingRecord.referralContactNo || ''}</span>
         </div>
 
         {/* Username */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Username</span>
-          <span className="text-white font-medium">{billingRecord.username || 'vergaraj0917251011'}</span>
+          <span className="text-white font-medium">{billingRecord.username || ''}</span>
         </div>
 
         {/* Connection Type */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Connection Type</span>
-          <span className="text-white font-medium">{billingRecord.connectionType || 'Fiber'}</span>
+          <span className="text-white font-medium">{billingRecord.connectionType || ''}</span>
         </div>
 
         {/* Router Model */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Router Model</span>
-          <span className="text-white font-medium">{billingRecord.routerModel || 'UT-XP6486-S'}</span>
+          <span className="text-white font-medium">{billingRecord.routerModel || ''}</span>
         </div>
 
         {/* Router/Modem SN */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Router/Modem SN</span>
-          <span className="text-white font-medium">{billingRecord.routerModemSN || 'Sisc7992fffd'}</span>
+          <span className="text-white font-medium">{billingRecord.routerModemSN || ''}</span>
         </div>
 
         {/* Status */}
@@ -307,70 +307,74 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
         {/* Group */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Group</span>
-          <span className="text-white font-medium">{billingRecord.groupName || 'SwitchLite'}</span>
+          <span className="text-white font-medium">{billingRecord.groupName || ''}</span>
         </div>
 
         {/* Mikrotik ID */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Mikrotik ID</span>
-          <span className="text-white font-medium">{billingRecord.mikrotikId || '*2063'}</span>
+          <span className="text-white font-medium">{billingRecord.mikrotikId || ''}</span>
         </div>
 
         {/* LCPNAP */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">LCPNAP</span>
-          <span className="text-white font-medium">{billingRecord.lcpnap || 'LCP 195 NAP 001'}</span>
+          <span className="text-white font-medium">{billingRecord.lcpnap || ''}</span>
         </div>
 
         {/* LCP */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">LCP</span>
-          <span className="text-white font-medium">{billingRecord.lcp || 'LCP 195'}</span>
+          <span className="text-white font-medium">{billingRecord.lcp || ''}</span>
         </div>
 
         {/* NAP */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">NAP</span>
-          <span className="text-white font-medium">{billingRecord.nap || 'NAP 001'}</span>
+          <span className="text-white font-medium">{billingRecord.nap || ''}</span>
         </div>
 
         {/* PORT */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">PORT</span>
-          <span className="text-white font-medium">{billingRecord.port || 'PORT 004'}</span>
+          <span className="text-white font-medium">{billingRecord.port || ''}</span>
         </div>
 
         {/* VLAN */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">VLAN</span>
-          <span className="text-white font-medium">{billingRecord.vlan || '1000'}</span>
+          <span className="text-white font-medium">{billingRecord.vlan || ''}</span>
         </div>
 
         {/* Session IP */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Session IP</span>
-          <span className="text-white font-medium">{billingRecord.sessionIp || '10.99.161.63'}</span>
+          <span className="text-white font-medium">{billingRecord.sessionIp || ''}</span>
         </div>
 
         {/* Modified By */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Modified By</span>
-          <span className="text-white font-medium">{billingRecord.modifiedBy || 'AppSheet'}</span>
+          <span className="text-white font-medium">{billingRecord.modifiedBy || ''}</span>
         </div>
 
         {/* Modified Date */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">Modified Date</span>
-          <span className="text-white font-medium">{billingRecord.modifiedDate || '9/18/2025 4:10:44 PM'}</span>
+          <span className="text-white font-medium">{billingRecord.modifiedDate || ''}</span>
         </div>
 
         {/* House Front Picture */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">House Front Picture</span>
-          <button className="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
-            <span className="text-sm">https://drive.google.com/open?id=1Y4n...</span>
-            <ExternalLink size={14} />
-          </button>
+          {billingRecord.houseFrontPicture ? (
+            <button className="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
+              <span className="text-sm">{billingRecord.houseFrontPicture}</span>
+              <ExternalLink size={14} />
+            </button>
+          ) : (
+            <span className="text-white font-medium"></span>
+          )}
         </div>
       </div>
 
