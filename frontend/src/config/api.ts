@@ -1,23 +1,13 @@
 import axios from 'axios';
 
-const getApiBaseUrl = (): string => {
-  if (process.env.REACT_APP_API_BASE_URL) {
-    return process.env.REACT_APP_API_BASE_URL;
-  }
-  
-  const hostname = window.location.hostname;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://localhost:8000/api';
-  }
-  
-  return `${window.location.protocol}//${window.location.host}/sync/api`;
-};
-
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = process.env.REACT_APP_API_BASE_URL as string;
 const isDevelopment = process.env.NODE_ENV === 'development';
 
+if (!API_BASE_URL) {
+  console.error('❌ Missing REACT_APP_API_BASE_URL in your .env file');
+}
+
 console.log('Environment:', process.env.NODE_ENV);
-console.log('Hostname:', window.location.hostname);
 console.log('API Base URL:', API_BASE_URL);
 
 const apiClient = axios.create({
@@ -34,7 +24,10 @@ const apiClient = axios.create({
 apiClient.interceptors.request.use(
   (config) => {
     if (isDevelopment) {
-      console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`, config.data || 'No data');
+      console.log(
+        `API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
+        config.data || 'No data'
+      );
     }
     return config;
   },
