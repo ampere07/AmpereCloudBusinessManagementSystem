@@ -39,6 +39,7 @@ import SalesAgentList from './SalesAgentList';
 import SOA from './SOA';
 import Invoice from './Invoice';
 import InventoryCategoryList from './InventoryCategoryList';
+import SOAGeneration from './SOAGeneration';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -140,6 +141,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <DailyExpenses />;
       case 'logs':
         return <Logs />;
+      case 'soa-generation':
+        return <SOAGeneration />;
       case 'dashboard':
       default:
         return <DashboardContent />;

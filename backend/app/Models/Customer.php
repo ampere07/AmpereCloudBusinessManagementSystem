@@ -26,6 +26,7 @@ class Customer extends Model
         'address_coordinates',
         'housing_status',
         'referred_by',
+        'desired_plan',
         'group_id',
         'created_by',
         'updated_by',

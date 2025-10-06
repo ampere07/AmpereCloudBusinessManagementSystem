@@ -36,8 +36,273 @@ Route::post('/regions', [\App\Http\Controllers\Api\LocationApiController::class,
 Route::put('/regions/{id}', function($id, Request $request) {
     return app(\App\Http\Controllers\Api\LocationApiController::class)->updateLocation('region', $id, $request);
 });
+
+// Debug routes for new features
+Route::prefix('debug')->group(function () {
+    Route::get('/billing-features', function() {
+        return response()->json([
+            'success' => true,
+            'message' => 'Enhanced billing features available',
+            'features' => [
+                'installment_tracking' => true,
+                'advanced_payments' => true,
+                'mass_rebates' => true,
+                'invoice_id_generation' => true,
+                'payment_received_tracking' => true
+            ],
+            'endpoints' => [
+                'advanced_payments' => '/api/advanced-payments',
+                'mass_rebates' => '/api/mass-rebates',
+                'installment_schedules' => '/api/installment-schedules',
+                'discounts' => '/api/discounts',
+                'service_charges' => '/api/service-charges',
+                'installments' => '/api/installments'
+            ]
+        ]);
+    });
+});
+
+// Discount Management Routes (if not already exists)
+Route::prefix('discounts')->group(function () {
+    Route::get('/', function(Request $request) {
+        $query = \App\Models\Discount::with(['billingAccount']);
+        
+        if ($request->has('account_id')) {
+            $query->where('account_id', $request->account_id);
+        }
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $discounts = $query->orderBy('created_at', 'desc')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $discounts,
+            'count' => $discounts->count()
+        ]);
+    });
+    
+    Route::post('/', function(Request $request) {
+        try {
+            $validated = $request->validate([
+                'account_id' => 'required|exists:billing_accounts,id',
+                'discount_amount' => 'required|numeric|min:0',
+                'status' => 'required|in:Unused,Permanent,Monthly',
+                'remaining' => 'nullable|numeric',
+                'remarks' => 'nullable|string'
+            ]);
+            
+            $validated['created_by_user_id'] = $request->user()->id ?? 1;
+            $validated['updated_by_user_id'] = $request->user()->id ?? 1;
+            
+            $discount = \App\Models\Discount::create($validated);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Discount created successfully',
+                'data' => $discount
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
+// Service Charge Logs Routes
+Route::prefix('service-charges')->group(function () {
+    Route::get('/', function(Request $request) {
+        $query = DB::table('service_charge_logs');
+        
+        if ($request->has('account_id')) {
+            $query->where('account_id', $request->account_id);
+        }
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $charges = $query->orderBy('created_at', 'desc')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $charges,
+            'count' => $charges->count()
+        ]);
+    });
+    
+    Route::post('/', function(Request $request) {
+        try {
+            $validated = $request->validate([
+                'account_id' => 'required|exists:billing_accounts,id',
+                'service_charge' => 'required|numeric|min:0',
+                'remarks' => 'nullable|string'
+            ]);
+            
+            $validated['status'] = 'Unused';
+            $validated['created_by_user_id'] = $request->user()->id ?? 1;
+            $validated['updated_by_user_id'] = $request->user()->id ?? 1;
+            $validated['created_at'] = now();
+            $validated['updated_at'] = now();
+            
+            $id = DB::table('service_charge_logs')->insertGetId($validated);
+            $charge = DB::table('service_charge_logs')->find($id);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Service charge created successfully',
+                'data' => $charge
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
+// Installment Management Routes (Enhanced)
+Route::prefix('installments')->group(function () {
+    Route::get('/', function(Request $request) {
+        $query = \App\Models\Installment::with(['billingAccount', 'schedules']);
+        
+        if ($request->has('account_id')) {
+            $query->where('account_id', $request->account_id);
+        }
+        
+        if ($request->has('status')) {
+            $query->where('status', $request->status);
+        }
+        
+        $installments = $query->orderBy('created_at', 'desc')->get();
+        
+        return response()->json([
+            'success' => true,
+            'data' => $installments,
+            'count' => $installments->count()
+        ]);
+    });
+    
+    Route::post('/', function(Request $request) {
+        try {
+            $validated = $request->validate([
+                'account_id' => 'required|exists:billing_accounts,id',
+                'total_balance' => 'required|numeric|min:0',
+                'months_to_pay' => 'required|integer|min:1',
+                'start_date' => 'required|date',
+                'remarks' => 'nullable|string'
+            ]);
+            
+            $validated['monthly_payment'] = $validated['total_balance'] / $validated['months_to_pay'];
+            $validated['status'] = 'active';
+            $validated['created_by'] = $request->user()->id ?? 1;
+            $validated['updated_by'] = $request->user()->id ?? 1;
+            
+            $installment = \App\Models\Installment::create($validated);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Installment created successfully',
+                'data' => $installment
+            ], 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    Route::get('/{id}', function($id) {
+        try {
+            $installment = \App\Models\Installment::with(['billingAccount', 'schedules'])->findOrFail($id);
+            
+            return response()->json([
+                'success' => true,
+                'data' => $installment
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 404);
+        }
+    });
+});
+
+// Scheduled Billing Generation Job Route
+Route::get('/billing-generation/trigger-scheduled', function() {
+    try {
+        $service = app(\App\Services\EnhancedBillingGenerationService::class);
+        $today = \Carbon\Carbon::now();
+        $results = $service->generateAllBillingsForToday(1);
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Scheduled billing generation completed',
+            'data' => $results
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Scheduled billing generation failed',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test Invoice ID Generation
+Route::get('/billing-generation/test-invoice-id', function() {
+    $date = \Carbon\Carbon::now();
+    $year = $date->format('y');
+    $month = $date->format('m');
+    $day = $date->format('d');
+    $hour = $date->format('H');
+    $invoiceId = $year . $month . $day . $hour . '0000';
+    
+    return response()->json([
+        'success' => true,
+        'invoice_id' => $invoiceId,
+        'date' => $date->format('Y-m-d H:i:s'),
+        'format' => 'YYMMDDHHXXXX'
+    ]);
+});
 Route::delete('/regions/{id}', function($id, Request $request) {
     return app(\App\Http\Controllers\Api\LocationApiController::class)->deleteLocation('region', $id, $request);
+});
+
+// Debug endpoint for billing calculations
+Route::get('/billing-generation/debug-calculations/{accountId}', function($accountId) {
+    try {
+        $account = \App\Models\BillingAccount::with(['customer'])->findOrFail($accountId);
+        $service = app(\App\Services\EnhancedBillingGenerationService::class);
+        
+        $customer = $account->customer;
+        $plan = \App\Models\AppPlan::where('Plan_Name', $customer->desired_plan)->first();
+        
+        return response()->json([
+            'success' => true,
+            'account' => $account,
+            'plan' => $plan,
+            'calculations' => [
+                'monthly_fee' => $plan ? $plan->Plan_Price : 0,
+                'billing_day' => $account->billing_day,
+                'account_balance' => $account->account_balance,
+                'date_installed' => $account->date_installed,
+                'balance_update_date' => $account->balance_update_date
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
 
 Route::get('/cities', [\App\Http\Controllers\Api\LocationApiController::class, 'getAllCities']);
@@ -595,6 +860,7 @@ Route::prefix('job-orders')->middleware('ensure.database.tables')->group(functio
     Route::get('/{id}', [JobOrderController::class, 'show']);
     Route::put('/{id}', [JobOrderController::class, 'update']);
     Route::delete('/{id}', [JobOrderController::class, 'destroy']);
+    Route::post('/{id}/approve', [JobOrderController::class, 'approve']);
     
     // Lookup table endpoints
     Route::get('/lookup/modem-router-sns', [JobOrderController::class, 'getModemRouterSNs']);
@@ -884,6 +1150,52 @@ Route::prefix('service_orders')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
 });
 
+// Billing API Routes - Fetches from customers, billing_accounts, and technical_details
+Route::prefix('billing')->group(function () {
+    Route::get('/', [\App\Http\Controllers\BillingController::class, 'index']);
+    Route::get('/{id}', [\App\Http\Controllers\BillingController::class, 'show']);
+    Route::get('/accounts/active', function() {
+        try {
+            $accounts = \App\Models\BillingAccount::with(['customer'])
+                ->where('billing_status_id', 2)
+                ->whereNotNull('date_installed')
+                ->get();
+            return response()->json([
+                'success' => true,
+                'data' => $accounts,
+                'count' => $accounts->count()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching active accounts',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    Route::get('/accounts/by-day/{day}', function($day) {
+        try {
+            $accounts = \App\Models\BillingAccount::with(['customer'])
+                ->where('billing_day', $day)
+                ->where('billing_status_id', 2)
+                ->whereNotNull('date_installed')
+                ->get();
+            return response()->json([
+                'success' => true,
+                'data' => $accounts,
+                'count' => $accounts->count(),
+                'billing_day' => $day
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching accounts by billing day',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+});
+
 // Billing Details API Routes
 Route::prefix('billing-details')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\BillingDetailsApiController::class, 'index']);
@@ -909,4 +1221,105 @@ Route::prefix('billing-statuses')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\BillingStatusApiController::class, 'destroy']);
+});
+
+// Debug route to check customers table structure
+Route::get('/debug/customers-structure', function() {
+    try {
+        $customer = \App\Models\Customer::first();
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No customers found in database'
+            ]);
+        }
+        
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('customers');
+        
+        return response()->json([
+            'success' => true,
+            'columns' => $columns,
+            'sample_customer' => $customer->getAttributes(),
+            'desired_plan_value' => $customer->desired_plan ?? 'NULL or not accessible'
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Debug route to check billing data
+Route::get('/debug/billing-data', function() {
+    try {
+        $billingAccount = \App\Models\BillingAccount::with(['customer', 'technicalDetails'])->first();
+        
+        if (!$billingAccount) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No billing accounts found'
+            ]);
+        }
+        
+        $customer = $billingAccount->customer;
+        $technicalDetail = $billingAccount->technicalDetails->first();
+        
+        return response()->json([
+            'success' => true,
+            'billing_account' => $billingAccount->getAttributes(),
+            'customer_exists' => $customer ? true : false,
+            'customer_data' => $customer ? $customer->getAttributes() : null,
+            'desired_plan_from_customer' => $customer ? $customer->desired_plan : 'NO CUSTOMER',
+            'technical_detail_exists' => $technicalDetail ? true : false,
+            'mapped_plan_value' => $customer ? $customer->desired_plan : null,
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
+// Billing Generation Routes
+Route::prefix('billing-generation')->group(function () {
+    Route::post('/generate-invoices', [\App\Http\Controllers\BillingGenerationController::class, 'generateInvoices']);
+    Route::post('/generate-statements', [\App\Http\Controllers\BillingGenerationController::class, 'generateStatements']);
+    Route::post('/generate-today', [\App\Http\Controllers\BillingGenerationController::class, 'generateTodaysBillings']);
+    Route::post('/generate-enhanced-invoices', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedInvoices']);
+    Route::post('/generate-enhanced-statements', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedStatements']);
+    Route::post('/generate-for-day', [\App\Http\Controllers\BillingGenerationController::class, 'generateBillingsForDay']);
+    Route::get('/invoices', [\App\Http\Controllers\BillingGenerationController::class, 'getInvoices']);
+    Route::get('/statements', [\App\Http\Controllers\BillingGenerationController::class, 'getStatements']);
+});
+
+// Advanced Payment Routes
+Route::prefix('advanced-payments')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\AdvancedPaymentApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\AdvancedPaymentApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\AdvancedPaymentApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\AdvancedPaymentApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\AdvancedPaymentApiController::class, 'destroy']);
+});
+
+// Mass Rebate Routes
+Route::prefix('mass-rebates')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\MassRebateApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\MassRebateApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\MassRebateApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\MassRebateApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\MassRebateApiController::class, 'destroy']);
+    Route::post('/{id}/mark-used', [\App\Http\Controllers\Api\MassRebateApiController::class, 'markAsUsed']);
+});
+
+// Installment Schedule Routes
+Route::prefix('installment-schedules')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'index']);
+    Route::post('/generate', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'generateSchedules']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'update']);
+    Route::get('/account/{accountId}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'getByAccount']);
 });

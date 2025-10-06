@@ -3,17 +3,19 @@ import {
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
   ExternalLink, Mail, Edit
 } from 'lucide-react';
-import { updateJobOrder } from '../services/jobOrderService';
+import { updateJobOrder, approveJobOrder } from '../services/jobOrderService';
 import { getBillingStatuses, BillingStatus } from '../services/lookupService';
 import { JobOrderDetailsProps } from '../types/jobOrder';
 import JobOrderDoneFormModal from '../modals/JobOrderDoneFormModal';
 import JobOrderEditFormModal from '../modals/JobOrderEditFormModal';
+import ApprovalConfirmationModal from '../modals/ApprovalConfirmationModal';
 
 const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDoneModalOpen, setIsDoneModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
   
   console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
@@ -210,7 +212,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     }
   };
   
-  const handleApproveClick = async () => {
+  const handleApproveClick = () => {
+    setIsApprovalModalOpen(true);
+  };
+  
+  const handleApproveConfirm = async () => {
     try {
       setLoading(true);
       
@@ -218,24 +224,20 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         throw new Error('Cannot approve job order: Missing ID');
       }
       
-      const approvedStatusId = 2;
+      const response = await approveJobOrder(jobOrder.id);
       
-      await updateJobOrder(jobOrder.id, {
-        billing_status_id: approvedStatusId,
-        Modified_By: 'current_user@ampere.com',
-        Modified_Date: new Date().toISOString()
-      });
-      
-      jobOrder.billing_status_id = approvedStatusId;
-      jobOrder.Billing_Status_ID = approvedStatusId;
-      
-      alert('Job Order billing status approved successfully!');
-      window.location.reload();
+      if (response.success) {
+        alert('Job Order approved successfully! Customer, billing account, and technical details have been created.');
+        window.location.reload();
+      } else {
+        throw new Error(response.message || 'Failed to approve job order');
+      }
     } catch (err: any) {
       setError(`Failed to approve job order: ${err.message}`);
       console.error('Approve error:', err);
     } finally {
       setLoading(false);
+      setIsApprovalModalOpen(false);
     }
   };
   
@@ -534,6 +536,13 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         onClose={() => setIsEditModalOpen(false)}
         onSave={handleEditSave}
         jobOrderData={jobOrder}
+      />
+
+      <ApprovalConfirmationModal
+        isOpen={isApprovalModalOpen}
+        onClose={() => setIsApprovalModalOpen(false)}
+        onConfirm={handleApproveConfirm}
+        loading={loading}
       />
     </div>
   );

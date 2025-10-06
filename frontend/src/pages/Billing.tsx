@@ -260,7 +260,7 @@ const Billing: React.FC = () => {
       case 'vlan':
         return record.vlan || '-';
       case 'billingDay':
-        return record.billingDay || '-';
+        return record.billingDay === 0 ? 'Every end of month' : (record.billingDay || '-');
       case 'totalPaid':
         return `₱ ${record.totalPaid?.toFixed(2) || '0.00'}`;
       case 'provider':

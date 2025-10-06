@@ -84,3 +84,14 @@ export const updateJobOrder = async (id: string | number, jobOrderData: Partial<
     throw error;
   }
 };
+
+export const approveJobOrder = async (id: string | number) => {
+  try {
+    const idStr = id.toString();
+    const response = await apiClient.post<ApiResponse<any>>(`/job-orders/${idStr}/approve`);
+    return response.data;
+  } catch (error) {
+    console.error('Error approving job order:', error);
+    throw error;
+  }
+};

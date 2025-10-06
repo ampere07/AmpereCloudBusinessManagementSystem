@@ -68,7 +68,9 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'nap', label: 'NAP', icon: Network },
         { id: 'lcp-nap-list', label: 'LCP NAP List', icon: MapPin },
         { id: 'inventory', label: 'Inventory', icon: Package },
-        { id: 'logs', label: 'Logs', icon: FileText }
+        { id: 'logs', label: 'Logs', icon: FileText },
+        { id: 'soa-generation', label: 'SOA Generation', icon: FileBarChart },
+        { id: 'invoice-generation', label: 'Invoice Generation', icon: Receipt }
       ]
     }
   ];

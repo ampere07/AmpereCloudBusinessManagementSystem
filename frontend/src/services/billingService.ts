@@ -16,6 +16,7 @@ export interface BillingRecord {
   billingStatus?: string;
   dateInstalled?: string;
   contactNumber?: string;
+  secondContactNumber?: string;
   emailAddress?: string;
   plan?: string;
   username?: string;
@@ -43,6 +44,11 @@ export interface BillingDetailRecord extends BillingRecord {
   referredBy?: string;
   secondContactNumber?: string;
   referrersAccountNumber?: string;
+  accountBalance?: number;
+  houseFrontPicture?: string;
+  referralContactNo?: string;
+  groupName?: string;
+  sessionIp?: string;
   relatedInvoices?: string;
   relatedStatementOfAccount?: string;
   relatedDiscounts?: string;
@@ -70,14 +76,12 @@ export interface BillingDetailRecord extends BillingRecord {
   relatedPlanChangeLogs?: string;
   relatedServiceChargeLogs?: string;
   relatedAdjustedAccountLogs?: string;
-  referralContactNo?: string;
   relatedSecurityDeposits?: string;
   relatedApprovedTransactions?: string;
   relatedAttachments?: string;
   logs?: string;
 }
 
-// API Response types
 interface BillingApiResponse {
   data?: BillingRecord[];
   message?: string;
@@ -108,15 +112,13 @@ axiosInstance.interceptors.request.use((config) => {
 
 export const getBillingRecords = async (): Promise<BillingRecord[]> => {
   try {
-    // Call the actual billing-details API endpoint
-    const response = await axiosInstance.get<any>('/billing-details');
+    const response = await axiosInstance.get<any>('/billing');
     const responseData = response.data;
     
-    // Map the API response to the expected BillingRecord format
     if (responseData?.data && Array.isArray(responseData.data)) {
-      return responseData.data.map((item: any) => ({
-        id: item.Account_No,
-        applicationId: item.Account_No,
+      return responseData.data.map((item: any): BillingRecord => ({
+        id: item.Account_No || item.id,
+        applicationId: item.Account_No || '',
         customerName: item.Full_Name || '',
         address: item.Address || '',
         status: item.Status || 'Inactive',
@@ -125,11 +127,12 @@ export const getBillingRecords = async (): Promise<BillingRecord[]> => {
         cityId: null,
         regionId: null,
         timestamp: item.Modified_Date || '',
-        billingStatus: item.Billing_Status || '',
+        billingStatus: item.Billing_Status_ID ? `Status ${item.Billing_Status_ID}` : '',
         dateInstalled: item.Date_Installed || '',
         contactNumber: item.Contact_Number || '',
-        emailAddress: item.Email_Address || '',
-        plan: item.Plan || '',
+        secondContactNumber: item.Second_Contact_Number || '',
+        emailAddress: item.email_address || item.Email_Address || '',
+        plan: item.Plan || item.Desired_Plan || '',
         username: item.Username || '',
         connectionType: item.Connection_Type || '',
         routerModel: item.Router_Model || '',
@@ -137,8 +140,8 @@ export const getBillingRecords = async (): Promise<BillingRecord[]> => {
         lcpnap: item.LCPNAP || '',
         port: item.PORT || '',
         vlan: item.VLAN || '',
-        billingDay: item.Billing_Day || 0,
-        totalPaid: 0, // Not directly available from the API
+        billingDay: item.Billing_Day === 'Every end of month' ? 0 : (item.Billing_Day || 0),
+        totalPaid: 0,
         provider: item.Provider || '',
         lcp: item.LCP || '',
         nap: item.NAP || '',
@@ -159,16 +162,14 @@ export const getBillingRecords = async (): Promise<BillingRecord[]> => {
 
 export const getBillingRecordDetails = async (id: string): Promise<BillingDetailRecord | null> => {
   try {
-    // Call the actual billing-details API endpoint for a specific record
-    const response = await axiosInstance.get<any>(`/billing-details/${id}`);
+    const response = await axiosInstance.get<any>(`/billing/${id}`);
     const responseData = response.data;
     
     if (responseData?.data) {
       const item = responseData.data;
-      // Map the API response to the expected BillingDetailRecord format
       const basicRecord: BillingRecord = {
-        id: item.Account_No,
-        applicationId: item.Account_No,
+        id: item.Account_No || item.id,
+        applicationId: item.Account_No || '',
         customerName: item.Full_Name || '',
         address: item.Address || '',
         status: item.Status || 'Inactive',
@@ -177,11 +178,12 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         cityId: null,
         regionId: null,
         timestamp: item.Modified_Date || '',
-        billingStatus: item.Billing_Status || '',
+        billingStatus: item.Billing_Status_ID ? `Status ${item.Billing_Status_ID}` : '',
         dateInstalled: item.Date_Installed || '',
         contactNumber: item.Contact_Number || '',
+        secondContactNumber: item.Second_Contact_Number || '',
         emailAddress: item.Email_Address || '',
-        plan: item.Plan || '',
+        plan: item.Plan || item.Desired_Plan || '',
         username: item.Username || '',
         connectionType: item.Connection_Type || '',
         routerModel: item.Router_Model || '',
@@ -189,8 +191,8 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         lcpnap: item.LCPNAP || '',
         port: item.PORT || '',
         vlan: item.VLAN || '',
-        billingDay: item.Billing_Day || 0,
-        totalPaid: 0, // Not directly available from the API
+        billingDay: item.Billing_Day === 'Every end of month' ? 0 : (item.Billing_Day || 0),
+        totalPaid: 0,
         provider: item.Provider || '',
         lcp: item.LCP || '',
         nap: item.NAP || '',
@@ -201,17 +203,21 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         region: item.Region || ''
       };
       
-      // Add additional details specific to BillingDetailRecord
-      return {
+      const detailRecord: BillingDetailRecord = {
         ...basicRecord,
         lcpnapport: item.LCPNAPPORT || '',
-        usageType: item.Usage_Type || '',
+        usageType: item.Usage_Type_ID ? `Type ${item.Usage_Type_ID}` : '',
         referredBy: item.Referred_By || '',
-        secondContactNumber: item.Second_Contact_Number || '',
-        referrersAccountNumber: item.Referrers_Account_Number || '',
-        group: item.Group || '',
-        mikrotikId: item.MIKROTIK_ID || '',
-        // Add additional placeholders for UI components
+        referrersAccountNumber: '',
+        group: item.Group_ID ? `Group ${item.Group_ID}` : '',
+        groupName: item.Group_Name || item.group_name || '',
+        mikrotikId: '',
+        sessionIP: item.IP_Address || '',
+        sessionIp: item.IP_Address || item.ip_address || '',
+        emailAddress: item.email_address || item.Email_Address || '',
+        accountBalance: parseFloat(item.Account_Balance) || parseFloat(item.account_balance) || 0,
+        houseFrontPicture: item.House_Front_Picture || item.house_front_picture || '',
+        referralContactNo: item.Referral_Contact_No || item.referral_contact_no || '',
         relatedInvoices: 'Related Invoices (0)',
         relatedStatementOfAccount: 'Related Statement of Account...',
         relatedDiscounts: 'Related Discounts (0)',
@@ -232,17 +238,17 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         relatedInventoryLogs: 'Related Inventory Logs (0)',
         computedAccountNo: `${item.Account_No} | ${item.Full_Name || ''}${item.Address ? (' | ' + item.Address.substring(0, 10) + '...') : ''}`,
         relatedOnlineStatus: 'Related Online Status (1)',
-        sessionIP: item.IP || '',
         relatedBorrowedLogs: 'Related Borrowed Logs (0)',
         relatedPlanChangeLogs: 'Related Plan Change Logs (0)',
         relatedServiceChargeLogs: 'Related Service Charge Logs (0)',
         relatedAdjustedAccountLogs: 'Related Adjusted Account Log...',
-        referralContactNo: '',
         relatedSecurityDeposits: 'Related Security Deposits (0)',
         relatedApprovedTransactions: 'Related Approved Transaction...',
         relatedAttachments: '',
         logs: 'Logs (0)'
       };
+      
+      return detailRecord;
     }
     
     return null;
@@ -254,9 +260,7 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
 
 export const updateBillingRecord = async (id: string, data: Partial<BillingDetailRecord>): Promise<BillingDetailRecord | null> => {
   try {
-    // Map the frontend data format to the backend data format
     const backendData = {
-      // Map only the fields that can be updated
       Full_Name: data.customerName,
       Contact_Number: data.contactNumber,
       Email_Address: data.emailAddress,
@@ -286,7 +290,6 @@ export const updateBillingRecord = async (id: string, data: Partial<BillingDetai
     
     const response = await axiosInstance.put<any>(`/billing-details/${id}`, backendData);
     
-    // After successful update, retrieve the updated record
     return getBillingRecordDetails(id);
   } catch (error) {
     console.error('Error updating billing record:', error);
@@ -296,7 +299,6 @@ export const updateBillingRecord = async (id: string, data: Partial<BillingDetai
 
 export const createBillingRecord = async (data: Partial<BillingDetailRecord>): Promise<BillingDetailRecord | null> => {
   try {
-    // Map the frontend data format to the backend data format
     const backendData = {
       Account_No: data.applicationId,
       Full_Name: data.customerName,
