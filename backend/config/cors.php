@@ -19,7 +19,11 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['http://localhost:3000'],
+    'allowed_origins' => [
+        'http://localhost:3000',
+        'https://atssfiber.ph',
+        'https://www.atssfiber.ph'
+    ],
 
     'allowed_origins_patterns' => [],
 
