@@ -33,7 +33,7 @@ const PlanList: React.FC = () => {
   const [panelAnimating, setPanelAnimating] = useState(false);
 
   // Base API URL
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
     loadPlans();
