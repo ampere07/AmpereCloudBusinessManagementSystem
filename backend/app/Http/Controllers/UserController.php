@@ -32,10 +32,12 @@ class UserController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'salutation' => 'nullable|string|max:10|in:Mr,Ms,Mrs,Dr,Prof',
-            'full_name' => 'required|string|max:255',
+            'first_name' => 'required|string|max:255',
+            'middle_initial' => 'required|string|max:255',
+            'last_name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|string|email|max:255|unique:users,email_address',
-            'mobile_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
+            'email_address' => 'required|string|email|max:255|unique:users,email_address',
+            'contact_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'required|string|min:8',
             'org_id' => 'nullable|integer',
         ]);
@@ -50,18 +52,18 @@ class UserController extends Controller
 
         try {
             // Generate user ID with proper error handling
-            $userId = User::generateUserId();
             
-            $userData = [
-                'user_id' => $userId,
-                'salutation' => $request->salutation,
-                'full_name' => $request->full_name,
-                'username' => $request->username,
-                'email_address' => $request->email,
-                'mobile_number' => $request->mobile_number,
-                'password_hash' => $request->password,
-                'org_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
-            ];
+                $userData = [
+                    'salutation' => $request->salutation,
+                    'first_name' => $request->first_name,
+                    'middle_initial' => $request->middle_initial,
+                    'last_name' => $request->last_name,
+                    'username' => $request->username,
+                    'email_address' => $request->email_address,   // correct field
+                    'contact_number' => $request->contact_number, // correct field
+                    'password_hash' => $request->password,
+                    'organization_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
+                ];
             
             $user = User::create($userData);
             
@@ -128,10 +130,12 @@ class UserController extends Controller
         
         $validator = Validator::make($request->all(), [
             'salutation' => 'sometimes|string|max:10|in:Mr,Ms,Mrs,Dr,Prof',
-            'full_name' => 'sometimes|string|max:255',
+            'first_name' => 'sometimes|string|max:255',
+            'middle_initial' => 'sometimes|string|max:255',
+            'last_name' => 'sometimes|string|max:255',
             'username' => 'sometimes|string|max:255|unique:users,username,' . $id . ',user_id',
-            'email' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',user_id',
-            'mobile_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
+            'email_address' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',user_id',
+            'contact_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'sometimes|string|min:8',
             'org_id' => 'sometimes|nullable|integer',
         ]);
@@ -148,7 +152,7 @@ class UserController extends Controller
             $user = User::findOrFail($id);
             
             $oldData = $user->toArray();
-            $updateData = $request->only(['salutation', 'full_name', 'username', 'mobile_number', 'org_id']);
+            $updateData = $request->only(['salutation', 'first_name', 'middle_initial','last_name','username', 'mobile_number', 'org_id']);
             
             // Map email to email_address for database
             if ($request->has('email')) {

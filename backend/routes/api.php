@@ -20,6 +20,20 @@ use App\Http\Controllers\EmergencyLocationController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
+// CORS Test Endpoint - First route to test CORS configuration
+Route::get('/cors-test', function (Request $request) {
+    return response()->json([
+        'success' => true,
+        'message' => 'CORS is working',
+        'origin' => $request->header('Origin'),
+        'headers' => [
+            'Access-Control-Allow-Origin' => $request->header('Origin'),
+            'Access-Control-Allow-Credentials' => 'true',
+        ],
+        'timestamp' => now()->toISOString()
+    ]);
+});
+
 // Fixed, reliable location endpoints that won't change
 Route::post('/fixed/location/region', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addRegion']);
 Route::post('/fixed/location/city', [\App\Http\Controllers\Api\LocationFixedEndpointsController::class, 'addCity']);

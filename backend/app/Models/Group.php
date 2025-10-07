@@ -10,7 +10,7 @@ class Group extends Model
     use HasFactory;
 
     protected $primaryKey = 'id';
-    protected $table = 'group_list';
+    protected $table = 'groups';
 
     protected $fillable = [
         'group_name',

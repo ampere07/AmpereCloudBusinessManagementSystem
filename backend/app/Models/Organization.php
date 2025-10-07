@@ -30,6 +30,6 @@ class Organization extends Model
 
     public function users()
     {
-        return $this->hasMany(User::class, 'org_id', 'id');
+        return $this->hasMany(User::class, 'organization_id', 'id');
     }
 }

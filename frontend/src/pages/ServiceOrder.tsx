@@ -97,7 +97,7 @@ const ServiceOrder: React.FC = () => {
         setCities(citiesData || []);
         
         // Fetch service orders data
-        console.log('Fetching service orders from service_order table...');
+        console.log('Fetching service orders from service_orders table...');
         const response = await getServiceOrders();
         console.log('Service Orders API Response:', response);
         
@@ -160,7 +160,7 @@ const ServiceOrder: React.FC = () => {
           if (response.message) {
             // If error is a database error, format it better
             if (response.message.includes('SQLSTATE') || response.message.includes('table')) {
-              const formattedMessage = `Database error: ${response.message}\nPossible issue: Service orders might be using 'service_order' table instead of 'service_orders'`;
+              const formattedMessage = `Database error: ${response.message}\nPossible issue: Service orders might be using 'service_orders' table instead of 'service_orders'`;
               setError(formattedMessage);
               console.error(formattedMessage);
             } else {
@@ -513,7 +513,7 @@ const ServiceOrder: React.FC = () => {
                           <div className="text-gray-400">
                             {serviceOrders.length > 0
                               ? 'No service orders found matching your filters'
-                              : 'No service orders found in the service_order table'}
+                              : 'No service orders found in the service_orders table'}
                           </div>
                         </div>
                       </td>

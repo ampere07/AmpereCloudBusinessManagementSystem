@@ -34,11 +34,19 @@ const UserManagement: React.FC = () => {
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.full_name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const getFullName = (user: User): string => {
+    const parts = [user.first_name, user.middle_initial, user.last_name].filter(Boolean);
+    return parts.join(' ');
+  };
+
+  const filteredUsers = users.filter(user => {
+    const fullName = getFullName(user);
+    return (
+      user.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.email_address.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      fullName.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  });
 
   // Pagination calculations
   const totalItems = filteredUsers.length;
@@ -98,7 +106,7 @@ const UserManagement: React.FC = () => {
 
   const handleUserUpdated = (updatedUser: User) => {
     setUsers(prev => prev.map(user => 
-      user.user_id === updatedUser.user_id ? updatedUser : user
+      user.id === updatedUser.id ? updatedUser : user
     ));
     setEditingUser(null);
   };
@@ -115,10 +123,10 @@ const UserManagement: React.FC = () => {
     if (!deletingUser) return;
 
     try {
-      const response = await userService.deleteUser(deletingUser.user_id);
+      const response = await userService.deleteUser(deletingUser.id);
       
       if (response.success) {
-        setUsers(prev => prev.filter(user => user.user_id !== deletingUser.user_id));
+        setUsers(prev => prev.filter(user => user.id !== deletingUser.id));
         setDeletingUser(null);
       } else {
         const errorMessage = response.message || 'Failed to delete user';
@@ -185,7 +193,7 @@ const UserManagement: React.FC = () => {
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Name</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Username</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Mobile</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Contact</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Organization</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Created</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Actions</th>
@@ -200,17 +208,17 @@ const UserManagement: React.FC = () => {
                       </tr>
                     ) : (
                       currentUsers.map((user: User) => (
-                        <tr key={user.user_id} className="border-b border-gray-700 hover:bg-gray-750">
+                        <tr key={user.id} className="border-b border-gray-700 hover:bg-gray-750">
                           <td className="px-4 py-4 text-sm text-white">
                             {user.salutation && (
                               <span className="text-gray-400 mr-1">{user.salutation}</span>
                             )}
-                            {user.full_name}
+                            {getFullName(user)}
                           </td>
                           <td className="px-4 py-4 text-sm text-white">{user.username}</td>
                           <td className="px-4 py-4 text-sm text-gray-300">{user.email_address}</td>
                           <td className="px-4 py-4 text-sm text-gray-300">
-                            {user.mobile_number || '-'}
+                            {user.contact_number || '-'}
                           </td>
                           <td className="px-4 py-4 text-sm text-gray-300">
                             {user.organization?.organization_name || 'No Organization'}
@@ -331,7 +339,7 @@ const UserManagement: React.FC = () => {
                 Confirm Delete User
               </h3>
               <p className="text-gray-300 mb-6">
-                Are you sure you want to delete user "{deletingUser.full_name}" ({deletingUser.username})? This action cannot be undone.
+                Are you sure you want to delete user "{getFullName(deletingUser)}" ({deletingUser.username})? This action cannot be undone.
               </p>
               <div className="flex gap-4">
                 <button

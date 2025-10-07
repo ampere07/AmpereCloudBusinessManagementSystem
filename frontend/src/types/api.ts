@@ -50,13 +50,15 @@ export interface UserData {
 }
 
 export interface User {
-  user_id: number;
+  id: number;
   salutation?: string;
-  full_name: string;
+  first_name: string;
+  middle_initial?: string;
+  last_name: string;
   username: string;
   email_address: string;
-  mobile_number?: string;
-  org_id?: number | null;
+  contact_number?: string;
+  organization_id?: number | null;
   created_at: string;
   updated_at: string;
   organization?: {
@@ -106,22 +108,26 @@ export interface Group {
 
 export interface CreateUserRequest {
   salutation?: string;
-  full_name: string;
+  first_name: string;
+  middle_initial?: string;
+  last_name: string;
   username: string;
-  email: string;
-  mobile_number?: string;
+  email_address: string;
+  contact_number?: string;
   password: string;
-  org_id?: number;
+  organization_id?: number;
 }
 
 export interface UpdateUserRequest {
   salutation?: string;
-  full_name?: string;
+  first_name?: string;
+  middle_initial?: string;
+  last_name?: string;
   username?: string;
-  email?: string;
-  mobile_number?: string;
+  email_address?: string;
+  contact_number?: string;
   password?: string;
-  org_id?: number | null | undefined;
+  organization_id?: number | null | undefined;
 }
 
 export interface ApiResponse<T> {

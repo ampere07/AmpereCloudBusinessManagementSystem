@@ -18,13 +18,13 @@ class ServiceOrderController extends Controller
     {
         try {
             // Directly use the service_order table
-            $tableName = 'service_order';
+            $tableName = 'service_orders';
             
             // Log that we're accessing the table
             Log::info('Accessing ' . $tableName . ' table');
             
             // Query the table
-            $serviceOrders = DB::table('service_order')->get();
+            $serviceOrders = DB::table('service_orders')->get();
 
             // Log the count of service orders found
             $count = count($serviceOrders);

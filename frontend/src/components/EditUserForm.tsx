@@ -20,14 +20,15 @@ const salutationOptions = [
 
 const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdated }) => {
   
-  // Initialize hooks first (they must always be called in the same order)
   const [formData, setFormData] = useState<UpdateUserRequest>({
     salutation: user?.salutation || '',
-    full_name: user?.full_name || '',
+    first_name: user?.first_name || '',
+    middle_initial: user?.middle_initial || '',
+    last_name: user?.last_name || '',
     username: user?.username || '',
-    email: user?.email_address || '',
-    mobile_number: user?.mobile_number || '',
-    org_id: user?.org_id
+    email_address: user?.email_address || '',
+    contact_number: user?.contact_number || '',
+    organization_id: user?.organization_id
   });
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -38,21 +39,21 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
     loadOrganizations();
   }, []);
   
-  // Update form data when user prop changes
   useEffect(() => {
     if (user) {
       setFormData({
         salutation: user.salutation || '',
-        full_name: user.full_name || '',
+        first_name: user.first_name || '',
+        middle_initial: user.middle_initial || '',
+        last_name: user.last_name || '',
         username: user.username || '',
-        email: user.email_address || '',
-        mobile_number: user.mobile_number || '',
-        org_id: user.org_id
+        email_address: user.email_address || '',
+        contact_number: user.contact_number || '',
+        organization_id: user.organization_id
       });
     }
   }, [user]);
   
-  // Validate that we have a valid user with proper ID
   if (!user) {
     console.error('EditUserForm received invalid user data');
     return (
@@ -85,7 +86,7 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    if (name === 'org_id') {
+    if (name === 'organization_id') {
       const orgValue = value && value !== '' ? parseInt(value, 10) : undefined;
       setFormData(prev => ({
         ...prev,
@@ -106,8 +107,12 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.full_name?.trim()) {
-      newErrors.full_name = 'Full name is required';
+    if (!formData.first_name?.trim()) {
+      newErrors.first_name = 'First name is required';
+    }
+
+    if (!formData.last_name?.trim()) {
+      newErrors.last_name = 'Last name is required';
     }
 
     if (!formData.username?.trim()) {
@@ -116,18 +121,18 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
       newErrors.username = 'Username must be at least 3 characters';
     }
 
-    if (!formData.email?.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!formData.email_address?.trim()) {
+      newErrors.email_address = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_address)) {
+      newErrors.email_address = 'Please enter a valid email address';
     }
 
     if (formData.password && formData.password.length < 8) {
       newErrors.password = 'Password must be at least 8 characters';
     }
 
-    if (formData.mobile_number && formData.mobile_number.trim() && !/^[+]?[0-9\s\-\(\)]+$/.test(formData.mobile_number)) {
-      newErrors.mobile_number = 'Mobile number format is invalid';
+    if (formData.contact_number && formData.contact_number.trim() && !/^[+]?[0-9\s\-\(\)]+$/.test(formData.contact_number)) {
+      newErrors.contact_number = 'Contact number format is invalid';
     }
 
     setErrors(newErrors);
@@ -141,45 +146,48 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
 
     setLoading(true);
     try {
-      // Clean and prepare the data with proper typing
       const dataToSend: UpdateUserRequest = {};
       
-      // Only include fields that have values and are different from original
       if (formData.salutation !== undefined && formData.salutation !== (user.salutation || '')) {
         dataToSend.salutation = formData.salutation.trim() || undefined;
       }
       
-      if (formData.full_name && formData.full_name.trim() !== (user.full_name || '')) {
-        dataToSend.full_name = formData.full_name.trim();
+      if (formData.first_name && formData.first_name.trim() !== (user.first_name || '')) {
+        dataToSend.first_name = formData.first_name.trim();
+      }
+
+      if (formData.middle_initial !== (user.middle_initial || '')) {
+        dataToSend.middle_initial = formData.middle_initial?.trim() || undefined;
+      }
+      
+      if (formData.last_name && formData.last_name.trim() !== (user.last_name || '')) {
+        dataToSend.last_name = formData.last_name.trim();
       }
       
       if (formData.username && formData.username.trim() !== (user.username || '')) {
         dataToSend.username = formData.username.trim();
       }
       
-      if (formData.email && formData.email.trim() !== (user.email_address || '')) {
-        dataToSend.email = formData.email.trim();
+      if (formData.email_address && formData.email_address.trim() !== (user.email_address || '')) {
+        dataToSend.email_address = formData.email_address.trim();
       }
       
-      if (formData.mobile_number !== (user.mobile_number || '')) {
-        dataToSend.mobile_number = formData.mobile_number?.trim() || undefined;
+      if (formData.contact_number !== (user.contact_number || '')) {
+        dataToSend.contact_number = formData.contact_number?.trim() || undefined;
       }
       
-      // Compare org_id values, treating null and undefined as equivalent
-      const currentOrgId = user.org_id || undefined;
-      const newOrgId = formData.org_id || undefined;
+      const currentOrgId = user.organization_id || undefined;
+      const newOrgId = formData.organization_id || undefined;
       
       if (newOrgId !== currentOrgId) {
-        // Only include org_id if it's a valid number greater than 0, otherwise set to undefined
-        dataToSend.org_id = (formData.org_id && formData.org_id > 0) ? formData.org_id : undefined;
+        dataToSend.organization_id = (formData.organization_id && formData.organization_id > 0) ? formData.organization_id : undefined;
       }
       
-      // Only include password if it's being changed
       if (formData.password && formData.password.trim()) {
         dataToSend.password = formData.password;
       }
       
-      const response = await userService.updateUser(user.user_id, dataToSend);
+      const response = await userService.updateUser(user.id, dataToSend);
       
       if (response.success && response.data) {
         onUserUpdated(response.data);
@@ -191,7 +199,6 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
       console.error('Update user error:', error);
       
       if (error.response?.status === 422) {
-        // Handle validation errors
         if (error.response?.data?.errors) {
           const backendErrors: Record<string, string> = {};
           const errorData = error.response.data.errors;
@@ -265,21 +272,56 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Full Name *
+                  First Name *
                 </label>
                 <input
                   type="text"
-                  name="full_name"
-                  value={formData.full_name || ''}
+                  name="first_name"
+                  value={formData.first_name || ''}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.full_name ? 'border-red-600' : 'border-gray-600'
+                    errors.first_name ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter full name"
+                  placeholder="Enter first name"
                   required
                 />
-                {errors.full_name && (
-                  <p className="text-red-400 text-sm mt-1">{errors.full_name}</p>
+                {errors.first_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.first_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Middle Initial
+                </label>
+                <input
+                  type="text"
+                  name="middle_initial"
+                  value={formData.middle_initial || ''}
+                  onChange={handleInputChange}
+                  maxLength={1}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400"
+                  placeholder="M"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name || ''}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.last_name ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter last name"
+                  required
+                />
+                {errors.last_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.last_name}</p>
                 )}
               </div>
 
@@ -309,36 +351,36 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
                 </label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email || ''}
+                  name="email_address"
+                  value={formData.email_address || ''}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.email ? 'border-red-600' : 'border-gray-600'
+                    errors.email_address ? 'border-red-600' : 'border-gray-600'
                   }`}
                   placeholder="Enter email address"
                   required
                 />
-                {errors.email && (
-                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                {errors.email_address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email_address}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Mobile Number
+                  Contact Number
                 </label>
                 <input
                   type="tel"
-                  name="mobile_number"
-                  value={formData.mobile_number || ''}
+                  name="contact_number"
+                  value={formData.contact_number || ''}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.mobile_number ? 'border-red-600' : 'border-gray-600'
+                    errors.contact_number ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter mobile number"
+                  placeholder="Enter contact number"
                 />
-                {errors.mobile_number && (
-                  <p className="text-red-400 text-sm mt-1">{errors.mobile_number}</p>
+                {errors.contact_number && (
+                  <p className="text-red-400 text-sm mt-1">{errors.contact_number}</p>
                 )}
               </div>
 
@@ -347,8 +389,8 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
                   Organization (Optional)
                 </label>
                 <select
-                  name="org_id"
-                  value={formData.org_id || ''}
+                  name="organization_id"
+                  value={formData.organization_id || ''}
                   onChange={handleInputChange}
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
                 >

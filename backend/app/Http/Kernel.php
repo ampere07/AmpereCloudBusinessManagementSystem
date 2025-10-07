@@ -39,7 +39,8 @@ class Kernel extends HttpKernel
         ],
 
         'api' => [
-            // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
+            // ✅ Sanctum middleware must be FIRST
+            \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
         ],
@@ -47,8 +48,6 @@ class Kernel extends HttpKernel
 
     /**
      * The application's route middleware.
-     *
-     * These middleware may be assigned to groups or used individually.
      *
      * @var array<string, class-string|string>
      */
@@ -64,6 +63,5 @@ class Kernel extends HttpKernel
         'throttle' => \Illuminate\Routing\Middleware\ThrottleRequests::class,
         'verified' => \Illuminate\Auth\Middleware\EnsureEmailIsVerified::class,
         'ensure.database.tables' => \App\Http\Middleware\EnsureDatabaseTables::class,
-        'emergency.cors' => \Illuminate\Http\Middleware\HandleCors::class,
     ];
 }
