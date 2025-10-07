@@ -34,8 +34,8 @@ class UserController extends Controller
             'salutation' => 'nullable|string|max:10|in:Mr,Ms,Mrs,Dr,Prof',
             'full_name' => 'required|string|max:255',
             'username' => 'required|string|max:255|unique:users',
-            'email' => 'required|string|email|max:255|unique:users,email_address',
-            'mobile_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
+            'email_address' => 'required|string|email|max:255|unique:users,email_address',
+            'contact_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'required|string|min:8',
             'org_id' => 'nullable|integer',
         ]);
@@ -58,7 +58,7 @@ class UserController extends Controller
                 'full_name' => $request->full_name,
                 'username' => $request->username,
                 'email_address' => $request->email,
-                'mobile_number' => $request->mobile_number,
+                'contact_number' => $request->mobile_number,
                 'password_hash' => $request->password,
                 'org_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
             ];
@@ -130,8 +130,8 @@ class UserController extends Controller
             'salutation' => 'sometimes|string|max:10|in:Mr,Ms,Mrs,Dr,Prof',
             'full_name' => 'sometimes|string|max:255',
             'username' => 'sometimes|string|max:255|unique:users,username,' . $id . ',user_id',
-            'email' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',user_id',
-            'mobile_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
+            'email_address' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',user_id',
+            'contact_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'sometimes|string|min:8',
             'org_id' => 'sometimes|nullable|integer',
         ]);
