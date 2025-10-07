@@ -64,7 +64,7 @@ export const createServiceOrder = async (serviceOrderData: ServiceOrderData) => 
 
 export const getServiceOrders = async () => {
   try {
-    console.log('Fetching service orders from service_order table...');
+    console.log('Fetching service orders from service_orders table...');
     try {
       const response = await apiClient.get<ApiResponse<ServiceOrderData[]>>('/service-orders');
       console.log('Raw API response:', response);
@@ -88,7 +88,7 @@ export const getServiceOrders = async () => {
       success: false,
       data: [],
       message: 'Service order API endpoints not available',
-      table: 'service_order' // Explicitly specify table name for debugging
+      table: 'service_orders' // Explicitly specify table name for debugging
     };
   } catch (error) {
     console.error('Error fetching service orders:', error);
@@ -97,7 +97,7 @@ export const getServiceOrders = async () => {
       success: false,
       data: [],
       message: error instanceof Error ? error.message : 'Unknown error fetching service orders',
-      table: 'service_order' // Explicitly specify table name for debugging
+      table: 'service_orders' // Explicitly specify table name for debugging
     };
   }
 };

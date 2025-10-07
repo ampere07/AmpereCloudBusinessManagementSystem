@@ -11,7 +11,7 @@ class ServiceOrder extends Model
     /**
      * Specify the table name directly
      */
-    protected $table = 'service_order';
+    protected $table = 'service_orders';
     
     protected $fillable = [
         'Ticket_ID',
@@ -64,7 +64,7 @@ class ServiceOrder extends Model
      *
      * @var string
      */
-    protected $primaryKey = 'ID';
+    protected $primaryKey = 'id';
 
     /**
      * Relationship to Application

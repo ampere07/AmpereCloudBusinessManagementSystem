@@ -3,14 +3,21 @@ import './App.css';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import { UserData } from './types/api';
+import { initializeCsrf } from './config/api';
 
 function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if user is already logged in when app loads
-    const checkAuthStatus = () => {
+    // Initialize CSRF cookie and check auth status
+    const initialize = async () => {
+      try {
+        await initializeCsrf();
+      } catch (error) {
+        console.error('Failed to initialize CSRF:', error);
+      }
+
       const authData = localStorage.getItem('authData');
       if (authData) {
         try {
@@ -24,7 +31,7 @@ function App() {
       setIsLoading(false);
     };
 
-    checkAuthStatus();
+    initialize();
   }, []);
 
   const handleLogin = async (user: UserData) => {

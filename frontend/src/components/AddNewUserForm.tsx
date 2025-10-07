@@ -20,12 +20,14 @@ const salutationOptions = [
 const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated }) => {
   const [formData, setFormData] = useState<CreateUserRequest>({
     salutation: '',
-    full_name: '',
+    first_name: '',
+    middle_initial: '',
+    last_name: '',
     username: '',
-    email: '',
-    mobile_number: '',
+    email_address: '',
+    contact_number: '',
     password: '',
-    org_id: undefined
+    organization_id: undefined
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -53,7 +55,7 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
     
     if (name === 'confirmPassword') {
       setConfirmPassword(value);
-    } else if (name === 'org_id') {
+    } else if (name === 'organization_id') {
       const orgValue = value && value !== '' ? parseInt(value, 10) : undefined;
       setFormData(prev => ({
         ...prev,
@@ -74,8 +76,12 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.full_name?.trim()) {
-      newErrors.full_name = 'Full name is required';
+    if (!formData.first_name?.trim()) {
+      newErrors.first_name = 'First name is required';
+    }
+
+    if (!formData.last_name?.trim()) {
+      newErrors.last_name = 'Last name is required';
     }
 
     if (!formData.username?.trim()) {
@@ -84,10 +90,10 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
       newErrors.username = 'Username must be at least 3 characters';
     }
 
-    if (!formData.email?.trim()) {
-      newErrors.email = 'Email is required';
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = 'Please enter a valid email address';
+    if (!formData.email_address?.trim()) {
+      newErrors.email_address = 'Email is required';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email_address)) {
+      newErrors.email_address = 'Please enter a valid email address';
     }
 
     if (!formData.password) {
@@ -100,8 +106,8 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
       newErrors.confirmPassword = 'Passwords do not match';
     }
 
-    if (formData.mobile_number && formData.mobile_number.trim() && !/^[+]?[0-9\s\-\(\)]+$/.test(formData.mobile_number)) {
-      newErrors.mobile_number = 'Mobile number format is invalid';
+    if (formData.contact_number && formData.contact_number.trim() && !/^[+]?[0-9\s\-\(\)]+$/.test(formData.contact_number)) {
+      newErrors.contact_number = 'Contact number format is invalid';
     }
 
     setErrors(newErrors);
@@ -116,22 +122,27 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
     setLoading(true);
     try {
       const dataToSend: CreateUserRequest = {
-        full_name: formData.full_name.trim(),
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
         username: formData.username.trim().toLowerCase(),
-        email: formData.email.trim().toLowerCase(),
+        email_address: formData.email_address.trim().toLowerCase(),
         password: formData.password,
       };
       
       if (formData.salutation && formData.salutation.trim() && formData.salutation !== '') {
         dataToSend.salutation = formData.salutation.trim();
       }
-      
-      if (formData.mobile_number && formData.mobile_number.trim()) {
-        dataToSend.mobile_number = formData.mobile_number.trim();
+
+      if (formData.middle_initial && formData.middle_initial.trim()) {
+        dataToSend.middle_initial = formData.middle_initial.trim();
       }
       
-      if (formData.org_id && formData.org_id > 0) {
-        dataToSend.org_id = formData.org_id;
+      if (formData.contact_number && formData.contact_number.trim()) {
+        dataToSend.contact_number = formData.contact_number.trim();
+      }
+      
+      if (formData.organization_id && formData.organization_id > 0) {
+        dataToSend.organization_id = formData.organization_id;
       }
       
       const response = await userService.createUser(dataToSend);
@@ -219,21 +230,56 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Full Name *
+                  First Name *
                 </label>
                 <input
                   type="text"
-                  name="full_name"
-                  value={formData.full_name}
+                  name="first_name"
+                  value={formData.first_name}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.full_name ? 'border-red-600' : 'border-gray-600'
+                    errors.first_name ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter full name"
+                  placeholder="Enter first name"
                   required
                 />
-                {errors.full_name && (
-                  <p className="text-red-400 text-sm mt-1">{errors.full_name}</p>
+                {errors.first_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.first_name}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Middle Initial
+                </label>
+                <input
+                  type="text"
+                  name="middle_initial"
+                  value={formData.middle_initial}
+                  onChange={handleInputChange}
+                  maxLength={1}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400"
+                  placeholder="M"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Last Name *
+                </label>
+                <input
+                  type="text"
+                  name="last_name"
+                  value={formData.last_name}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
+                    errors.last_name ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                  placeholder="Enter last name"
+                  required
+                />
+                {errors.last_name && (
+                  <p className="text-red-400 text-sm mt-1">{errors.last_name}</p>
                 )}
               </div>
 
@@ -263,36 +309,36 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
                 </label>
                 <input
                   type="email"
-                  name="email"
-                  value={formData.email}
+                  name="email_address"
+                  value={formData.email_address}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.email ? 'border-red-600' : 'border-gray-600'
+                    errors.email_address ? 'border-red-600' : 'border-gray-600'
                   }`}
                   placeholder="Enter email address"
                   required
                 />
-                {errors.email && (
-                  <p className="text-red-400 text-sm mt-1">{errors.email}</p>
+                {errors.email_address && (
+                  <p className="text-red-400 text-sm mt-1">{errors.email_address}</p>
                 )}
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Mobile Number
+                  Contact Number
                 </label>
                 <input
                   type="tel"
-                  name="mobile_number"
-                  value={formData.mobile_number}
+                  name="contact_number"
+                  value={formData.contact_number}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
-                    errors.mobile_number ? 'border-red-600' : 'border-gray-600'
+                    errors.contact_number ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter mobile number"
+                  placeholder="Enter contact number"
                 />
-                {errors.mobile_number && (
-                  <p className="text-red-400 text-sm mt-1">{errors.mobile_number}</p>
+                {errors.contact_number && (
+                  <p className="text-red-400 text-sm mt-1">{errors.contact_number}</p>
                 )}
               </div>
 
@@ -301,11 +347,11 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
                   Organization
                 </label>
                 <select
-                  name="org_id"
-                  value={formData.org_id || ''}
+                  name="organization_id"
+                  value={formData.organization_id || ''}
                   onChange={handleInputChange}
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white focus:outline-none focus:border-gray-400 ${
-                    errors.org_id ? 'border-red-600' : 'border-gray-600'
+                    errors.organization_id ? 'border-red-600' : 'border-gray-600'
                   }`}
                 >
                   <option value="">No Organization (Optional)</option>
@@ -315,8 +361,8 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
                     </option>
                   ))}
                 </select>
-                {errors.org_id && (
-                  <p className="text-red-400 text-sm mt-1">{errors.org_id}</p>
+                {errors.organization_id && (
+                  <p className="text-red-400 text-sm mt-1">{errors.organization_id}</p>
                 )}
               </div>
 
