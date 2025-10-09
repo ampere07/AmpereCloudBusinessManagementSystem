@@ -12,7 +12,7 @@ class GroupController extends Controller
     public function index()
     {
         try {
-            $groups = Group::with(['users'])->get();
+            $groups = Group::with(['users', 'organization'])->get();
             return response()->json([
                 'success' => true,
                 'data' => $groups
@@ -30,6 +30,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'required|string|max:255',
+            'org_id' => 'nullable|integer|exists:organizations,id',
         ]);
 
         if ($validator->fails()) {
@@ -43,6 +44,14 @@ class GroupController extends Controller
         try {
             $group = Group::create([
                 'group_name' => $request->group_name,
+                'fb_page_link' => $request->fb_page_link,
+                'fb_messenger_link' => $request->fb_messenger_link,
+                'template' => $request->template,
+                'company_name' => $request->company_name,
+                'portal_url' => $request->portal_url,
+                'hotline' => $request->hotline,
+                'email' => $request->email,
+                'org_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
             ]);
 
             // Try to log group creation activity (but don't fail if logging fails)
@@ -59,7 +68,7 @@ class GroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Group created successfully',
-                'data' => $group
+                'data' => $group->load('organization')
             ], 201);
         } catch (\Exception $e) {
             return response()->json([
@@ -73,7 +82,7 @@ class GroupController extends Controller
     public function show($id)
     {
         try {
-            $group = Group::with(['users'])->findOrFail($id);
+            $group = Group::with(['users', 'organization'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $group
@@ -91,6 +100,7 @@ class GroupController extends Controller
     {
         $validator = Validator::make($request->all(), [
             'group_name' => 'sometimes|string|max:255',
+            'org_id' => 'sometimes|nullable|integer|exists:organizations,id',
         ]);
 
         if ($validator->fails()) {
@@ -104,11 +114,31 @@ class GroupController extends Controller
         try {
             $group = Group::findOrFail($id);
             $oldData = $group->toArray();
-            $group->update($request->only(['group_name']));
+            $group->update($request->only([
+                'group_name',
+                'fb_page_link',
+                'fb_messenger_link',
+                'template',
+                'company_name',
+                'portal_url',
+                'hotline',
+                'email',
+                'org_id'
+            ]));
 
             // Try to log group update activity (but don't fail if logging fails)
             try {
-                $changes = array_diff_assoc($request->only(['group_name']), $oldData);
+                $changes = array_diff_assoc($request->only([
+                    'group_name',
+                    'fb_page_link',
+                    'fb_messenger_link',
+                    'template',
+                    'company_name',
+                    'portal_url',
+                    'hotline',
+                    'email',
+                    'org_id'
+                ]), $oldData);
                 ActivityLogService::groupUpdated(
                     null, // For now, no authenticated user
                     $group,
@@ -121,7 +151,7 @@ class GroupController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Group updated successfully',
-                'data' => $group
+                'data' => $group->load('organization')
             ]);
         } catch (\Exception $e) {
             return response()->json([

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Group } from '../types/api';
-import { groupService } from '../services/userService';
+import React, { useState, useEffect } from 'react';
+import { Group, Organization } from '../types/api';
+import { groupService, organizationService } from '../services/userService';
 import Breadcrumb from '../pages/Breadcrumb';
 
 interface AddNewGroupFormProps {
@@ -17,19 +17,44 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
     company_name: '',
     portal_url: '',
     hotline: '',
-    email: ''
+    email: '',
+    org_id: undefined as number | undefined
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  useEffect(() => {
+    loadOrganizations();
+  }, []);
+
+  const loadOrganizations = async () => {
+    try {
+      const response = await organizationService.getAllOrganizations();
+      if (response.success && response.data) {
+        setOrganizations(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load organizations:', error);
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'org_id') {
+      const numericValue = value && value !== '' ? parseInt(value, 10) : undefined;
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -66,7 +91,8 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
         company_name: formData.company_name.trim() || null,
         portal_url: formData.portal_url.trim() || null,
         hotline: formData.hotline.trim() || null,
-        email: formData.email.trim() || null
+        email: formData.email.trim() || null,
+        org_id: formData.org_id && formData.org_id > 0 ? formData.org_id : null
       };
       
       const response = await groupService.createGroup(dataToSend);
@@ -160,6 +186,25 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
                 {errors.group_name && (
                   <p className="text-red-400 text-sm mt-1">{errors.group_name}</p>
                 )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Organization (Optional)
+                </label>
+                <select
+                  name="org_id"
+                  value={formData.org_id || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                >
+                  <option value="">No Organization</option>
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>
+                      {org.organization_name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

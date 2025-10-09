@@ -49,6 +49,20 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [userData, setUserData] = useState<any>(null);
+
+  // Load user data from localStorage
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const user = JSON.parse(authData);
+        setUserData(user);
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Add effect to log the active section when it changes
   useEffect(() => {
@@ -173,6 +187,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
             onSectionChange={setActiveSection}
             onLogout={onLogout}
             isCollapsed={sidebarCollapsed}
+            userRole={userData?.role || ''}
           />
         </div>
         

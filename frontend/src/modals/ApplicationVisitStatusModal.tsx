@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { updateApplicationVisit } from '../services/applicationVisitService';
 import { getRegionsFromLocations, getCitiesByRegion, getBarangaysByCity, getCities } from '../services/cityService';
 import { getRegions as getRegionsLegacy } from '../services/regionService';
+import { statusRemarksService, StatusRemark } from '../services/statusRemarksService';
+import { userService } from '../services/userService';
 import { Location } from '../types/location';
 
 interface ApplicationVisitStatusModalProps {
@@ -27,7 +29,6 @@ interface ApplicationVisitStatusModalProps {
   };
 }
 
-// Form interface for UI handling
 interface StatusFormData {
   firstName: string;
   middleInitial: string;
@@ -45,13 +46,37 @@ interface StatusFormData {
   modifiedBy: string;
 }
 
+interface TechnicianFormData {
+  fullAddress: string;
+  image1: File | null;
+  visitBy: string;
+  visitWith: string;
+  visitWithOther: string;
+  visitStatus: string;
+  visitRemarks: string;
+  statusRemarks: string;
+}
+
 const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = ({
   isOpen,
   onClose,
   onSave,
   visitData
 }) => {
-  // Log initial visit data with better debugging
+  const [userRole, setUserRole] = useState<string>('');
+  
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const user = JSON.parse(authData);
+        setUserRole(user.role?.toLowerCase() || '');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (isOpen && visitData) {
       console.log('DEBUG - ApplicationVisitStatusModal opened with data:', {
@@ -81,21 +106,32 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       choosePlan: visitData?.choose_plan || 'SwitchConnect - P799',
       remarks: visitData?.visit_remarks || '',
       assignedEmail: visitData?.assigned_email || '',
-      modifiedBy: 'current_user@ampere.com' // In real app, this would be the logged-in user
+      modifiedBy: 'current_user@ampere.com'
     };
+  });
+
+  const [technicianFormData, setTechnicianFormData] = useState<TechnicianFormData>({
+    fullAddress: visitData?.address || '',
+    image1: null,
+    visitBy: visitData?.visit_by || '',
+    visitWith: visitData?.visit_with || '',
+    visitWithOther: visitData?.visit_with_other || '',
+    visitStatus: visitData?.visit_status || '',
+    visitRemarks: visitData?.visit_remarks || '',
+    statusRemarks: visitData?.status_remarks || ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
+  const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   
-  // Location-related state
   const [regions, setRegions] = useState<Location[]>([]);
   const [cities, setCities] = useState<Location[]>([]);
   const [barangays, setBarangays] = useState<Location[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
-  // Update form data when visitData changes
   useEffect(() => {
     if (visitData) {
       console.log('DEBUG - Visit data loaded:', visitData);
@@ -116,27 +152,34 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         remarks: visitData.visit_remarks || prev.remarks,
         assignedEmail: visitData.assigned_email || prev.assignedEmail
       }));
+
+      setTechnicianFormData(prev => ({
+        ...prev,
+        fullAddress: visitData.address || prev.fullAddress,
+        visitBy: visitData.visit_by || prev.visitBy,
+        visitWith: visitData.visit_with || prev.visitWith,
+        visitWithOther: visitData.visit_with_other || prev.visitWithOther,
+        visitStatus: visitData.visit_status || prev.visitStatus,
+        visitRemarks: visitData.visit_remarks || prev.visitRemarks,
+        statusRemarks: visitData.status_remarks || prev.statusRemarks
+      }));
     }
   }, [visitData]);
 
-  // Load regions when modal opens - try both services
   useEffect(() => {
     const loadRegions = async () => {
       if (isOpen) {
         try {
           console.log('Loading regions...');
           
-          // First try the location management system
           let regionsData = await getRegionsFromLocations();
           console.log('Location system regions:', regionsData);
           
-          // If no data from location system, try legacy regions service
           if (!Array.isArray(regionsData) || regionsData.length === 0) {
             console.log('No data from location system, trying legacy service...');
             const legacyRegions = await getRegionsLegacy();
             console.log('Legacy regions service returned:', legacyRegions);
             
-            // Convert legacy format to Location format
             if (Array.isArray(legacyRegions) && legacyRegions.length > 0) {
               regionsData = legacyRegions.map(region => ({
                 id: region.id,
@@ -168,27 +211,66 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     loadRegions();
   }, [isOpen]);
 
-  // Load cities when region is selected - with fallback
+  useEffect(() => {
+    const fetchStatusRemarks = async () => {
+      if (isOpen) {
+        try {
+          const fetchedStatusRemarks = await statusRemarksService.getAllStatusRemarks();
+          setStatusRemarks(fetchedStatusRemarks);
+        } catch (error) {
+          console.error('Error fetching status remarks:', error);
+        }
+      }
+    };
+    
+    fetchStatusRemarks();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      if (isOpen) {
+        try {
+          const response = await userService.getUsersByRole('technician');
+          if (response.success && response.data) {
+            const technicianList = response.data
+              .filter((user: any) => user.first_name || user.last_name)
+              .map((user: any) => {
+                const firstName = (user.first_name || '').trim();
+                const lastName = (user.last_name || '').trim();
+                const fullName = `${firstName} ${lastName}`.trim();
+                return {
+                  email: user.email_address || user.email || '',
+                  name: fullName || user.username || user.email_address || user.email || ''
+                };
+              })
+              .filter((tech: any) => tech.name);
+            setTechnicians(technicianList);
+          }
+        } catch (error) {
+          console.error('Error fetching technicians:', error);
+        }
+      }
+    };
+    
+    fetchTechnicians();
+  }, [isOpen]);
+
   useEffect(() => {
     const loadCities = async () => {
       if (selectedRegionId) {
         try {
           console.log('Loading cities for region ID:', selectedRegionId);
           
-          // First try the location management system
           let citiesData = await getCitiesByRegion(selectedRegionId);
           console.log('Location system cities:', citiesData);
           
-          // If no data from location system, try legacy cities service
           if (!Array.isArray(citiesData) || citiesData.length === 0) {
             console.log('No cities from location system, trying legacy cities service...');
             const legacyCities = await getCities();
             console.log('Legacy cities service returned:', legacyCities);
             
-            // Filter and convert cities by region if legacy service has region_id
             if (Array.isArray(legacyCities) && legacyCities.length > 0) {
               const filteredCities = legacyCities.filter(city => city.region_id === selectedRegionId);
-              // Convert City objects to Location objects
               citiesData = filteredCities.map(city => ({
                 id: city.id,
                 name: city.name,
@@ -205,7 +287,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           setCities(citiesData || []);
           console.log('Set cities state with:', citiesData?.length || 0, 'cities');
           
-          // Clear barangays when region changes
           setBarangays([]);
           setSelectedCityId(null);
         } catch (error) {
@@ -222,7 +303,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     loadCities();
   }, [selectedRegionId]);
 
-  // Load barangays when city is selected
   useEffect(() => {
     const loadBarangays = async () => {
       if (selectedCityId) {
@@ -242,7 +322,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     loadBarangays();
   }, [selectedCityId]);
 
-  // Set initial selected region and city based on form data - improved logic
   useEffect(() => {
     if (regions.length > 0 && formData.region && !selectedRegionId) {
       console.log('Looking for region match:', formData.region, 'in regions:', regions.map(r => r.name));
@@ -255,7 +334,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         setSelectedRegionId(matchingRegion.id);
       } else {
         console.warn('No matching region found for:', formData.region);
-        // If no exact match, show available regions for debugging
         console.log('Available regions:', regions.map(r => `"${r.name}"`));
       }
     }
@@ -278,7 +356,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
   }, [cities, formData.city, selectedCityId]);
 
-  // Reset form data when modal opens with new visit data
   useEffect(() => {
     if (isOpen && visitData) {
       console.log('Resetting form data with visit data:', visitData);
@@ -298,8 +375,18 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         assignedEmail: visitData.assigned_email || '',
         modifiedBy: 'current_user@ampere.com'
       });
+
+      setTechnicianFormData({
+        fullAddress: visitData.address || '',
+        image1: null,
+        visitBy: visitData.visit_by || '',
+        visitWith: visitData.visit_with || '',
+        visitWithOther: visitData.visit_with_other || '',
+        visitStatus: visitData.visit_status || '',
+        visitRemarks: visitData.visit_remarks || '',
+        statusRemarks: visitData.status_remarks || ''
+      });
       
-      // Reset selection states when opening with new data
       setSelectedRegionId(null);
       setSelectedCityId(null);
     }
@@ -308,16 +395,13 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const handleInputChange = (field: keyof StatusFormData, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     
-    // Handle cascading dropdowns
     if (field === 'region') {
       const selectedRegion = regions.find(r => r.name === value);
       setSelectedRegionId(selectedRegion ? selectedRegion.id : null);
-      // Clear city and barangay when region changes
       setFormData(prev => ({ ...prev, city: '', barangay: '' }));
     } else if (field === 'city') {
       const selectedCity = cities.find(c => c.name === value);
       setSelectedCityId(selectedCity ? selectedCity.id : null);
-      // Clear barangay when city changes
       setFormData(prev => ({ ...prev, barangay: '' }));
     }
     
@@ -326,11 +410,40 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
   };
 
+  const handleTechnicianInputChange = (field: keyof TechnicianFormData, value: string | File | null) => {
+    setTechnicianFormData(prev => ({ ...prev, [field]: value }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      handleTechnicianInputChange('image1', e.target.files[0]);
+    }
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.assignedEmail.trim()) {
-      newErrors.assignedEmail = 'Assigned Email is required';
+    if (userRole === 'technician') {
+      if (!technicianFormData.image1) {
+        newErrors.image1 = 'Image is required';
+      }
+      if (!technicianFormData.visitBy.trim()) {
+        newErrors.visitBy = 'Visit By is required';
+      }
+      if (!technicianFormData.visitWith.trim()) {
+        newErrors.visitWith = 'Visit With is required';
+      }
+      if (!technicianFormData.visitWithOther.trim()) {
+        newErrors.visitWithOther = 'Visit With (Other) is required';
+      }
+    } else {
+      if (!formData.assignedEmail.trim()) {
+        newErrors.assignedEmail = 'Assigned Email is required';
+      }
     }
 
     setErrors(newErrors);
@@ -338,17 +451,33 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   };
 
   const mapFormDataToUpdateData = () => {
-    return {
-      assigned_email: formData.assignedEmail,
-      visit_remarks: formData.remarks ? formData.remarks.trim() : null,
-      updated_by_user_id: null
-    };
+    if (userRole === 'technician') {
+      const data: any = {
+        visit_by: technicianFormData.visitBy,
+        visit_with: technicianFormData.visitWith,
+        visit_with_other: technicianFormData.visitWithOther,
+        visit_status: technicianFormData.visitStatus,
+        visit_remarks: technicianFormData.visitRemarks ? technicianFormData.visitRemarks.trim() : null,
+        updated_by_user_id: null
+      };
+      
+      if (technicianFormData.visitStatus === 'Not Ready' && technicianFormData.statusRemarks) {
+        data.status_remarks = technicianFormData.statusRemarks;
+      }
+      
+      return data;
+    } else {
+      return {
+        assigned_email: formData.assignedEmail,
+        visit_remarks: formData.remarks ? formData.remarks.trim() : null,
+        updated_by_user_id: null
+      };
+    }
   };
 
   const handleSave = async () => {
-    console.log('Status update button clicked!', formData);
+    console.log('Status update button clicked!', userRole === 'technician' ? technicianFormData : formData);
     
-    // Check validation
     const isValid = validateForm();
     console.log('Form validation result:', isValid);
     
@@ -366,12 +495,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
     setLoading(true);
     try {
-      // Prepare update data
       const updateData = mapFormDataToUpdateData();
       
       console.log('Final data being sent to API:', JSON.stringify(updateData, null, 2));
       
-      // Call the API to update the visit
       const result = await updateApplicationVisit(visitData.id, updateData);
       console.log('Application visit updated successfully:', result);
       
@@ -379,14 +506,11 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         throw new Error(result.message || 'Failed to update application visit');
       }
       
-      // Show success message
       console.log('Visit details updated successfully');
       alert(`Visit details updated successfully!\n\nCustomer: ${formData.firstName} ${formData.lastName}`);
       
-      // Reset form errors to show clean state
       setErrors({});
       
-      // Pass the updated visit data back to parent
       const updatedVisit = { ...visitData, ...updateData };
       onSave(updatedVisit);
       onClose();
@@ -415,7 +539,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     onClose();
   };
 
-  // Create full name from components
   const getFullName = () => {
     return `${visitData.first_name || ''} ${visitData.middle_initial || ''} ${visitData.last_name || ''}`.trim();
   };
@@ -425,7 +548,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">{getFullName()}</h2>
           <div className="flex items-center space-x-3">
@@ -458,190 +580,355 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           </div>
         </div>
 
-        {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            {/* First Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                First Name
-              </label>
-              <input
-                type="text"
-                value={formData.firstName}
-                onChange={(e) => handleInputChange('firstName', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+          {userRole === 'technician' ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Full Address
+                </label>
+                <input
+                  type="text"
+                  value={technicianFormData.fullAddress}
+                  readOnly
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-400 cursor-not-allowed"
+                />
+              </div>
 
-            {/* Middle Initial */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Middle Initial
-              </label>
-              <input
-                type="text"
-                value={formData.middleInitial}
-                onChange={(e) => handleInputChange('middleInitial', e.target.value)}
-                maxLength={1}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Image 1<span className="text-red-500">*</span>
+                </label>
+                <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageChange}
+                    className="hidden"
+                    id="image-upload"
+                  />
+                  <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
+                    <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                    </svg>
+                    {technicianFormData.image1 ? (
+                      <span className="text-sm text-gray-300">{technicianFormData.image1.name}</span>
+                    ) : (
+                      <span className="text-sm text-gray-500">Click to upload image</span>
+                    )}
+                  </label>
+                </div>
+                {errors.image1 && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.image1}</p>}
+              </div>
 
-            {/* Last Name */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Last Name
-              </label>
-              <input
-                type="text"
-                value={formData.lastName}
-                onChange={(e) => handleInputChange('lastName', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Visit By<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={technicianFormData.visitBy}
+                  onChange={(e) => handleTechnicianInputChange('visitBy', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitBy ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                >
+                  <option value="">Select Visit By</option>
+                  {technicianFormData.visitBy && !technicians.some(t => t.name === technicianFormData.visitBy) && (
+                    <option value={technicianFormData.visitBy}>{technicianFormData.visitBy}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
+                </select>
+                {errors.visitBy && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitBy}</p>}
+              </div>
 
-            {/* Contact Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Contact Number
-              </label>
-              <input
-                type="text"
-                value={formData.contactNumber}
-                onChange={(e) => handleInputChange('contactNumber', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Visit With<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={technicianFormData.visitWith}
+                  onChange={(e) => handleTechnicianInputChange('visitWith', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                >
+                  <option value="">Select Visit With</option>
+                  {technicianFormData.visitWith && !technicians.some(t => t.name === technicianFormData.visitWith) && (
+                    <option value={technicianFormData.visitWith}>{technicianFormData.visitWith}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
+                </select>
+                {errors.visitWith && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWith}</p>}
+              </div>
 
-            {/* Second Contact Number */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Second Contact Number
-              </label>
-              <input
-                type="text"
-                value={formData.secondContactNumber || ''}
-                onChange={(e) => handleInputChange('secondContactNumber', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Visit With(Other)<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={technicianFormData.visitWithOther}
+                  onChange={(e) => handleTechnicianInputChange('visitWithOther', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                >
+                  <option value="">Select Visit With(Other)</option>
+                  {technicianFormData.visitWithOther && !technicians.some(t => t.name === technicianFormData.visitWithOther) && (
+                    <option value={technicianFormData.visitWithOther}>{technicianFormData.visitWithOther}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
+                </select>
+                {errors.visitWithOther && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWithOther}</p>}
+              </div>
 
-            {/* Applicant Email Address */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Applicant Email Address
-              </label>
-              <input
-                type="email"
-                value={formData.email}
-                onChange={(e) => handleInputChange('email', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Visit Status
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleTechnicianInputChange('visitStatus', 'In Progress')}
+                    className={`flex-1 px-4 py-3 rounded text-sm font-medium transition-colors ${
+                      technicianFormData.visitStatus === 'In Progress'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    In Progress
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTechnicianInputChange('visitStatus', 'OK to Install')}
+                    className={`flex-1 px-4 py-3 rounded text-sm font-medium transition-colors ${
+                      technicianFormData.visitStatus === 'OK to Install'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    OK to Install
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleTechnicianInputChange('visitStatus', 'Not Ready')}
+                    className={`flex-1 px-4 py-3 rounded text-sm font-medium transition-colors ${
+                      technicianFormData.visitStatus === 'Not Ready'
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+                    }`}
+                  >
+                    Not Ready
+                  </button>
+                </div>
+              </div>
 
-            {/* Address */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Address
-              </label>
-              <input
-                type="text"
-                value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              {technicianFormData.visitStatus === 'Not Ready' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Status Remarks
+                  </label>
+                  <select
+                    value={technicianFormData.statusRemarks}
+                    onChange={(e) => handleTechnicianInputChange('statusRemarks', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                  >
+                    <option value="">Select Status Remarks</option>
+                    {technicianFormData.statusRemarks && !statusRemarks.some(sr => sr.status_remarks === technicianFormData.statusRemarks) && (
+                      <option value={technicianFormData.statusRemarks}>{technicianFormData.statusRemarks}</option>
+                    )}
+                    {statusRemarks.map((remark, index) => (
+                      <option key={index} value={remark.status_remarks}>{remark.status_remarks}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
 
-            {/* Barangay */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Barangay
-              </label>
-              <input
-                type="text"
-                value={formData.barangay}
-                onChange={(e) => handleInputChange('barangay', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Visit Remarks
+                </label>
+                <textarea
+                  value={technicianFormData.visitRemarks}
+                  onChange={(e) => handleTechnicianInputChange('visitRemarks', e.target.value)}
+                  rows={4}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 resize-none"
+                  placeholder="Enter visit remarks..."
+                />
+              </div>
             </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  First Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.firstName}
+                  onChange={(e) => handleInputChange('firstName', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-            {/* City */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                City
-              </label>
-              <input
-                type="text"
-                value={formData.city}
-                onChange={(e) => handleInputChange('city', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Middle Initial
+                </label>
+                <input
+                  type="text"
+                  value={formData.middleInitial}
+                  onChange={(e) => handleInputChange('middleInitial', e.target.value)}
+                  maxLength={1}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-            {/* Region */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Region
-              </label>
-              <input
-                type="text"
-                value={formData.region}
-                onChange={(e) => handleInputChange('region', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Last Name
+                </label>
+                <input
+                  type="text"
+                  value={formData.lastName}
+                  onChange={(e) => handleInputChange('lastName', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-            {/* Choose Plan */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Choose Plan
-              </label>
-              <select
-                value={formData.choosePlan}
-                onChange={(e) => handleInputChange('choosePlan', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-              >
-                <option value="SwitchConnect - P799">SwitchConnect - P799</option>
-                <option value="SwitchConnect - P999">SwitchConnect - P999</option>
-                <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
-                <option value="SwitchConnect - P1599">SwitchConnect - P1599</option>
-              </select>
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Contact Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.contactNumber}
+                  onChange={(e) => handleInputChange('contactNumber', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-            {/* Remarks */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Remarks
-              </label>
-              <textarea
-                value={formData.remarks}
-                onChange={(e) => handleInputChange('remarks', e.target.value)}
-                rows={3}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 resize-none"
-              />
-            </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Second Contact Number
+                </label>
+                <input
+                  type="text"
+                  value={formData.secondContactNumber || ''}
+                  onChange={(e) => handleInputChange('secondContactNumber', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
 
-            {/* Assigned Email */}
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Assigned Email<span className="text-red-500">*</span>
-              </label>
-              <select
-                value={formData.assignedEmail}
-                onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
-                className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-              >
-                <option value="">Select Assigned Email</option>
-                <option value="tech1@ampere.com">tech1@ampere.com</option>
-                <option value="tech2@ampere.com">tech2@ampere.com</option>
-                <option value="tech3@ampere.com">tech3@ampere.com</option>
-                <option value="Office">Office</option>
-              </select>
-              {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Applicant Email Address
+                </label>
+                <input
+                  type="email"
+                  value={formData.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={formData.address}
+                  onChange={(e) => handleInputChange('address', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Barangay
+                </label>
+                <input
+                  type="text"
+                  value={formData.barangay}
+                  onChange={(e) => handleInputChange('barangay', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  City
+                </label>
+                <input
+                  type="text"
+                  value={formData.city}
+                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Region
+                </label>
+                <input
+                  type="text"
+                  value={formData.region}
+                  onChange={(e) => handleInputChange('region', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Choose Plan
+                </label>
+                <select
+                  value={formData.choosePlan}
+                  onChange={(e) => handleInputChange('choosePlan', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                >
+                  <option value="SwitchConnect - P799">SwitchConnect - P799</option>
+                  <option value="SwitchConnect - P999">SwitchConnect - P999</option>
+                  <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
+                  <option value="SwitchConnect - P1599">SwitchConnect - P1599</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Remarks
+                </label>
+                <textarea
+                  value={formData.remarks}
+                  onChange={(e) => handleInputChange('remarks', e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 resize-none"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Assigned Email<span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.assignedEmail}
+                  onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                >
+                  <option value="">Select Assigned Email</option>
+                  {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && formData.assignedEmail !== 'Office' && (
+                    <option value={formData.assignedEmail}>{formData.assignedEmail}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.email}>{technician.email}</option>
+                  ))}
+                  <option value="Office">Office</option>
+                </select>
+                {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

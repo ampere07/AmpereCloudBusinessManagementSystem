@@ -21,12 +21,20 @@ use Illuminate\Support\Facades\DB;
 
 class JobOrderController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
             \Log::info('Accessing job_orders table');
             
-            $jobOrders = JobOrder::with('application')->get();
+            $query = JobOrder::with('application');
+            
+            if ($request->has('assigned_email')) {
+                $assignedEmail = $request->query('assigned_email');
+                \Log::info('Filtering job orders by assigned_email: ' . $assignedEmail);
+                $query->where('assigned_email', $assignedEmail);
+            }
+            
+            $jobOrders = $query->get();
 
             \Log::info('Found ' . $jobOrders->count() . ' job orders in database');
             
@@ -47,8 +55,8 @@ class JobOrderController extends Controller
                     'Billing_Day' => $jobOrder->billing_day,
                     'Onsite_Status' => $jobOrder->onsite_status,
                     'billing_status_id' => $jobOrder->billing_status_id,
-                    'Status_Remarks' => $jobOrder->status_remarks_id,
-                    'Assigned_Email' => null,
+                    'Status_Remarks' => $jobOrder->status_remarks,
+                    'Assigned_Email' => $jobOrder->assigned_email,
                     'Contract_Template' => $jobOrder->modem_router_sn,
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
@@ -100,6 +108,10 @@ class JobOrderController extends Controller
                 'billing_day' => 'nullable|integer|min:0',
                 'billing_status_id' => 'nullable|integer|exists:billing_status,id',
                 'onsite_status' => 'nullable|string|max:255',
+                'assigned_email' => 'nullable|email|max:255',
+                'onsite_remarks' => 'nullable|string',
+                'status_remarks' => 'nullable|string|max:255',
+                'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',
@@ -162,6 +174,10 @@ class JobOrderController extends Controller
                 'installation_fee' => 'nullable|numeric|min:0',
                 'billing_day' => 'nullable|integer|min:0',
                 'onsite_status' => 'nullable|string|max:255',
+                'assigned_email' => 'nullable|email|max:255',
+                'onsite_remarks' => 'nullable|string',
+                'status_remarks' => 'nullable|string|max:255',
+                'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',

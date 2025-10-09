@@ -57,6 +57,7 @@ const ServiceOrder: React.FC = () => {
   const [cities, setCities] = useState<City[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
   
   // Get column headers for display (always show these even when no data)
   const tableColumns = [
@@ -85,6 +86,21 @@ const ServiceOrder: React.FC = () => {
     }
   };
 
+  const [userEmail, setUserEmail] = useState<string>('');
+  
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const userData = JSON.parse(authData);
+        setUserRole(userData.role || '');
+        setUserEmail(userData.email || '');
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
+    }
+  }, []);
+
   // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
@@ -96,9 +112,24 @@ const ServiceOrder: React.FC = () => {
         const citiesData = await getCities();
         setCities(citiesData || []);
         
-        // Fetch service orders data
+        // Fetch service orders data with email filter for technicians
         console.log('Fetching service orders from service_orders table...');
-        const response = await getServiceOrders();
+        const authData = localStorage.getItem('authData');
+        let assignedEmail: string | undefined;
+        
+        if (authData) {
+          try {
+            const userData = JSON.parse(authData);
+            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+              assignedEmail = userData.email;
+              console.log('Filtering service orders for technician:', assignedEmail);
+            }
+          } catch (error) {
+            console.error('Error parsing auth data:', error);
+          }
+        }
+        
+        const response = await getServiceOrders(assignedEmail);
         console.log('Service Orders API Response:', response);
         
         if (response.success && Array.isArray(response.data)) {
@@ -377,7 +408,8 @@ const ServiceOrder: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container */}
+      {/* Location Sidebar Container - Hidden for technician role */}
+      {userRole.toLowerCase() !== 'technician' && (
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center mb-1">
@@ -414,9 +446,10 @@ const ServiceOrder: React.FC = () => {
           ))}
         </div>
       </div>
+      )}
 
       {/* Service Orders List - Shrinks when detail view is shown */}
-      <div className={`bg-gray-900 overflow-hidden ${selectedServiceOrder ? 'flex-1' : 'flex-1'}`}>
+      <div className={`bg-gray-900 overflow-hidden flex-1`}>
         <div className="flex flex-col h-full">
           {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
@@ -528,7 +561,7 @@ const ServiceOrder: React.FC = () => {
 
       {/* Service Order Detail View - Only visible when a service order is selected */}
       {selectedServiceOrder && (
-        <div className="flex-1 overflow-hidden">
+        <div className="w-full max-w-2xl overflow-hidden">
           <ServiceOrderDetails 
             serviceOrder={selectedServiceOrder} 
             onClose={() => setSelectedServiceOrder(null)}

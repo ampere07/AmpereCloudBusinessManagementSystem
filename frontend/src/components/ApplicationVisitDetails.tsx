@@ -43,6 +43,20 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const [showJOAssignForm, setShowJOAssignForm] = useState(false);
   const [showEditStatusModal, setShowEditStatusModal] = useState(false);
   const [currentVisitData, setCurrentVisitData] = useState(applicationVisit);
+  const [userRole, setUserRole] = useState<string>('');
+
+  // Get user role from localStorage
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const user = JSON.parse(authData);
+        setUserRole(user.role?.toLowerCase() || '');
+      } catch (error) {
+        console.error('Error parsing user data:', error);
+      }
+    }
+  }, []);
 
   // Update current visit data when applicationVisit prop changes
   useEffect(() => {
@@ -142,16 +156,20 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="hover:text-white text-gray-400">
-            <Trash2 size={16} />
-          </button>
-          <button 
-            className="hover:text-white text-gray-400"
-            onClick={handleMoveToJO}
-            title="Move to Job Order"
-          >
-            <ArrowRightToLine size={16} />
-          </button>
+          {userRole !== 'technician' && userRole === 'administrator' && (
+            <>
+              <button className="hover:text-white text-gray-400">
+                <Trash2 size={16} />
+              </button>
+              <button 
+                className="hover:text-white text-gray-400"
+                onClick={handleMoveToJO}
+                title="Move to Job Order"
+              >
+                <ArrowRightToLine size={16} />
+              </button>
+            </>
+          )}
           <button 
             className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded-sm flex items-center"
             onClick={handleEditVisit}
@@ -173,41 +191,43 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         </div>
       </div>
       
-      {/* Status Buttons */}
-      <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-center space-x-8">
-        <button 
-          className="flex flex-col items-center text-center"
-          onClick={() => handleStatusUpdate('Scheduled')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <Trash className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Scheduled</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center"
-          onClick={() => handleStatusUpdate('Failed')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <XOctagon className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Failed</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center"
-          onClick={() => handleStatusUpdate('In Progress')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <RotateCw className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Visit In Progress</span>
-        </button>
-      </div>
+      {/* Status Buttons - Only visible for administrators */}
+      {userRole !== 'technician' && userRole === 'administrator' && (
+        <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-center space-x-8">
+          <button 
+            className="flex flex-col items-center text-center"
+            onClick={() => handleStatusUpdate('Scheduled')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <Trash className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300">Scheduled</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center"
+            onClick={() => handleStatusUpdate('Failed')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <XOctagon className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300">Failed</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center"
+            onClick={() => handleStatusUpdate('In Progress')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <RotateCw className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300">Visit In Progress</span>
+          </button>
+        </div>
+      )}
       
       {/* Error message if any */}
       {error && (

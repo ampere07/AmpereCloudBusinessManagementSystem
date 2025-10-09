@@ -22,6 +22,17 @@ export const userService = {
     }
   },
 
+  // Get users by role
+  getUsersByRole: async (roleName: string): Promise<ApiResponse<User[]>> => {
+    try {
+      const response = await apiClient.get<ApiResponse<User[]>>(`/users?role=${roleName}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Get users by role API error:', error.message);
+      throw error;
+    }
+  },
+
   // Create new user
   createUser: async (userData: CreateUserRequest): Promise<ApiResponse<User>> => {
     try {
@@ -151,6 +162,7 @@ export const groupService = {
     portal_url?: string | null;
     hotline?: string | null;
     email?: string | null;
+    org_id?: number | null;
   }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.post<ApiResponse<Group>>('/groups', groupData);
     return response.data;
@@ -172,6 +184,7 @@ export const groupService = {
     portal_url?: string | null;
     hotline?: string | null;
     email?: string | null;
+    org_id?: number | null;
   }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.put<ApiResponse<Group>>(`/groups/${groupId}`, groupData);
     return response.data;

@@ -97,7 +97,7 @@ const GroupManagement: React.FC = () => {
 
   const handleGroupUpdated = (updatedGroup: Group) => {
     setGroups(prev => prev.map(group => 
-      group.id === updatedGroup.id ? updatedGroup : group
+      group.group_id === updatedGroup.group_id ? updatedGroup : group
     ));
     setEditingGroup(null);
   };
@@ -114,10 +114,10 @@ const GroupManagement: React.FC = () => {
     if (!deletingGroup) return;
 
     try {
-      const response = await groupService.deleteGroup(deletingGroup.id);
+      const response = await groupService.deleteGroup(deletingGroup.group_id);
       
       if (response.success) {
-        setGroups(prev => prev.filter(group => group.id !== deletingGroup.id));
+        setGroups(prev => prev.filter(group => group.group_id !== deletingGroup.group_id));
         setDeletingGroup(null);
       } else {
         const errorMessage = response.message || 'Failed to delete group';
@@ -197,7 +197,7 @@ const GroupManagement: React.FC = () => {
                       </tr>
                     ) : (
                       currentGroups.map((group: Group) => (
-                        <tr key={group.id} className="border-b border-gray-700 hover:bg-gray-750">
+                        <tr key={group.group_id} className="border-b border-gray-700 hover:bg-gray-750">
                           <td className="px-4 py-4 text-sm text-white font-medium">
                             {group.group_name}
                           </td>

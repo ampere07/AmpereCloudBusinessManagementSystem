@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Group } from '../types/api';
-import { groupService } from '../services/userService';
+import { Group, Organization } from '../types/api';
+import { groupService, organizationService } from '../services/userService';
 import Breadcrumb from '../pages/Breadcrumb';
 
 interface EditGroupFormProps {
@@ -19,11 +19,28 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
     company_name: group?.company_name || '',
     portal_url: group?.portal_url || '',
     hotline: group?.hotline || '',
-    email: group?.email || ''
+    email: group?.email || '',
+    org_id: group?.org_id as number | undefined
   });
 
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  
+  useEffect(() => {
+    loadOrganizations();
+  }, []);
+
+  const loadOrganizations = async () => {
+    try {
+      const response = await organizationService.getAllOrganizations();
+      if (response.success && response.data) {
+        setOrganizations(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load organizations:', error);
+    }
+  };
   
   useEffect(() => {
     if (group) {
@@ -35,7 +52,8 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
         company_name: group.company_name || '',
         portal_url: group.portal_url || '',
         hotline: group.hotline || '',
-        email: group.email || ''
+        email: group.email || '',
+        org_id: group.org_id as number | undefined
       });
     }
   }, [group]);
@@ -58,13 +76,21 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
     );
   }
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
+    if (name === 'org_id') {
+      const numericValue = value && value !== '' ? parseInt(value, 10) : undefined;
+      setFormData(prev => ({
+        ...prev,
+        [name]: numericValue
+      }));
+    } else {
+      setFormData(prev => ({
+        ...prev,
+        [name]: value
+      }));
+    }
 
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
@@ -102,6 +128,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
         portal_url?: string | null;
         hotline?: string | null;
         email?: string | null;
+        org_id?: number | null;
       } = {};
       
       if (formData.group_name.trim() !== (group.group_name || '')) {
@@ -135,8 +162,15 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
       if (formData.email !== (group.email || '')) {
         dataToSend.email = formData.email.trim() || null;
       }
+
+      const currentOrgId = group.org_id || undefined;
+      const newOrgId = formData.org_id || undefined;
       
-      const response = await groupService.updateGroup(group.id, dataToSend);
+      if (newOrgId !== currentOrgId) {
+        dataToSend.org_id = (formData.org_id && formData.org_id > 0) ? formData.org_id : null;
+      }
+      
+      const response = await groupService.updateGroup(group.group_id, dataToSend);
       
       if (response.success && response.data) {
         onGroupUpdated(response.data);
@@ -219,6 +253,25 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
                 {errors.group_name && (
                   <p className="text-red-400 text-sm mt-1">{errors.group_name}</p>
                 )}
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Organization (Optional)
+                </label>
+                <select
+                  name="org_id"
+                  value={formData.org_id || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                >
+                  <option value="">No Organization</option>
+                  {organizations.map(org => (
+                    <option key={org.id} value={org.id}>
+                      {org.organization_name}
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div>

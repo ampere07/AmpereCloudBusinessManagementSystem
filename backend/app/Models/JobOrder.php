@@ -28,8 +28,11 @@ class JobOrder extends Model
         'usage_type_id',
         'username_status',
         'visit_by_user_id',
+        'visit_by_user_email',
         'visit_with',
         'onsite_status',
+        'assigned_email',
+        'status_remarks',
         'onsite_remarks',
         'status_remarks_id',
         'contract_link',
@@ -41,7 +44,9 @@ class JobOrder extends Model
         'router_reading_image_url',
         'port_label_image_url',
         'house_front_picture_url',
+        'created_by_user_id',
         'created_by_user_email',
+        'updated_by_user_id',
         'updated_by_user_email',
     ];
 
