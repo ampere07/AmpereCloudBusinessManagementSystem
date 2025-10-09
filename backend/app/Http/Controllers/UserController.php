@@ -11,10 +11,19 @@ use App\Services\ActivityLogService;
 
 class UserController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $users = User::with(['organization', 'role'])->get();
+            $query = User::with(['organization', 'role']);
+            
+            if ($request->has('role')) {
+                $roleName = $request->input('role');
+                $query->whereHas('role', function($q) use ($roleName) {
+                    $q->where('role_name', 'LIKE', '%' . $roleName . '%');
+                });
+            }
+            
+            $users = $query->get();
             return response()->json([
                 'success' => true,
                 'data' => $users

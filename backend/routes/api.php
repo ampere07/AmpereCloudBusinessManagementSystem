@@ -1060,14 +1060,18 @@ Route::get('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, '
 Route::put('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
 Route::delete('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
 
-// Router Models Management Routes - Using Router_Models table
+// Router Models Management Routes
 Route::prefix('router-models')->group(function () {
-    Route::get('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'index']);
-    Route::post('/', [\App\Http\Controllers\Api\RouterModelApiController::class, 'store']);
-    Route::get('/statistics', [\App\Http\Controllers\Api\RouterModelApiController::class, 'getStatistics']);
-    Route::get('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'show']);
-    Route::put('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'update']);
-    Route::delete('/{model}', [\App\Http\Controllers\Api\RouterModelApiController::class, 'destroy']);
+    Route::get('/', [\App\Http\Controllers\RouterModelController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\RouterModelController::class, 'store']);
+    Route::get('/{model}', [\App\Http\Controllers\RouterModelController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\RouterModelController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\RouterModelController::class, 'destroy']);
+});
+
+// Status Remarks Management Routes
+Route::prefix('status-remarks')->group(function () {
+    Route::get('/', [\App\Http\Controllers\StatusRemarksController::class, 'index']);
 });
 
 // Inventory Management Routes - Using Inventory table
@@ -1110,6 +1114,26 @@ Route::prefix('nap')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'destroy']);
+});
+
+// Port Management Routes - Using port table
+Route::prefix('port')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\PortApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\PortApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\PortApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'destroy']);
+});
+
+// VLAN Management Routes - Using vlan table
+Route::prefix('vlan')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\VlanApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\VlanApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\VlanApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'destroy']);
 });
 
 // LCP NAP List Management Routes - Using lcpnap table

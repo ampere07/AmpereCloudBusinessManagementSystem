@@ -7,6 +7,7 @@ import { updateJobOrder, approveJobOrder } from '../services/jobOrderService';
 import { getBillingStatuses, BillingStatus } from '../services/lookupService';
 import { JobOrderDetailsProps } from '../types/jobOrder';
 import JobOrderDoneFormModal from '../modals/JobOrderDoneFormModal';
+import JobOrderDoneFormTechModal from '../modals/JobOrderDoneFormTechModal';
 import JobOrderEditFormModal from '../modals/JobOrderEditFormModal';
 import ApprovalConfirmationModal from '../modals/ApprovalConfirmationModal';
 
@@ -14,6 +15,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDoneModalOpen, setIsDoneModalOpen] = useState(false);
+  const [isDoneTechModalOpen, setIsDoneTechModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
@@ -134,7 +136,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   };
   
   const handleDoneClick = () => {
-    setIsDoneModalOpen(true);
+    if (userRole === 'technician') {
+      setIsDoneTechModalOpen(true);
+    } else {
+      setIsDoneModalOpen(true);
+    }
   };
 
   const handleEditClick = () => {
@@ -547,6 +553,13 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
       <JobOrderDoneFormModal
         isOpen={isDoneModalOpen}
         onClose={() => setIsDoneModalOpen(false)}
+        onSave={handleDoneSave}
+        jobOrderData={jobOrder}
+      />
+
+      <JobOrderDoneFormTechModal
+        isOpen={isDoneTechModalOpen}
+        onClose={() => setIsDoneTechModalOpen(false)}
         onSave={handleDoneSave}
         jobOrderData={jobOrder}
       />

@@ -47,7 +47,7 @@ class JobOrderController extends Controller
                     'Billing_Day' => $jobOrder->billing_day,
                     'Onsite_Status' => $jobOrder->onsite_status,
                     'billing_status_id' => $jobOrder->billing_status_id,
-                    'Status_Remarks' => $jobOrder->status_remarks_id,
+                    'Status_Remarks' => $jobOrder->status_remarks,
                     'Assigned_Email' => null,
                     'Contract_Template' => $jobOrder->modem_router_sn,
                     'Modified_By' => $jobOrder->created_by_user_email,

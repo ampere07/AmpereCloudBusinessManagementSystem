@@ -31,12 +31,12 @@ class ApplicationVisitController extends Controller
                     'application_id' => $visit->application_id,
                     'timestamp' => $visit->timestamp,
                     'assigned_email' => $visit->assigned_email,
-                    'visit_by_user_id' => $visit->visit_by_user_id,
+                    'visit_by_user_email' => $visit->visit_by_user_email,
                     'visit_with' => $visit->visit_with,
                     'visit_status' => $visit->visit_status,
                     'visit_remarks' => $visit->visit_remarks,
                     'application_status' => $visit->application_status,
-                    'status_remarks_id' => $visit->status_remarks_id,
+                    'status_remarks' => $visit->status_remarks,
                     'image1_url' => $visit->image1_url,
                     'image2_url' => $visit->image2_url,
                     'image3_url' => $visit->image3_url,
@@ -85,19 +85,26 @@ class ApplicationVisitController extends Controller
             
             $validatedData = $request->validate([
                 'application_id' => 'required|integer|exists:applications,id',
-                'assigned_email' => 'required|email|max:255',
-                'visit_by_user_id' => 'nullable|integer',
+                'assigned_email' => ['required', 'string', 'max:255', function ($attribute, $value, $fail) {
+                    if ($value !== 'Office' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                        $fail('The assigned email must be a valid email address or "Office".');
+                    }
+                }],
+                'visit_by_user_email' => 'nullable|email|max:255',
+                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
+                'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'required|string|max:100',
                 'visit_remarks' => 'nullable|string',
                 'application_status' => 'nullable|string|max:100',
-                'status_remarks_id' => 'nullable|integer',
+                'status_remarks' => 'nullable|string|max:255',
                 'image1_url' => 'nullable|string|max:255',
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
                 'house_front_picture_url' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
-                'updated_by_user_email' => 'nullable|email|max:255'
+                'updated_by_user_email' => 'nullable|email|max:255',
+                'updated_by_user_id' => 'nullable|integer'
             ]);
 
             Log::info('Validation passed', ['validated_data' => $validatedData]);
@@ -215,18 +222,25 @@ class ApplicationVisitController extends Controller
             
             $validatedData = $request->validate([
                 'application_id' => 'nullable|integer|exists:applications,id',
-                'assigned_email' => 'nullable|email|max:255',
-                'visit_by_user_id' => 'nullable|integer',
+                'assigned_email' => ['nullable', 'string', 'max:255', function ($attribute, $value, $fail) {
+                    if ($value && $value !== 'Office' && !filter_var($value, FILTER_VALIDATE_EMAIL)) {
+                        $fail('The assigned email must be a valid email address or "Office".');
+                    }
+                }],
+                'visit_by_user_email' => 'nullable|email|max:255',
+                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
+                'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'nullable|string|max:100',
                 'visit_remarks' => 'nullable|string',
                 'application_status' => 'nullable|string|max:100',
-                'status_remarks_id' => 'nullable|integer',
+                'status_remarks' => 'nullable|string|max:255',
                 'image1_url' => 'nullable|string|max:255',
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
                 'house_front_picture_url' => 'nullable|string|max:255',
-                'updated_by_user_email' => 'nullable|email|max:255'
+                'updated_by_user_email' => 'nullable|email|max:255',
+                'updated_by_user_id' => 'nullable|integer'
             ]);
             
             $visit->update($validatedData);

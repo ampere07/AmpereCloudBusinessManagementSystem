@@ -10,7 +10,7 @@ interface ApplicationVisit {
   application_id: string;
   timestamp: string;
   assigned_email?: string;
-  visit_by_user_id?: string;
+  visit_by_user_email?: string;
   visit_with?: string;
   visit_status: string;
   visit_remarks?: string;
@@ -92,7 +92,7 @@ const ApplicationVisit: React.FC = () => {
             application_id: visit.application_id || '',
             timestamp: visit.timestamp || visit.created_at || '',
             assigned_email: visit.assigned_email || '',
-            visit_by_user_id: visit.visit_by_user_id || '',
+            visit_by_user_email: visit.visit_by_user_email || '',
             visit_with: visit.visit_with || '',
             visit_status: visit.visit_status || 'Scheduled',
             visit_remarks: visit.visit_remarks || '',
@@ -452,7 +452,7 @@ const ApplicationVisit: React.FC = () => {
                           {visit.full_address || 'No address'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
-                          {visit.visit_by_user_id || 'Unassigned'}
+                          {visit.visit_by_user_email || 'Unassigned'}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap text-gray-300">
                           {visit.visit_with || 'None'}

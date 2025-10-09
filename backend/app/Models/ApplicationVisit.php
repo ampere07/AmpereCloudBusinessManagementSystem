@@ -18,26 +18,28 @@ class ApplicationVisit extends Model
         'application_id',
         'timestamp',
         'assigned_email',
-        'visit_by_user_id',
+        'visit_by_user_email',
+        'visit_by',
         'visit_with',
+        'visit_with_other',
         'visit_status',
         'visit_remarks',
         'application_status',
         'status_remarks_id',
+        'status_remarks',
         'image1_url',
         'image2_url',
         'image3_url',
         'house_front_picture_url',
         'created_by_user_email',
-        'updated_by_user_email'
+        'updated_by_user_email',
+        'updated_by_user_id'
     ];
     
     protected $casts = [
         'id' => 'integer',
         'application_id' => 'integer',
         'timestamp' => 'datetime',
-        'visit_by_user_id' => 'integer',
-        'status_remarks_id' => 'integer',
         'created_at' => 'datetime',
         'updated_at' => 'datetime'
     ];
@@ -49,6 +51,6 @@ class ApplicationVisit extends Model
     
     public function visitByUser()
     {
-        return $this->belongsTo(User::class, 'visit_by_user_id', 'id');
+        return $this->belongsTo(User::class, 'visit_by_user_email', 'email_address');
     }
 }

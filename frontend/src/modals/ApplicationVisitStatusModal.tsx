@@ -3,6 +3,8 @@ import { X } from 'lucide-react';
 import { updateApplicationVisit } from '../services/applicationVisitService';
 import { getRegionsFromLocations, getCitiesByRegion, getBarangaysByCity, getCities } from '../services/cityService';
 import { getRegions as getRegionsLegacy } from '../services/regionService';
+import { statusRemarksService, StatusRemark } from '../services/statusRemarksService';
+import { userService } from '../services/userService';
 import { Location } from '../types/location';
 
 interface ApplicationVisitStatusModalProps {
@@ -121,6 +123,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
+  const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   
   const [regions, setRegions] = useState<Location[]>([]);
   const [cities, setCities] = useState<Location[]>([]);
@@ -205,6 +209,50 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     };
 
     loadRegions();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchStatusRemarks = async () => {
+      if (isOpen) {
+        try {
+          const fetchedStatusRemarks = await statusRemarksService.getAllStatusRemarks();
+          setStatusRemarks(fetchedStatusRemarks);
+        } catch (error) {
+          console.error('Error fetching status remarks:', error);
+        }
+      }
+    };
+    
+    fetchStatusRemarks();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      if (isOpen) {
+        try {
+          const response = await userService.getUsersByRole('technician');
+          if (response.success && response.data) {
+            const technicianList = response.data
+              .filter((user: any) => user.first_name || user.last_name)
+              .map((user: any) => {
+                const firstName = (user.first_name || '').trim();
+                const lastName = (user.last_name || '').trim();
+                const fullName = `${firstName} ${lastName}`.trim();
+                return {
+                  email: user.email_address || user.email || '',
+                  name: fullName || user.username || user.email_address || user.email || ''
+                };
+              })
+              .filter((tech: any) => tech.name);
+            setTechnicians(technicianList);
+          }
+        } catch (error) {
+          console.error('Error fetching technicians:', error);
+        }
+      }
+    };
+    
+    fetchTechnicians();
   }, [isOpen]);
 
   useEffect(() => {
@@ -583,9 +631,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitBy ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit By</option>
-                  <option value="tech1@ampere.com">tech1@ampere.com</option>
-                  <option value="tech2@ampere.com">tech2@ampere.com</option>
-                  <option value="tech3@ampere.com">tech3@ampere.com</option>
+                  {technicianFormData.visitBy && !technicians.some(t => t.name === technicianFormData.visitBy) && (
+                    <option value={technicianFormData.visitBy}>{technicianFormData.visitBy}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
                 </select>
                 {errors.visitBy && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitBy}</p>}
               </div>
@@ -600,9 +651,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With</option>
-                  <option value="Alone">Alone</option>
-                  <option value="Partner">Partner</option>
-                  <option value="Team">Team</option>
+                  {technicianFormData.visitWith && !technicians.some(t => t.name === technicianFormData.visitWith) && (
+                    <option value={technicianFormData.visitWith}>{technicianFormData.visitWith}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
                 </select>
                 {errors.visitWith && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWith}</p>}
               </div>
@@ -617,9 +671,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With(Other)</option>
-                  <option value="None">None</option>
-                  <option value="Supervisor">Supervisor</option>
-                  <option value="Manager">Manager</option>
+                  {technicianFormData.visitWithOther && !technicians.some(t => t.name === technicianFormData.visitWithOther) && (
+                    <option value={technicianFormData.visitWithOther}>{technicianFormData.visitWithOther}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.name}>{technician.name}</option>
+                  ))}
                 </select>
                 {errors.visitWithOther && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWithOther}</p>}
               </div>
@@ -676,12 +733,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
                   >
                     <option value="">Select Status Remarks</option>
-                    <option value="No LCP">No LCP</option>
-                    <option value="No Pole">No Pole</option>
-                    <option value="Need Approval from HOA">Need Approval from HOA</option>
-                    <option value="Need Permission from Property Owner">Need Permission from Property Owner</option>
-                    <option value="Incomplete Documents">Incomplete Documents</option>
-                    <option value="Other">Other</option>
+                    {technicianFormData.statusRemarks && !statusRemarks.some(sr => sr.status_remarks === technicianFormData.statusRemarks) && (
+                      <option value={technicianFormData.statusRemarks}>{technicianFormData.statusRemarks}</option>
+                    )}
+                    {statusRemarks.map((remark, index) => (
+                      <option key={index} value={remark.status_remarks}>{remark.status_remarks}</option>
+                    ))}
                   </select>
                 </div>
               )}
@@ -860,9 +917,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Assigned Email</option>
-                  <option value="tech1@ampere.com">tech1@ampere.com</option>
-                  <option value="tech2@ampere.com">tech2@ampere.com</option>
-                  <option value="tech3@ampere.com">tech3@ampere.com</option>
+                  {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && formData.assignedEmail !== 'Office' && (
+                    <option value={formData.assignedEmail}>{formData.assignedEmail}</option>
+                  )}
+                  {technicians.map((technician, index) => (
+                    <option key={index} value={technician.email}>{technician.email}</option>
+                  ))}
                   <option value="Office">Office</option>
                 </select>
                 {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}

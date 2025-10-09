@@ -12,12 +12,12 @@ export interface ApplicationVisitData {
   application_id: number;
   timestamp?: string;
   assigned_email: string;
-  visit_by_user_id?: number | null;
+  visit_by_user_email?: string | null;
   visit_with?: string | null;
   visit_status: string;
   visit_remarks?: string | null;
   application_status?: string | null;
-  status_remarks_id?: number | null;
+  status_remarks?: string | null;
   image1_url?: string | null;
   image2_url?: string | null;
   image3_url?: string | null;
