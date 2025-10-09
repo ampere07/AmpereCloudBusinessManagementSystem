@@ -13,11 +13,18 @@ class ServiceOrderApiController extends Controller
     /**
      * Display a listing of service orders
      */
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            // Get service orders from the database
-            $serviceOrders = DB::table('service_order')->get();
+            $query = DB::table('service_order');
+            
+            // Filter by assigned email if provided
+            if ($request->has('assigned_email')) {
+                $query->where('Assigned_Email', $request->input('assigned_email'));
+                Log::info('Filtering service orders by email: ' . $request->input('assigned_email'));
+            }
+            
+            $serviceOrders = $query->get();
             
             // Log the results
             Log::info('Found ' . $serviceOrders->count() . ' service orders');

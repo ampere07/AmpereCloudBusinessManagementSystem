@@ -59,12 +59,15 @@ const JobOrderPage: React.FC = () => {
     return status ? status.status_name : `Unknown (ID: ${statusId})`;
   };
 
+  const [userEmail, setUserEmail] = useState<string>('');
+
   useEffect(() => {
     const authData = localStorage.getItem('authData');
     if (authData) {
       try {
         const userData = JSON.parse(authData);
         setUserRole(userData.role || '');
+        setUserEmail(userData.email || '');
       } catch (error) {
         console.error('Error parsing auth data:', error);
       }
@@ -94,9 +97,24 @@ const JobOrderPage: React.FC = () => {
         console.log(`Found ${billingStatusesData.length} billing statuses`);
         setBillingStatuses(billingStatusesData);
         
-        // Fetch job orders data from job_orders table
+        // Fetch job orders data from job_orders table with email filter for technicians
         console.log('Fetching job orders from job_orders table...');
-        const response = await getJobOrders();
+        const authData = localStorage.getItem('authData');
+        let assignedEmail: string | undefined;
+        
+        if (authData) {
+          try {
+            const userData = JSON.parse(authData);
+            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+              assignedEmail = userData.email;
+              console.log('Filtering job orders for technician:', assignedEmail);
+            }
+          } catch (error) {
+            console.error('Error parsing auth data:', error);
+          }
+        }
+        
+        const response = await getJobOrders(assignedEmail);
         console.log('Job Orders API Response:', response);
         console.log('Job Orders API Response - First Item:', response.data?.[0]);
         console.log('Job Orders API - Secondary_Mobile_Number in first item:', response.data?.[0]?.Secondary_Mobile_Number);

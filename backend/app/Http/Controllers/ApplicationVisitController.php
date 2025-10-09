@@ -10,10 +10,18 @@ use Illuminate\Support\Facades\Log;
 
 class ApplicationVisitController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
-            $visits = ApplicationVisit::with('application')->get();
+            $query = ApplicationVisit::with('application');
+            
+            // Filter by assigned email if provided
+            if ($request->has('assigned_email')) {
+                $query->where('assigned_email', $request->input('assigned_email'));
+                Log::info('Filtering application visits by email: ' . $request->input('assigned_email'));
+            }
+            
+            $visits = $query->get();
             
             $visitsWithApplicationData = $visits->map(function ($visit) {
                 $application = $visit->application;

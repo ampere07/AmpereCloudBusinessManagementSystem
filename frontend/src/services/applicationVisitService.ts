@@ -74,9 +74,10 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
   }
 };
 
-export const getAllApplicationVisits = async () => {
+export const getAllApplicationVisits = async (assignedEmail?: string) => {
   try {
-    const response = await apiClient.get<ApiResponse<ApplicationVisitData[]>>('/application-visits');
+    const params = assignedEmail ? { assigned_email: assignedEmail } : {};
+    const response = await apiClient.get<ApiResponse<ApplicationVisitData[]>>('/application-visits', { params });
     
     if (response.data && response.data.data) {
       return response.data;

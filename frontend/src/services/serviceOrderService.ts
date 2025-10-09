@@ -62,11 +62,12 @@ export const createServiceOrder = async (serviceOrderData: ServiceOrderData) => 
   }
 };
 
-export const getServiceOrders = async () => {
+export const getServiceOrders = async (assignedEmail?: string) => {
   try {
     console.log('Fetching service orders from service_orders table...');
     try {
-      const response = await apiClient.get<ApiResponse<ServiceOrderData[]>>('/service-orders');
+      const params = assignedEmail ? { assigned_email: assignedEmail } : {};
+      const response = await apiClient.get<ApiResponse<ServiceOrderData[]>>('/service-orders', { params });
       console.log('Raw API response:', response);
       return response.data;
     } catch (error) {

@@ -21,12 +21,20 @@ use Illuminate\Support\Facades\DB;
 
 class JobOrderController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
         try {
             \Log::info('Accessing job_orders table');
             
-            $jobOrders = JobOrder::with('application')->get();
+            $query = JobOrder::with('application');
+            
+            if ($request->has('assigned_email')) {
+                $assignedEmail = $request->query('assigned_email');
+                \Log::info('Filtering job orders by assigned_email: ' . $assignedEmail);
+                $query->where('assigned_email', $assignedEmail);
+            }
+            
+            $jobOrders = $query->get();
 
             \Log::info('Found ' . $jobOrders->count() . ' job orders in database');
             
@@ -48,7 +56,7 @@ class JobOrderController extends Controller
                     'Onsite_Status' => $jobOrder->onsite_status,
                     'billing_status_id' => $jobOrder->billing_status_id,
                     'Status_Remarks' => $jobOrder->status_remarks,
-                    'Assigned_Email' => null,
+                    'Assigned_Email' => $jobOrder->assigned_email,
                     'Contract_Template' => $jobOrder->modem_router_sn,
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,

@@ -24,10 +24,11 @@ export const createJobOrder = async (jobOrderData: JobOrderData) => {
   }
 };
 
-export const getJobOrders = async () => {
+export const getJobOrders = async (assignedEmail?: string) => {
   try {
     console.log('Fetching job orders from database...');
-    const response = await apiClient.get<ApiResponse<JobOrderData[]>>('/job-orders');
+    const params = assignedEmail ? { assigned_email: assignedEmail } : {};
+    const response = await apiClient.get<ApiResponse<JobOrderData[]>>('/job-orders', { params });
     console.log('Raw API response:', response);
     
     // Process the data to ensure it matches our expected format

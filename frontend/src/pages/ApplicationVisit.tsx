@@ -52,12 +52,15 @@ const ApplicationVisit: React.FC = () => {
     }
   };
 
+  const [userEmail, setUserEmail] = useState<string>('');
+  
   useEffect(() => {
     const authData = localStorage.getItem('authData');
     if (authData) {
       try {
         const userData = JSON.parse(authData);
         setUserRole(userData.role || '');
+        setUserEmail(userData.email || '');
       } catch (error) {
         console.error('Error parsing auth data:', error);
       }
@@ -70,8 +73,24 @@ const ApplicationVisit: React.FC = () => {
         setLoading(true);
         console.log('Fetching application visits...');
         
-        // Get all application visit data from the 'application_visits' table (not 'application_visit')
-        const response = await getAllApplicationVisits();
+        // Check if user is a technician and filter by their email
+        const authData = localStorage.getItem('authData');
+        let assignedEmail: string | undefined;
+        
+        if (authData) {
+          try {
+            const userData = JSON.parse(authData);
+            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+              assignedEmail = userData.email;
+              console.log('Filtering application visits for technician:', assignedEmail);
+            }
+          } catch (error) {
+            console.error('Error parsing auth data:', error);
+          }
+        }
+        
+        // Get all application visit data from the 'application_visits' table with optional email filter
+        const response = await getAllApplicationVisits(assignedEmail);
         console.log('API Response:', response);
         
         if (!response.success) {

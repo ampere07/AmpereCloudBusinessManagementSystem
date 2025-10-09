@@ -86,12 +86,15 @@ const ServiceOrder: React.FC = () => {
     }
   };
 
+  const [userEmail, setUserEmail] = useState<string>('');
+  
   useEffect(() => {
     const authData = localStorage.getItem('authData');
     if (authData) {
       try {
         const userData = JSON.parse(authData);
         setUserRole(userData.role || '');
+        setUserEmail(userData.email || '');
       } catch (error) {
         console.error('Error parsing auth data:', error);
       }
@@ -109,9 +112,24 @@ const ServiceOrder: React.FC = () => {
         const citiesData = await getCities();
         setCities(citiesData || []);
         
-        // Fetch service orders data
+        // Fetch service orders data with email filter for technicians
         console.log('Fetching service orders from service_orders table...');
-        const response = await getServiceOrders();
+        const authData = localStorage.getItem('authData');
+        let assignedEmail: string | undefined;
+        
+        if (authData) {
+          try {
+            const userData = JSON.parse(authData);
+            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+              assignedEmail = userData.email;
+              console.log('Filtering service orders for technician:', assignedEmail);
+            }
+          } catch (error) {
+            console.error('Error parsing auth data:', error);
+          }
+        }
+        
+        const response = await getServiceOrders(assignedEmail);
         console.log('Service Orders API Response:', response);
         
         if (response.success && Array.isArray(response.data)) {
