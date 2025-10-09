@@ -537,6 +537,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       billing_status_id: 1,
       modem_router_sn: toNullIfEmpty(data.contractTemplate),
       onsite_status: data.onsiteStatus || 'In Progress',
+      assigned_email: toNullIfEmpty(data.assignedEmail),
       onsite_remarks: toNullIfEmpty(data.remarks),
       contract_link: null,
       username: null,
