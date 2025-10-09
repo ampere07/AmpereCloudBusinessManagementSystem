@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, CreateUserRequest, Organization } from '../types/api';
-import { userService, organizationService } from '../services/userService';
+import { User, CreateUserRequest, Organization, Role } from '../types/api';
+import { userService, organizationService, roleService } from '../services/userService';
 import Breadcrumb from '../pages/Breadcrumb';
 
 interface AddNewUserFormProps {
@@ -27,16 +27,19 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
     email_address: '',
     contact_number: '',
     password: '',
-    organization_id: undefined
+    organization_id: undefined,
+    role_id: undefined
   });
 
   const [confirmPassword, setConfirmPassword] = useState('');
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadOrganizations();
+    loadRoles();
   }, []);
 
   const loadOrganizations = async () => {
@@ -50,16 +53,27 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
     }
   };
 
+  const loadRoles = async () => {
+    try {
+      const response = await roleService.getAllRoles();
+      if (response.success && response.data) {
+        setRoles(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load roles:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
     if (name === 'confirmPassword') {
       setConfirmPassword(value);
-    } else if (name === 'organization_id') {
-      const orgValue = value && value !== '' ? parseInt(value, 10) : undefined;
+    } else if (name === 'organization_id' || name === 'role_id') {
+      const numericValue = value && value !== '' ? parseInt(value, 10) : undefined;
       setFormData(prev => ({
         ...prev,
-        [name]: orgValue
+        [name]: numericValue
       }));
     } else {
       setFormData(prev => ({
@@ -143,6 +157,10 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
       
       if (formData.organization_id && formData.organization_id > 0) {
         dataToSend.organization_id = formData.organization_id;
+      }
+      
+      if (formData.role_id && formData.role_id > 0) {
+        dataToSend.role_id = formData.role_id;
       }
       
       const response = await userService.createUser(dataToSend);
@@ -363,6 +381,30 @@ const AddNewUserForm: React.FC<AddNewUserFormProps> = ({ onCancel, onUserCreated
                 </select>
                 {errors.organization_id && (
                   <p className="text-red-400 text-sm mt-1">{errors.organization_id}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Role
+                </label>
+                <select
+                  name="role_id"
+                  value={formData.role_id || ''}
+                  onChange={handleInputChange}
+                  className={`w-full px-4 py-3 bg-gray-900 border rounded text-white focus:outline-none focus:border-gray-400 ${
+                    errors.role_id ? 'border-red-600' : 'border-gray-600'
+                  }`}
+                >
+                  <option value="">Select Role (Optional)</option>
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>
+                      {role.role_name}
+                    </option>
+                  ))}
+                </select>
+                {errors.role_id && (
+                  <p className="text-red-400 text-sm mt-1">{errors.role_id}</p>
                 )}
               </div>
 

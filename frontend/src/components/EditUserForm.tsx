@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { User, UpdateUserRequest, Organization } from '../types/api';
-import { userService, organizationService } from '../services/userService';
+import { User, UpdateUserRequest, Organization, Role } from '../types/api';
+import { userService, organizationService, roleService } from '../services/userService';
 import Breadcrumb from '../pages/Breadcrumb';
 
 interface EditUserFormProps {
@@ -28,15 +28,18 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
     username: user?.username || '',
     email_address: user?.email_address || '',
     contact_number: user?.contact_number || '',
-    organization_id: user?.organization_id
+    organization_id: user?.organization_id,
+    role_id: user?.role_id
   });
 
   const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [roles, setRoles] = useState<Role[]>([]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     loadOrganizations();
+    loadRoles();
   }, []);
   
   useEffect(() => {
@@ -49,7 +52,8 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
         username: user.username || '',
         email_address: user.email_address || '',
         contact_number: user.contact_number || '',
-        organization_id: user.organization_id
+        organization_id: user.organization_id,
+        role_id: user.role_id
       });
     }
   }, [user]);
@@ -83,14 +87,25 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
     }
   };
 
+  const loadRoles = async () => {
+    try {
+      const response = await roleService.getAllRoles();
+      if (response.success && response.data) {
+        setRoles(response.data);
+      }
+    } catch (error) {
+      console.error('Failed to load roles:', error);
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    if (name === 'organization_id') {
-      const orgValue = value && value !== '' ? parseInt(value, 10) : undefined;
+    if (name === 'organization_id' || name === 'role_id') {
+      const numericValue = value && value !== '' ? parseInt(value, 10) : undefined;
       setFormData(prev => ({
         ...prev,
-        [name]: orgValue
+        [name]: numericValue
       }));
     } else {
       setFormData(prev => ({
@@ -181,6 +196,13 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
       
       if (newOrgId !== currentOrgId) {
         dataToSend.organization_id = (formData.organization_id && formData.organization_id > 0) ? formData.organization_id : undefined;
+      }
+      
+      const currentRoleId = user.role_id || undefined;
+      const newRoleId = formData.role_id || undefined;
+      
+      if (newRoleId !== currentRoleId) {
+        dataToSend.role_id = (formData.role_id && formData.role_id > 0) ? formData.role_id : undefined;
       }
       
       if (formData.password && formData.password.trim()) {
@@ -398,6 +420,25 @@ const EditUserForm: React.FC<EditUserFormProps> = ({ user, onCancel, onUserUpdat
                   {organizations.map(org => (
                     <option key={org.id} value={org.id}>
                       {org.organization_name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Role (Optional)
+                </label>
+                <select
+                  name="role_id"
+                  value={formData.role_id || ''}
+                  onChange={handleInputChange}
+                  className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white focus:outline-none focus:border-gray-400"
+                >
+                  <option value="">No Role</option>
+                  {roles.map(role => (
+                    <option key={role.id} value={role.id}>
+                      {role.role_name}
                     </option>
                   ))}
                 </select>

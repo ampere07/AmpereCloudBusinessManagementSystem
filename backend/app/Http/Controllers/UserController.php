@@ -14,7 +14,7 @@ class UserController extends Controller
     public function index()
     {
         try {
-            $users = User::with(['organization'])->get();
+            $users = User::with(['organization', 'role'])->get();
             return response()->json([
                 'success' => true,
                 'data' => $users
@@ -39,7 +39,8 @@ class UserController extends Controller
             'email_address' => 'required|string|email|max:255|unique:users,email_address',
             'contact_number' => 'nullable|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'required|string|min:8',
-            'org_id' => 'nullable|integer',
+            'organization_id' => 'nullable|integer',
+            'role_id' => 'nullable|integer|exists:roles,id',
         ]);
 
         if ($validator->fails()) {
@@ -62,7 +63,8 @@ class UserController extends Controller
                     'email_address' => $request->email_address,   // correct field
                     'contact_number' => $request->contact_number, // correct field
                     'password_hash' => $request->password,
-                    'organization_id' => $request->org_id && $request->org_id > 0 ? $request->org_id : null,
+                    'organization_id' => $request->organization_id && $request->organization_id > 0 ? $request->organization_id : null,
+                    'role_id' => $request->role_id && $request->role_id > 0 ? $request->role_id : null,
                 ];
             
             $user = User::create($userData);
@@ -82,7 +84,7 @@ class UserController extends Controller
                 \Log::warning('Failed to log user creation activity: ' . $logError->getMessage());
             }
             
-            $responseUser = $user->load(['organization']);
+            $responseUser = $user->load(['organization', 'role']);
 
             return response()->json([
                 'success' => true,
@@ -103,7 +105,7 @@ class UserController extends Controller
     public function show($id)
     {
         try {
-            $user = User::with(['organization'])->findOrFail($id);
+            $user = User::with(['organization', 'role'])->findOrFail($id);
             return response()->json([
                 'success' => true,
                 'data' => $user
@@ -133,11 +135,12 @@ class UserController extends Controller
             'first_name' => 'sometimes|string|max:255',
             'middle_initial' => 'sometimes|string|max:255',
             'last_name' => 'sometimes|string|max:255',
-            'username' => 'sometimes|string|max:255|unique:users,username,' . $id . ',user_id',
-            'email_address' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',user_id',
+            'username' => 'sometimes|string|max:255|unique:users,username,' . $id . ',id',
+            'email_address' => 'sometimes|string|email|max:255|unique:users,email_address,' . $id . ',id',
             'contact_number' => 'sometimes|string|max:20|regex:/^[+]?[0-9\s\-\(\)]+$/',
             'password' => 'sometimes|string|min:8',
-            'org_id' => 'sometimes|nullable|integer',
+            'organization_id' => 'sometimes|nullable|integer',
+            'role_id' => 'sometimes|nullable|integer|exists:roles,id',
         ]);
 
         if ($validator->fails()) {
@@ -152,30 +155,35 @@ class UserController extends Controller
             $user = User::findOrFail($id);
             
             $oldData = $user->toArray();
-            $updateData = $request->only(['salutation', 'first_name', 'middle_initial','last_name','username', 'mobile_number', 'org_id']);
-            
-            // Map email to email_address for database
-            if ($request->has('email')) {
-                $updateData['email_address'] = $request->email;
-            }
+            $updateData = $request->only(['salutation', 'first_name', 'middle_initial','last_name','username', 'email_address', 'contact_number', 'organization_id', 'role_id']);
             
             if ($request->has('password')) {
                 $updateData['password_hash'] = $request->password;
             }
             
-            // Handle org_id properly - ensure it's null if not provided or 0
-            if (array_key_exists('org_id', $updateData)) {
-                $updateData['org_id'] = $updateData['org_id'] && $updateData['org_id'] > 0 ? $updateData['org_id'] : null;
+            // Handle organization_id properly - ensure it is null if not provided or 0
+            if (array_key_exists('organization_id', $updateData)) {
+                $updateData['organization_id'] = $updateData['organization_id'] && $updateData['organization_id'] > 0 ? $updateData['organization_id'] : null;
+            }
+            
+            // Handle role_id properly - ensure it is null if not provided or 0
+            if (array_key_exists('role_id', $updateData)) {
+                $updateData['role_id'] = $updateData['role_id'] && $updateData['role_id'] > 0 ? $updateData['role_id'] : null;
             }
             
             // Remove empty values to avoid unnecessary updates
             $updateData = array_filter($updateData, function($value, $key) {
-                return $value !== null && $value !== '' && $key !== 'org_id';
+                return $value !== null && $value !== '' && $key !== 'organization_id' && $key !== 'role_id';
             }, ARRAY_FILTER_USE_BOTH);
             
-            // Add org_id back if it was in the request (even if null)
-            if ($request->has('org_id')) {
-                $updateData['org_id'] = $request->org_id && $request->org_id > 0 ? $request->org_id : null;
+            // Add organization_id back if it was in the request (even if null)
+            if ($request->has('organization_id')) {
+                $updateData['organization_id'] = $request->organization_id && $request->organization_id > 0 ? $request->organization_id : null;
+            }
+            
+            // Add role_id back if it was in the request (even if null)
+            if ($request->has('role_id')) {
+                $updateData['role_id'] = $request->role_id && $request->role_id > 0 ? $request->role_id : null;
             }
 
             $user->update($updateData);
@@ -195,7 +203,7 @@ class UserController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'User updated successfully',
-                'data' => $user->load(['organization'])
+                'data' => $user->load(['organization', 'role'])
             ]);
         } catch (\Exception $e) {
             \Log::error('User update failed for ID ' . $id . ': ' . $e->getMessage());

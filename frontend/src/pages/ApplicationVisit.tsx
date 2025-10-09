@@ -40,6 +40,7 @@ const ApplicationVisit: React.FC = () => {
   const [applicationVisits, setApplicationVisits] = useState<ApplicationVisit[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string>('');
 
   // Format date function
   const formatDate = (dateStr?: string): string => {
@@ -50,6 +51,18 @@ const ApplicationVisit: React.FC = () => {
       return dateStr;
     }
   };
+
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const userData = JSON.parse(authData);
+        setUserRole(userData.role || '');
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
+    }
+  }, []);
 
   useEffect(() => {
     const fetchApplicationVisits = async () => {
@@ -293,7 +306,8 @@ const ApplicationVisit: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container */}
+      {/* Location Sidebar Container - Hidden for technician role */}
+      {userRole.toLowerCase() !== 'technician' && (
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
@@ -330,9 +344,10 @@ const ApplicationVisit: React.FC = () => {
           ))}
         </div>
       </div>
+      )}
 
       {/* Application Visits List - Shrinks when detail view is shown */}
-      <div className={`bg-gray-900 overflow-hidden ${selectedVisit ? 'flex-1' : 'flex-1'}`}>
+      <div className={`bg-gray-900 overflow-hidden flex-1`}>
         <div className="flex flex-col h-full">
           {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
@@ -474,7 +489,7 @@ const ApplicationVisit: React.FC = () => {
 
       {/* Application Visit Detail View - Only visible when a visit is selected */}
       {selectedVisit && (
-        <div className="flex-1 overflow-hidden">
+        <div className="w-full max-w-2xl overflow-hidden">
           <ApplicationVisitDetails 
             applicationVisit={selectedVisit}
             onClose={() => setSelectedVisit(null)}

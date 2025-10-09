@@ -9,7 +9,7 @@ class Group extends Model
 {
     use HasFactory;
 
-    protected $primaryKey = 'id';
+    protected $primaryKey = 'group_id';
     protected $table = 'groups';
 
     protected $fillable = [
@@ -21,12 +21,18 @@ class Group extends Model
         'portal_url',
         'hotline',
         'email',
+        'org_id',
         'modified_by_user_id',
         'modified_date',
     ];
 
     public function users()
     {
-        return $this->hasMany(User::class, 'group_id', 'id');
+        return $this->hasMany(User::class, 'group_id', 'group_id');
+    }
+
+    public function organization()
+    {
+        return $this->belongsTo(Organization::class, 'org_id', 'id');
     }
 }

@@ -151,6 +151,7 @@ export const groupService = {
     portal_url?: string | null;
     hotline?: string | null;
     email?: string | null;
+    org_id?: number | null;
   }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.post<ApiResponse<Group>>('/groups', groupData);
     return response.data;
@@ -172,6 +173,7 @@ export const groupService = {
     portal_url?: string | null;
     hotline?: string | null;
     email?: string | null;
+    org_id?: number | null;
   }): Promise<ApiResponse<Group>> => {
     const response = await apiClient.put<ApiResponse<Group>>(`/groups/${groupId}`, groupData);
     return response.data;

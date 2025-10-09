@@ -17,10 +17,24 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isApprovalModalOpen, setIsApprovalModalOpen] = useState(false);
   const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
+  const [userRole, setUserRole] = useState<string>('');
   
   console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
   console.log('JobOrderDetails - Secondary_Mobile_Number:', jobOrder.Secondary_Mobile_Number);
   console.log('JobOrderDetails - Second_Contact_Number:', jobOrder.Second_Contact_Number);
+  
+  // Get user role from localStorage
+  useEffect(() => {
+    const authData = localStorage.getItem('authData');
+    if (authData) {
+      try {
+        const userData = JSON.parse(authData);
+        setUserRole(userData.role?.toLowerCase() || '');
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
+    }
+  }, []);
   
   // Fetch billing statuses on mount
   useEffect(() => {
@@ -281,12 +295,16 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         </div>
         
         <div className="flex items-center space-x-3">
-          <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
-            <X size={16} />
-          </button>
-          <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
-            <ExternalLink size={16} />
-          </button>
+          {userRole !== 'technician' && (
+            <>
+              <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
+                <X size={16} />
+              </button>
+              <button className="bg-gray-800 hover:bg-gray-700 text-white p-1 rounded-sm border border-gray-700 flex items-center justify-center">
+                <ExternalLink size={16} />
+              </button>
+            </>
+          )}
           {shouldShowApproveButton() && (
             <button 
               className="bg-green-600 hover:bg-green-700 text-white px-3 py-1 rounded-sm flex items-center"
@@ -316,20 +334,22 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
         </div>
       </div>
       
-      <div className="bg-gray-900 py-3 border-b border-gray-700 flex items-center justify-center px-4">
-        <button 
-          onClick={handleEditClick}
-          disabled={loading}
-          className="flex flex-col items-center text-center p-2 rounded-md hover:bg-gray-800 transition-colors"
-        >
-          <div className="bg-orange-600 p-2 rounded-full">
-            <div className="text-white">
-              <Edit size={18} />
+      {userRole !== 'technician' && (
+        <div className="bg-gray-900 py-3 border-b border-gray-700 flex items-center justify-center px-4">
+          <button 
+            onClick={handleEditClick}
+            disabled={loading}
+            className="flex flex-col items-center text-center p-2 rounded-md hover:bg-gray-800 transition-colors"
+          >
+            <div className="bg-orange-600 p-2 rounded-full">
+              <div className="text-white">
+                <Edit size={18} />
+              </div>
             </div>
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Edit</span>
-        </button>
-      </div>
+            <span className="text-xs mt-1 text-gray-300">Edit</span>
+          </button>
+        </div>
+      )}
       
       {error && (
         <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-400 p-3 m-3 rounded">

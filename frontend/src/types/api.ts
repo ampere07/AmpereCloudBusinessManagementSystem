@@ -59,6 +59,7 @@ export interface User {
   email_address: string;
   contact_number?: string;
   organization_id?: number | null;
+  role_id?: number | null;
   created_at: string;
   updated_at: string;
   organization?: {
@@ -67,6 +68,10 @@ export interface User {
     address?: string | null;
     contact_number?: string | null;
     email_address?: string | null;
+  };
+  role?: {
+    id: number;
+    role_name: string;
   };
 }
 
@@ -84,15 +89,16 @@ export interface Organization {
 }
 
 export interface Role {
-  role_id: number;
+  id: number;
   role_name: string;
+  description?: string;
   created_at: string;
   updated_at: string;
   users?: User[];
 }
 
 export interface Group {
-  id: number;
+  group_id: number;
   group_name: string;
   fb_page_link?: string | null;
   fb_messenger_link?: string | null;
@@ -101,9 +107,17 @@ export interface Group {
   portal_url?: string | null;
   hotline?: string | null;
   email?: string | null;
+  org_id?: number | null;
   modified_by_user_id?: number | null;
   modified_date?: string | null;
   users?: User[];
+  organization?: {
+    id: number;
+    organization_name: string;
+    address?: string | null;
+    contact_number?: string | null;
+    email_address?: string | null;
+  };
 }
 
 export interface CreateUserRequest {
@@ -116,6 +130,7 @@ export interface CreateUserRequest {
   contact_number?: string;
   password: string;
   organization_id?: number;
+  role_id?: number;
 }
 
 export interface UpdateUserRequest {
@@ -128,6 +143,7 @@ export interface UpdateUserRequest {
   contact_number?: string;
   password?: string;
   organization_id?: number | null | undefined;
+  role_id?: number | null | undefined;
 }
 
 export interface ApiResponse<T> {

@@ -644,7 +644,6 @@ Route::post('/login', function (Request $request) {
         // Find user by email_address or username
         $user = User::where('email_address', $identifier)
                    ->orWhere('username', $identifier)
-                   ->with(['organization', 'role', 'group'])
                    ->first();
         
         if (!$user) {
@@ -674,36 +673,65 @@ Route::post('/login', function (Request $request) {
             ], 401);
         }
         
+        // Now load relationships after authentication succeeds
+        try {
+            $user->load(['organization', 'role', 'group']);
+        } catch (\Exception $relationError) {
+            \Log::error('Failed to load user relationships', [
+                'user_id' => $user->id,
+                'error' => $relationError->getMessage()
+            ]);
+            // Continue without relationships rather than failing
+        }
+        
         // Successfully authenticated
         \Log::info('User login successful', [
             'user_id' => $user->id,
-            'username' => $user->username
+            'username' => $user->username,
+            'role_id' => $user->role_id,
+            'has_role' => $user->role ? true : false
         ]);
         
-        // Get user role for response
-        $primaryRole = $user->role ? $user->role->name : 'User';
+        // Get user role for response - handle null role
+        $primaryRole = 'user'; // default role
+        if ($user->role && $user->role->role_name) {
+            $primaryRole = strtolower($user->role->role_name);
+        }
         
         // Update last login timestamp
         $user->last_login = now();
         $user->save();
         
         // Prepare response data
+        $fullName = trim(($user->first_name ?? '') . ' ' . ($user->last_name ?? ''));
+        if (empty($fullName)) {
+            $fullName = $user->username;
+        }
+        
         $responseData = [
             'user' => [
                 'id' => $user->id,
                 'username' => $user->username,
                 'email' => $user->email_address,
-                'full_name' => $user->getFullNameAttribute(),
+                'full_name' => $fullName,
                 'role' => $primaryRole,
             ]
         ];
         
         // Add organization data if available
-        if ($user->organization) {
-            $responseData['user']['organization'] = [
-                'id' => $user->organization->id,
-                'name' => $user->organization->name ?? 'Unknown Organization'
-            ];
+        try {
+            if ($user->organization) {
+                $responseData['user']['organization'] = [
+                    'id' => $user->organization->id,
+                    'name' => $user->organization->organization_name ?? 'Unknown Organization'
+                ];
+            }
+        } catch (\Exception $orgError) {
+            \Log::warning('Failed to load organization data', [
+                'user_id' => $user->id,
+                'error' => $orgError->getMessage()
+            ]);
+            // Continue without organization data
         }
         
         // Generate token
