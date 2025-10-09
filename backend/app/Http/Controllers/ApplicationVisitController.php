@@ -111,8 +111,7 @@ class ApplicationVisitController extends Controller
                 'image3_url' => 'nullable|string|max:255',
                 'house_front_picture_url' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
-                'updated_by_user_email' => 'nullable|email|max:255',
-                'updated_by_user_id' => 'nullable|integer'
+                'updated_by_user_email' => 'nullable|email|max:255'
             ]);
 
             Log::info('Validation passed', ['validated_data' => $validatedData]);
@@ -247,8 +246,7 @@ class ApplicationVisitController extends Controller
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
                 'house_front_picture_url' => 'nullable|string|max:255',
-                'updated_by_user_email' => 'nullable|email|max:255',
-                'updated_by_user_id' => 'nullable|integer'
+                'updated_by_user_email' => 'nullable|email|max:255'
             ]);
             
             $visit->update($validatedData);

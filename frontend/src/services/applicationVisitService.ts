@@ -14,7 +14,7 @@ export interface ApplicationVisitData {
   assigned_email: string;
   visit_by_user_email?: string | null;
   visit_with?: string | null;
-  visit_status: string;
+  visit_status?: string | null;
   visit_remarks?: string | null;
   application_status?: string | null;
   status_remarks?: string | null;
@@ -23,10 +23,8 @@ export interface ApplicationVisitData {
   image3_url?: string | null;
   house_front_picture_url?: string | null;
   created_at?: string;
-  created_by_user_id?: number | null;
   created_by_user_email?: string;
   updated_at?: string;
-  updated_by_user_id?: number | null;
   updated_by_user_email?: string;
 }
 
