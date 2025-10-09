@@ -32,8 +32,7 @@ class ApplicationVisit extends Model
         'image3_url',
         'house_front_picture_url',
         'created_by_user_email',
-        'updated_by_user_email',
-        'updated_by_user_id'
+        'updated_by_user_email'
     ];
     
     protected $casts = [

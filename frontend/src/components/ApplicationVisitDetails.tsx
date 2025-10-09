@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
-  ExternalLink, Mail, Edit, Trash2, ArrowRightToLine, Trash, XOctagon, RotateCw
+  ExternalLink, Mail, Edit, Trash2, ArrowRightToLine, Eraser, XOctagon, RotateCw
 } from 'lucide-react';
 import { getApplication } from '../services/applicationService';
 import { updateApplicationVisit } from '../services/applicationVisitService';
@@ -127,20 +127,37 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   };
 
   // Handle status update
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleStatusUpdate = async (newStatus: string | null) => {
     try {
       setLoading(true);
+      setError(null);
+      
+      const authData = localStorage.getItem('authData');
+      let updatedByEmail = null;
+      
+      if (authData) {
+        try {
+          const user = JSON.parse(authData);
+          updatedByEmail = user.email;
+        } catch (error) {
+          console.error('Error parsing auth data:', error);
+        }
+      }
+      
       await updateApplicationVisit(applicationVisit.id, { 
         visit_status: newStatus,
-        updated_by_user_id: null
+        updated_by_user_email: updatedByEmail
       });
       
-      setCurrentVisitData({ ...currentVisitData, visit_status: newStatus });
+      setCurrentVisitData({ ...currentVisitData, visit_status: newStatus || '' });
       
-      alert(`Status updated to ${newStatus}`);
+      const statusMessage = newStatus ? `Status updated to ${newStatus}` : 'Status cleared successfully';
+      alert(statusMessage);
     } catch (err: any) {
-      setError(`Failed to update status: ${err.message}`);
+      const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
+      setError(`Failed to update status: ${errorMessage}`);
       console.error('Status update error:', err);
+      console.error('Error response:', err.response?.data);
     } finally {
       setLoading(false);
     }
@@ -195,33 +212,36 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
       {userRole !== 'technician' && userRole === 'administrator' && (
         <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-center space-x-8">
           <button 
-            className="flex flex-col items-center text-center"
-            onClick={() => handleStatusUpdate('Scheduled')}
+            className="flex flex-col items-center text-center hover:opacity-80 transition-opacity"
+            onClick={() => handleStatusUpdate(null)}
             disabled={loading}
+            title="Clear status and reset to default"
           >
-            <div className="bg-orange-600 p-3 rounded-full">
-              <Trash className="text-white" size={24} />
+            <div className={`p-3 rounded-full ${loading ? 'bg-gray-600' : 'bg-orange-600 hover:bg-orange-700'}`}>
+              <Eraser className="text-white" size={24} />
             </div>
-            <span className="text-xs mt-1 text-gray-300">Scheduled</span>
+            <span className="text-xs mt-1 text-gray-300">Clear Status</span>
           </button>
           
           <button 
-            className="flex flex-col items-center text-center"
+            className="flex flex-col items-center text-center hover:opacity-80 transition-opacity"
             onClick={() => handleStatusUpdate('Failed')}
             disabled={loading}
+            title="Mark visit as failed"
           >
-            <div className="bg-orange-600 p-3 rounded-full">
+            <div className={`p-3 rounded-full ${loading ? 'bg-gray-600' : 'bg-orange-600 hover:bg-orange-700'}`}>
               <XOctagon className="text-white" size={24} />
             </div>
             <span className="text-xs mt-1 text-gray-300">Failed</span>
           </button>
           
           <button 
-            className="flex flex-col items-center text-center"
+            className="flex flex-col items-center text-center hover:opacity-80 transition-opacity"
             onClick={() => handleStatusUpdate('In Progress')}
             disabled={loading}
+            title="Mark visit as in progress"
           >
-            <div className="bg-orange-600 p-3 rounded-full">
+            <div className={`p-3 rounded-full ${loading ? 'bg-gray-600' : 'bg-orange-600 hover:bg-orange-700'}`}>
               <RotateCw className="text-white" size={24} />
             </div>
             <span className="text-xs mt-1 text-gray-300">Visit In Progress</span>
@@ -334,7 +354,12 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Status</div>
-              <div className={`text-${currentVisitData.visit_status?.toLowerCase() === 'completed' ? 'green' : 'orange'}-500 flex-1`}>
+              <div className={`flex-1 ${
+                currentVisitData.visit_status?.toLowerCase() === 'completed' ? 'text-green-500' :
+                currentVisitData.visit_status?.toLowerCase() === 'failed' ? 'text-red-500' :
+                currentVisitData.visit_status?.toLowerCase() === 'in progress' ? 'text-blue-500' :
+                'text-orange-500'
+              }`}>
                 {currentVisitData.visit_status || 'Scheduled'}
               </div>
             </div>
