@@ -5,6 +5,11 @@ import { updateJobOrder } from '../services/jobOrderService';
 import { userService } from '../services/userService';
 import { planService, Plan } from '../services/planService';
 import { routerModelService, RouterModel } from '../services/routerModelService';
+import { createAccount } from '../services/autoAccount';
+import { getAllPorts, Port } from '../services/portService';
+import { getAllVLANs, VLAN } from '../services/vlanService';
+import { getAllGroups, Group } from '../services/groupService';
+import { getAllUsageTypes, UsageType } from '../services/usageTypeService';
 import apiClient from '../config/api';
 
 interface JobOrderDoneFormTechModalProps {
@@ -34,28 +39,6 @@ interface NAPResponse {
   data: NAPData[];
 }
 
-interface PortData {
-  id: number;
-  PORT_ID: string;
-  Label: string;
-}
-
-interface PortResponse {
-  success: boolean;
-  data: PortData[];
-}
-
-interface VLANData {
-  id: number;
-  VLAN_ID: string;
-  Value: string;
-}
-
-interface VLANResponse {
-  success: boolean;
-  data: VLANData[];
-}
-
 interface JobOrderDoneFormData {
   dateInstalled: string;
   usageType: string;
@@ -63,7 +46,7 @@ interface JobOrderDoneFormData {
   connectionType: string;
   routerModel: string;
   modemSN: string;
-  provider: string;
+  groupName: string;
   lcp: string;
   nap: string;
   port: string;
@@ -115,7 +98,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     connectionType: '',
     routerModel: '',
     modemSN: '',
-    provider: '',
+    groupName: '',
     lcp: '',
     nap: '',
     port: '',
@@ -154,8 +137,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   const [routerModels, setRouterModels] = useState<RouterModel[]>([]);
   const [lcps, setLcps] = useState<LCPData[]>([]);
   const [naps, setNaps] = useState<NAPData[]>([]);
-  const [ports, setPorts] = useState<PortData[]>([]);
-  const [vlans, setVlans] = useState<VLANData[]>([]);
+  const [ports, setPorts] = useState<Port[]>([]);
+  const [vlans, setVlans] = useState<VLAN[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
 
   useEffect(() => {
     const fetchLcps = async () => {
@@ -203,11 +188,9 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchPorts = async () => {
       if (isOpen) {
         try {
-          const response = await apiClient.get<PortResponse>('/port');
-          if (response.data?.success && Array.isArray(response.data.data)) {
-            setPorts(response.data.data);
-          } else if (Array.isArray(response.data)) {
-            setPorts(response.data as PortData[]);
+          const response = await getAllPorts();
+          if (response.success && Array.isArray(response.data)) {
+            setPorts(response.data);
           } else {
             setPorts([]);
           }
@@ -224,11 +207,9 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchVlans = async () => {
       if (isOpen) {
         try {
-          const response = await apiClient.get<VLANResponse>('/vlan');
-          if (response.data?.success && Array.isArray(response.data.data)) {
-            setVlans(response.data.data);
-          } else if (Array.isArray(response.data)) {
-            setVlans(response.data as VLANData[]);
+          const response = await getAllVLANs();
+          if (response.success && Array.isArray(response.data)) {
+            setVlans(response.data);
           } else {
             setVlans([]);
           }
@@ -239,6 +220,50 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       }
     };
     fetchVlans();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (isOpen) {
+        try {
+          const response = await getAllGroups();
+          if (response.success && Array.isArray(response.data)) {
+            setGroups(response.data);
+          } else {
+            setGroups([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Groups:', error);
+          setGroups([]);
+        }
+      }
+    };
+    fetchGroups();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchUsageTypes = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading usage types from database...');
+          const response = await getAllUsageTypes();
+          console.log('Usage Type API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setUsageTypes(response.data);
+            console.log('Loaded Usage Types:', response.data.length);
+          } else {
+            console.warn('Unexpected Usage Type response structure:', response);
+            setUsageTypes([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Usage Types:', error);
+          setUsageTypes([]);
+        }
+      }
+    };
+    
+    fetchUsageTypes();
   }, [isOpen]);
 
   useEffect(() => {
@@ -314,7 +339,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
         routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
         modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
-        provider: jobOrderData.Provider || jobOrderData.provider || '',
+        groupName: jobOrderData.group_name || jobOrderData.Group_Name || '',
         lcp: jobOrderData.LCP || jobOrderData.lcp || '',
         nap: jobOrderData.NAP || jobOrderData.nap || '',
         port: jobOrderData.PORT || jobOrderData.port || '',
@@ -351,7 +376,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
     if (!formData.choosePlan.trim()) newErrors.choosePlan = 'Choose Plan is required';
     if (!formData.onsiteStatus.trim()) newErrors.onsiteStatus = 'Onsite Status is required';
-    if (!formData.provider.trim()) newErrors.provider = 'Provider is required';
+    if (!formData.groupName.trim()) newErrors.groupName = 'Group is required';
     
     if (formData.onsiteStatus === 'Done') {
       if (!formData.dateInstalled.trim()) newErrors.dateInstalled = 'Date Installed is required';
@@ -431,7 +456,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       const jobOrderUpdateData: any = {
         Choose_Plan: updatedFormData.choosePlan,
         Onsite_Status: updatedFormData.onsiteStatus,
-        Provider: updatedFormData.provider,
+        group_name: updatedFormData.groupName,
         Modified_By: updatedFormData.modifiedBy,
         Modified_Date: updatedFormData.modifiedDate
       };
@@ -453,6 +478,26 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
         jobOrderUpdateData.Address_Coordinates = updatedFormData.addressCoordinates;
         jobOrderUpdateData.Item_Name_1 = updatedFormData.itemName1;
+
+        try {
+          const lastName = (jobOrderData?.Last_Name || jobOrderData?.last_name || '').toLowerCase();
+          const mobileNumber = (jobOrderData?.Mobile_Number || jobOrderData?.mobile_number || '').replace(/[^0-9]/g, '');
+          
+          const username = `${lastName}${mobileNumber}`;
+          const password = mobileNumber;
+          const plan = updatedFormData.choosePlan;
+
+          console.log('Creating RADIUS account:', { username, plan });
+          
+          const accountName = await createAccount(username, plan, password);
+          console.log('RADIUS account created successfully:', accountName);
+
+          jobOrderUpdateData.pppoe_username = username;
+          jobOrderUpdateData.pppoe_password = password;
+        } catch (accountError: any) {
+          console.error('Error creating RADIUS account:', accountError);
+          alert(`Warning: RADIUS account creation failed: ${accountError.message || 'Unknown error'}. Job order will be saved without PPPoE credentials.`);
+        }
       }
       
       if (updatedFormData.onsiteStatus === 'Failed' || updatedFormData.onsiteStatus === 'Reschedule') {
@@ -546,16 +591,22 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Provider<span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Group<span className="text-red-500">*</span></label>
             <div className="relative">
-              <select value={formData.provider} onChange={(e) => handleInputChange('provider', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.provider ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                <option value="">Select Provider</option>
-                <option value="SWITCH">SWITCH</option>
-                <option value="Provider 2">Provider 2</option>
+              <select value={formData.groupName} onChange={(e) => handleInputChange('groupName', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                <option value="">Select Group</option>
+                {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
+                  <option value={formData.groupName}>{formData.groupName}</option>
+                )}
+                {groups.map((group) => (
+                  <option key={group.id} value={group.group_name}>
+                    {group.group_name}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
-            {errors.provider && <p className="text-red-500 text-xs mt-1">{errors.provider}</p>}
+            {errors.groupName && <p className="text-red-500 text-xs mt-1">{errors.groupName}</p>}
           </div>
 
           {formData.onsiteStatus === 'Done' && (
@@ -579,9 +630,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 <div className="relative">
                   <select value={formData.usageType} onChange={(e) => handleInputChange('usageType', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.usageType ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value=""></option>
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Corporate">Corporate</option>
+                    {formData.usageType && !usageTypes.some(ut => ut.usage_name === formData.usageType) && (
+                      <option value={formData.usageType}>{formData.usageType}</option>
+                    )}
+                    {usageTypes.map((usageType) => (
+                      <option key={usageType.id} value={usageType.usage_name}>
+                        {usageType.usage_name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
@@ -780,7 +836,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.visitWith} onChange={(e) => handleInputChange('visitWith', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
+                    <option value="">Select Visit With</option>
+                    <option value="None">None</option>
                     {formData.visitWith && !technicians.some(t => t.name === formData.visitWith) && (
                       <option value={formData.visitWith}>{formData.visitWith}</option>
                     )}
@@ -802,7 +859,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With(Other)<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.visitWithOther} onChange={(e) => handleInputChange('visitWithOther', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
+                    <option value="">Visit With(Other)</option>
+                    <option value="None">None</option>
                     {formData.visitWithOther && !technicians.some(t => t.name === formData.visitWithOther) && (
                       <option value={formData.visitWithOther}>{formData.visitWithOther}</option>
                     )}
@@ -999,7 +1057,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.visitWith} onChange={(e) => handleInputChange('visitWith', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
+                    <option value="">Visit With</option>
+                    <option value="None">None</option>
                     {formData.visitWith && !technicians.some(t => t.name === formData.visitWith) && (
                       <option value={formData.visitWith}>{formData.visitWith}</option>
                     )}
@@ -1021,7 +1080,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With(Other)<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.visitWithOther} onChange={(e) => handleInputChange('visitWithOther', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
+                    <option value="">Visit With(Other)</option>
+                    <option value="None">None</option>
                     {formData.visitWithOther && !technicians.some(t => t.name === formData.visitWithOther) && (
                       <option value={formData.visitWithOther}>{formData.visitWithOther}</option>
                     )}

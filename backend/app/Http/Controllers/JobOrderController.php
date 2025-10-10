@@ -61,6 +61,9 @@ class JobOrderController extends Controller
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'Username' => $jobOrder->username,
+                    'group_name' => $jobOrder->group_name,
+                    'pppoe_username' => $jobOrder->pppoe_username,
+                    'pppoe_password' => $jobOrder->pppoe_password,
                     
                     'First_Name' => $application ? $application->first_name : null,
                     'Middle_Initial' => $application ? $application->middle_initial : null,
@@ -113,6 +116,7 @@ class JobOrderController extends Controller
                 'status_remarks' => 'nullable|string|max:255',
                 'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
+                'group_name' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',
             ]);
@@ -179,6 +183,9 @@ class JobOrderController extends Controller
                 'status_remarks' => 'nullable|string|max:255',
                 'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
+                'group_name' => 'nullable|string|max:255',
+                'pppoe_username' => 'nullable|string|max:255',
+                'pppoe_password' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',
             ]);
@@ -261,7 +268,6 @@ class JobOrderController extends Controller
                 'housing_status' => null,
                 'referred_by' => $application->referred_by,
                 'desired_plan' => $application->desired_plan,
-                'group_id' => $jobOrder->group_id,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
             ]);

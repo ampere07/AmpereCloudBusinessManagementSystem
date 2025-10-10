@@ -17,6 +17,7 @@ use App\Http\Controllers\CityController;
 use App\Http\Controllers\RegionController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\EmergencyLocationController;
+use App\Http\Controllers\RadiusController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -1136,6 +1137,16 @@ Route::prefix('vlan')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'destroy']);
 });
 
+// Usage Type Management Routes - Using usage_type table
+Route::prefix('usage-types')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'destroy']);
+});
+
 // LCP NAP List Management Routes - Using lcpnap table
 Route::prefix('lcp-nap-list')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'index']);
@@ -1432,4 +1443,8 @@ Route::prefix('installment-schedules')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'update']);
     Route::get('/account/{accountId}', [\App\Http\Controllers\Api\InstallmentScheduleApiController::class, 'getByAccount']);
+});
+
+Route::prefix('radius')->group(function () {
+    Route::post('/create-account', [RadiusController::class, 'createAccount']);
 });
