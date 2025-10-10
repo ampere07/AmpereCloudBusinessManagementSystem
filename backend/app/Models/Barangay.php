@@ -22,4 +22,9 @@ class Barangay extends Model
     {
         return $this->belongsTo(City::class, 'city_id');
     }
+
+    public function locations()
+    {
+        return $this->hasMany(LocationDetail::class, 'barangay_id');
+    }
 }

@@ -16,7 +16,7 @@ interface ApplicationVisitDetailsProps {
     application_id: string;
     timestamp?: string;
     assigned_email?: string;
-    visit_by_user_id?: string;
+    visit_by?: string;
     visit_with?: string;
     visit_status?: string;
     visit_remarks?: string;
@@ -337,7 +337,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit By</div>
-              <div className="text-white flex-1">{currentVisitData.visit_by_user_id || 'Not assigned'}</div>
+              <div className="text-white flex-1">{currentVisitData.visit_by || 'Not assigned'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
@@ -459,7 +459,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           status_remarks: currentVisitData.status_remarks || '',
           visit_notes: currentVisitData.visit_remarks || '',
           assigned_email: currentVisitData.assigned_email || '',
-          visit_by: currentVisitData.visit_by_user_id || '',
+          visit_by: currentVisitData.visit_by || '',
           visit_with: currentVisitData.visit_with || '',
           visit_with_other: '',
           application_status: currentVisitData.application_status || '',

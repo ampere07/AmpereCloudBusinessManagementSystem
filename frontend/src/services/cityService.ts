@@ -29,13 +29,10 @@ export interface Borough {
   updated_at?: string;
 }
 
-export interface Village {
+export interface LocationDetail {
   id: number;
-  borough_id: number;
-  name: string;
-  code?: string;
-  description?: string;
-  is_active?: boolean;
+  barangay_id: number;
+  location_name: string;
   created_at?: string;
   updated_at?: string;
 }
@@ -181,16 +178,19 @@ export const createBarangay = async (data: { name: string; city_id: number; code
   }
 };
 
-// Create a new village with barangay foreign key
-export const createVillage = async (data: { name: string; barangay_id?: number; code?: string; description?: string }): Promise<Village> => {
+// Create a new location with barangay foreign key
+export const createLocation = async (data: { name: string; barangay_id: number }): Promise<LocationDetail> => {
   try {
-    const response = await apiClient.post<ApiResponse<Village>>('/villages', data);
+    const response = await apiClient.post<ApiResponse<LocationDetail>>('/location-details', {
+      location_name: data.name,
+      barangay_id: data.barangay_id
+    });
     if (response.data.success && response.data.data) {
       return response.data.data;
     }
-    throw new Error(response.data.message || 'Failed to create village');
+    throw new Error(response.data.message || 'Failed to create location');
   } catch (error: any) {
-    console.error('Error creating village:', error);
+    console.error('Error creating location:', error);
     throw error;
   }
 };
@@ -241,10 +241,10 @@ export const getBoroughs = async (): Promise<Borough[]> => {
   }
 };
 
-// Get villages
-export const getVillages = async (): Promise<Village[]> => {
+// Get locations
+export const getLocations = async (): Promise<LocationDetail[]> => {
   try {
-    const response = await apiClient.get('/villages');
+    const response = await apiClient.get('/location-details');
     const data = response.data as any;
     
     // Handle direct array response
@@ -259,7 +259,7 @@ export const getVillages = async (): Promise<Village[]> => {
     
     return [];
   } catch (error: any) {
-    console.error('Error fetching villages:', error);
+    console.error('Error fetching locations:', error);
     return [];
   }
 };
@@ -336,12 +336,18 @@ export const deleteBarangay = async (id: number, cascade: boolean = false): Prom
   }
 };
 
-// Delete village
-export const deleteVillage = async (id: number, cascade: boolean = false): Promise<void> => {
+// Delete location
+export const deleteLocation = async (id: number): Promise<void> => {
   try {
-    await apiClient.delete(`/villages/${id}${cascade ? '?cascade=true' : ''}`);
+    await apiClient.delete(`/location-details/${id}`);
   } catch (error: any) {
-    console.error('Error deleting village:', error);
+    console.error('Error deleting location:', error);
     throw error;
   }
 };
+
+// Keep the old village functions for backward compatibility
+export const getVillages = getLocations;
+export const createVillage = createLocation;
+export const deleteVillage = deleteLocation;
+export type Village = LocationDetail;

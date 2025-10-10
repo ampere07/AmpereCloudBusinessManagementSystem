@@ -21,7 +21,7 @@ interface ApplicationVisitStatusModalProps {
     status_remarks?: string;
     visit_notes?: string;
     assigned_email?: string;
-    visit_by_user_email?: string;
+    visit_by?: string;
     visit_with?: string;
     visit_with_other?: string;
     application_status?: string;
@@ -49,9 +49,9 @@ interface StatusFormData {
 interface TechnicianFormData {
   fullAddress: string;
   image1: File | null;
-  visitBy: string;
-  visitWith: string;
-  visitWithOther: string;
+  visit_by: string;
+  visit_with: string;
+  visit_with_other: string;
   visitStatus: string;
   visitRemarks: string;
   statusRemarks: string;
@@ -113,9 +113,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const [technicianFormData, setTechnicianFormData] = useState<TechnicianFormData>({
     fullAddress: visitData?.address || '',
     image1: null,
-    visitBy: visitData?.visit_by_user_email || '',
-    visitWith: visitData?.visit_with || '',
-    visitWithOther: visitData?.visit_with_other || '',
+    visit_by: visitData?.visit_by || '',
+    visit_with: visitData?.visit_with || '',
+    visit_with_other: visitData?.visit_with_other || '',
     visitStatus: visitData?.visit_status || '',
     visitRemarks: visitData?.visit_remarks || '',
     statusRemarks: visitData?.status_remarks || ''
@@ -156,9 +156,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData(prev => ({
         ...prev,
         fullAddress: visitData.address || prev.fullAddress,
-        visitBy: visitData.visit_by_user_email || prev.visitBy,
-        visitWith: visitData.visit_with || prev.visitWith,
-        visitWithOther: visitData.visit_with_other || prev.visitWithOther,
+        visit_by: visitData.visit_by || prev.visit_by,
+        visit_with: visitData.visit_with || prev.visit_with,
+        visit_with_other: visitData.visit_with_other || prev.visit_with_other,
         visitStatus: visitData.visit_status || prev.visitStatus,
         visitRemarks: visitData.visit_remarks || prev.visitRemarks,
         statusRemarks: visitData.status_remarks || prev.statusRemarks
@@ -379,9 +379,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData({
         fullAddress: visitData.address || '',
         image1: null,
-        visitBy: visitData.visit_by_user_email || '',
-        visitWith: visitData.visit_with || '',
-        visitWithOther: visitData.visit_with_other || '',
+        visit_by: visitData.visit_by || '',
+        visit_with: visitData.visit_with || '',
+        visit_with_other: visitData.visit_with_other || '',
         visitStatus: visitData.visit_status || '',
         visitRemarks: visitData.visit_remarks || '',
         statusRemarks: visitData.status_remarks || ''
@@ -431,14 +431,14 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       if (!technicianFormData.image1) {
         newErrors.image1 = 'Image is required';
       }
-      if (!technicianFormData.visitBy.trim()) {
-        newErrors.visitBy = 'Visit By is required';
+      if (!technicianFormData.visit_by.trim()) {
+        newErrors.visit_by = 'Visit By is required';
       }
-      if (!technicianFormData.visitWith.trim()) {
-        newErrors.visitWith = 'Visit With is required';
+      if (!technicianFormData.visit_with.trim()) {
+        newErrors.visit_with = 'Visit With is required';
       }
-      if (!technicianFormData.visitWithOther.trim()) {
-        newErrors.visitWithOther = 'Visit With (Other) is required';
+      if (!technicianFormData.visit_with_other.trim()) {
+        newErrors.visit_with_other = 'Visit With (Other) is required';
       }
     } else {
       if (!formData.assignedEmail.trim()) {
@@ -453,9 +453,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const mapFormDataToUpdateData = () => {
     if (userRole === 'technician') {
       const data: any = {
-        visit_by_user_email: technicianFormData.visitBy,
-        visit_with: technicianFormData.visitWith,
-        visit_with_other: technicianFormData.visitWithOther,
+        visit_by: technicianFormData.visit_by,
+        visit_with: technicianFormData.visit_with,
+        visit_with_other: technicianFormData.visit_with_other,
         visit_status: technicianFormData.visitStatus,
         visit_remarks: technicianFormData.visitRemarks ? technicianFormData.visitRemarks.trim() : null,
         updated_by_user_id: null
@@ -626,19 +626,19 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   Visit By<span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={technicianFormData.visitBy}
-                  onChange={(e) => handleTechnicianInputChange('visitBy', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitBy ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                  value={technicianFormData.visit_by}
+                  onChange={(e) => handleTechnicianInputChange('visit_by', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_by ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit By</option>
-                  {technicianFormData.visitBy && !technicians.some(t => t.name === technicianFormData.visitBy) && (
-                    <option value={technicianFormData.visitBy}>{technicianFormData.visitBy}</option>
+                  {technicianFormData.visit_by && !technicians.some(t => t.name === technicianFormData.visit_by) && (
+                    <option value={technicianFormData.visit_by}>{technicianFormData.visit_by}</option>
                   )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
                 </select>
-                {errors.visitBy && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitBy}</p>}
+                {errors.visit_by && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visit_by}</p>}
               </div>
 
               <div>
@@ -646,20 +646,20 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   Visit With<span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={technicianFormData.visitWith}
-                  onChange={(e) => handleTechnicianInputChange('visitWith', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                  value={technicianFormData.visit_with}
+                  onChange={(e) => handleTechnicianInputChange('visit_with', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With</option>
                   <option value="None">None</option>
-                  {technicianFormData.visitWith && !technicians.some(t => t.name === technicianFormData.visitWith) && technicianFormData.visitWith !== 'None' && (
-                    <option value={technicianFormData.visitWith}>{technicianFormData.visitWith}</option>
+                  {technicianFormData.visit_with && !technicians.some(t => t.name === technicianFormData.visit_with) && technicianFormData.visit_with !== 'None' && (
+                    <option value={technicianFormData.visit_with}>{technicianFormData.visit_with}</option>
                   )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
                 </select>
-                {errors.visitWith && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWith}</p>}
+                {errors.visit_with && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visit_with}</p>}
               </div>
 
               <div>
@@ -667,20 +667,20 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   Visit With(Other)<span className="text-red-500">*</span>
                 </label>
                 <select
-                  value={technicianFormData.visitWithOther}
-                  onChange={(e) => handleTechnicianInputChange('visitWithOther', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+                  value={technicianFormData.visit_with_other}
+                  onChange={(e) => handleTechnicianInputChange('visit_with_other', e.target.value)}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with_other ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With(Other)</option>
                   <option value="None">None</option>
-                  {technicianFormData.visitWithOther && !technicians.some(t => t.name === technicianFormData.visitWithOther) && technicianFormData.visitWithOther !== 'None' && (
-                    <option value={technicianFormData.visitWithOther}>{technicianFormData.visitWithOther}</option>
+                  {technicianFormData.visit_with_other && !technicians.some(t => t.name === technicianFormData.visit_with_other) && technicianFormData.visit_with_other !== 'None' && (
+                    <option value={technicianFormData.visit_with_other}>{technicianFormData.visit_with_other}</option>
                   )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
                 </select>
-                {errors.visitWithOther && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visitWithOther}</p>}
+                {errors.visit_with_other && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.visit_with_other}</p>}
               </div>
 
               <div>

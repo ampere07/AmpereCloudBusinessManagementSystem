@@ -7,7 +7,7 @@ import {
 interface LocationItem {
   id: number;
   name: string;
-  type: 'city' | 'region' | 'borough' | 'village';
+  type: 'city' | 'region' | 'borough' | 'location';
   parentId?: number;
   parentName?: string;
   cityId?: number;
@@ -42,7 +42,7 @@ const LocationDetailsModal: React.FC<LocationDetailsModalProps> = ({
       city: 'City',
       region: 'Region',
       borough: 'Barangay',
-      village: 'Village'
+      location: 'Location'
     };
     return labels[type] || type;
   };
@@ -120,7 +120,7 @@ const LocationDetailsModal: React.FC<LocationDetailsModalProps> = ({
                 <div className="text-gray-400 text-sm mb-1">
                   {location.type === 'city' ? 'Region' : 
                    location.type === 'borough' ? 'City' : 
-                   location.type === 'village' ? 'Barangay' : 'Parent'}
+                   location.type === 'location' ? 'Barangay' : 'Parent'}
                 </div>
                 <div className="text-white text-base">{location.parentName}</div>
               </div>
@@ -157,7 +157,7 @@ const LocationDetailsModal: React.FC<LocationDetailsModalProps> = ({
               </>
             )}
 
-            {location.type === 'village' && (
+            {location.type === 'location' && (
               <>
                 {location.boroughId && (
                   <div>
