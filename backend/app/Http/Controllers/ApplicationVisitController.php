@@ -39,7 +39,7 @@ class ApplicationVisitController extends Controller
                     'application_id' => $visit->application_id,
                     'timestamp' => $visit->timestamp,
                     'assigned_email' => $visit->assigned_email,
-                    'visit_by_user_email' => $visit->visit_by_user_email,
+                    'visit_by' => $visit->visit_by,
                     'visit_with' => $visit->visit_with,
                     'visit_status' => $visit->visit_status,
                     'visit_remarks' => $visit->visit_remarks,
@@ -98,7 +98,7 @@ class ApplicationVisitController extends Controller
                         $fail('The assigned email must be a valid email address or "Office".');
                     }
                 }],
-                'visit_by_user_email' => 'nullable|email|max:255',
+                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
                 'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'required|string|max:100',
@@ -233,7 +233,7 @@ class ApplicationVisitController extends Controller
                         $fail('The assigned email must be a valid email address or "Office".');
                     }
                 }],
-                'visit_by_user_email' => 'nullable|email|max:255',
+                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
                 'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'nullable|string|max:100',

@@ -423,7 +423,7 @@ class DatabaseService
     {
         $tables = [
             'organizations', 'roles', 'users', 'groups', 'user_roles', 'user_groups', 'activity_logs',
-            'app_applications', 'job_orders', 'modem_router_sn', 'contract_templates',
+            'job_orders', 'modem_router_sn', 'contract_templates',
             'lcp', 'nap', 'ports', 'vlans', 'lcpnap'
         ];
         $status = [];
@@ -437,25 +437,6 @@ class DatabaseService
         }
         
         return $status;
-    }
-
-    // Job Order Related Tables
-    private static function createApplicationsTable()
-    {
-        if (!Schema::hasTable('app_applications')) {
-            Schema::create('app_applications', function (Blueprint $table) {
-                $table->id();
-                $table->string('first_name')->nullable();
-                $table->string('middle_initial')->nullable();
-                $table->string('last_name')->nullable();
-                $table->string('email')->nullable();
-                $table->string('mobile')->nullable();
-                $table->string('address_line')->nullable();
-                $table->string('region_id')->nullable();
-                $table->string('source')->nullable();
-                $table->timestamps();
-            });
-        }
     }
 
     private static function createModemRouterSNTable()

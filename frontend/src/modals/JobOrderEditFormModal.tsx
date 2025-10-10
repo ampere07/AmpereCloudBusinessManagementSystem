@@ -3,6 +3,7 @@ import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin } from 'lucide-re
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
+import { userService } from '../services/userService';
 
 interface JobOrderEditFormModalProps {
   isOpen: boolean;
@@ -50,9 +51,9 @@ interface JobOrderEditFormData {
   contractTemplate: string;
   assignedEmail: string;
   itemName1: string;
-  visitBy: string;
-  visitWith: string;
-  visitWithOther: string;
+  visit_by: string;
+  visit_with: string;
+  visit_with_other: string;
   statusRemarks: string;
 }
 
@@ -124,14 +125,44 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     contractTemplate: '1',
     assignedEmail: 'Office',
     itemName1: '',
-    visitBy: '',
-    visitWith: '',
-    visitWithOther: '',
+    visit_by: '',
+    visit_with: '',
+    visit_with_other: '',
     statusRemarks: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
+
+  useEffect(() => {
+    const fetchTechnicians = async () => {
+      if (isOpen) {
+        try {
+          const response = await userService.getUsersByRole('technician');
+          if (response.success && response.data) {
+            const technicianList = response.data
+              .filter((user: any) => user.first_name || user.last_name)
+              .map((user: any) => {
+                const firstName = (user.first_name || '').trim();
+                const lastName = (user.last_name || '').trim();
+                const fullName = `${firstName} ${lastName}`.trim();
+                return {
+                  email: user.email_address || user.email || '',
+                  name: fullName || user.username || user.email_address || user.email || ''
+                };
+              })
+              .filter((tech: any) => tech.name);
+            setTechnicians(technicianList);
+          }
+        } catch (error) {
+          console.error('Error fetching technicians:', error);
+        }
+      }
+    };
+    
+    fetchTechnicians();
+  }, [isOpen]);
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
@@ -173,9 +204,9 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         contractTemplate: (jobOrderData.Contract_Template || jobOrderData.contract_template || '1').toString(),
         assignedEmail: jobOrderData.Assigned_Email || jobOrderData.assigned_email || 'Office',
         itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
-        visitBy: jobOrderData.Visit_By || jobOrderData.visit_by || '',
-        visitWith: jobOrderData.Visit_With || jobOrderData.visit_with || '',
-        visitWithOther: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
+        visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
+        visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
+        visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
         statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || ''
       }));
     }
@@ -249,15 +280,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
         if (!formData.clientSignature) newErrors.clientSignature = 'Client Signature is required';
         if (!formData.itemName1.trim()) newErrors.itemName1 = 'Item Name 1 is required';
-        if (!formData.visitBy.trim()) newErrors.visitBy = 'Visit By is required';
-        if (!formData.visitWith.trim()) newErrors.visitWith = 'Visit With is required';
-        if (!formData.visitWithOther.trim()) newErrors.visitWithOther = 'Visit With(Other) is required';
+        if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
+        if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
+        if (!formData.visit_with_other.trim()) newErrors.visit_with_other = 'Visit With(Other) is required';
       }
 
       if (formData.onsiteStatus === 'Reschedule') {
-        if (!formData.visitBy.trim()) newErrors.visitBy = 'Visit By is required';
-        if (!formData.visitWith.trim()) newErrors.visitWith = 'Visit With is required';
-        if (!formData.visitWithOther.trim()) newErrors.visitWithOther = 'Visit With(Other) is required';
+        if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
+        if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
+        if (!formData.visit_with_other.trim()) newErrors.visit_with_other = 'Visit With(Other) is required';
         if (!formData.onsiteRemarks.trim()) newErrors.onsiteRemarks = 'Onsite Remarks is required';
         if (!formData.statusRemarks.trim()) newErrors.statusRemarks = 'Status Remarks is required';
       }
@@ -340,15 +371,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           jobOrderUpdateData.VLAN = updatedFormData.vlan;
           jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
           jobOrderUpdateData.Item_Name_1 = updatedFormData.itemName1;
-          jobOrderUpdateData.Visit_By = updatedFormData.visitBy;
-          jobOrderUpdateData.Visit_With = updatedFormData.visitWith;
-          jobOrderUpdateData.Visit_With_Other = updatedFormData.visitWithOther;
+          jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
+          jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
+          jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
         }
 
         if (updatedFormData.onsiteStatus === 'Reschedule') {
-          jobOrderUpdateData.Visit_By = updatedFormData.visitBy;
-          jobOrderUpdateData.Visit_With = updatedFormData.visitWith;
-          jobOrderUpdateData.Visit_With_Other = updatedFormData.visitWithOther;
+          jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
+          jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
+          jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
           jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
           jobOrderUpdateData.Status_Remarks = updatedFormData.statusRemarks;
         }
@@ -731,15 +762,18 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit By<span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select value={formData.visitBy} onChange={(e) => handleInputChange('visitBy', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitBy ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
-                    <option value="Technician 1">Technician 1</option>
-                    <option value="Technician 2">Technician 2</option>
-                    <option value="Office">Office</option>
+                  <select value={formData.visit_by} onChange={(e) => handleInputChange('visit_by', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_by ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                    <option value="">Select Visit By</option>
+                    {formData.visit_by && !technicians.some(t => t.name === formData.visit_by) && (
+                      <option value={formData.visit_by}>{formData.visit_by}</option>
+                    )}
+                    {technicians.map((technician, index) => (
+                      <option key={index} value={technician.name}>{technician.name}</option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
-                {errors.visitBy && (
+                {errors.visit_by && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>
@@ -750,15 +784,19 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With<span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select value={formData.visitWith} onChange={(e) => handleInputChange('visitWith', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
-                    <option value="Technician 1">Technician 1</option>
-                    <option value="Technician 2">Technician 2</option>
-                    <option value="Other">Other</option>
+                  <select value={formData.visit_with} onChange={(e) => handleInputChange('visit_with', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                    <option value="">Select Visit With</option>
+                    <option value="None">None</option>
+                    {formData.visit_with && !technicians.some(t => t.name === formData.visit_with) && formData.visit_with !== 'None' && (
+                      <option value={formData.visit_with}>{formData.visit_with}</option>
+                    )}
+                    {technicians.map((technician, index) => (
+                      <option key={index} value={technician.name}>{technician.name}</option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
-                {errors.visitWith && (
+                {errors.visit_with && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>
@@ -769,15 +807,19 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Visit With(Other)<span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select value={formData.visitWithOther} onChange={(e) => handleInputChange('visitWithOther', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
-                    <option value="Support Staff">Support Staff</option>
-                    <option value="Supervisor">Supervisor</option>
-                    <option value="Manager">Manager</option>
+                  <select value={formData.visit_with_other} onChange={(e) => handleInputChange('visit_with_other', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with_other ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                    <option value="">Select Visit With(Other)</option>
+                    <option value="None">None</option>
+                    {formData.visit_with_other && !technicians.some(t => t.name === formData.visit_with_other) && formData.visit_with_other !== 'None' && (
+                      <option value={formData.visit_with_other}>{formData.visit_with_other}</option>
+                    )}
+                    {technicians.map((technician, index) => (
+                      <option key={index} value={technician.name}>{technician.name}</option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
-                {errors.visitWithOther && (
+                {errors.visit_with_other && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>

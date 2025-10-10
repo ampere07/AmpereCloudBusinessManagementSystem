@@ -7,21 +7,21 @@ import {
   getRegions, 
   getCities, 
   getBoroughs, 
-  getVillages, 
+  getLocations, 
   deleteRegion, 
   deleteCity, 
   deleteBarangay, 
-  deleteVillage,
+  deleteLocation,
   Region, 
   City, 
   Borough, 
-  Village 
+  LocationDetail 
 } from '../services/cityService';
 
 interface LocationItem {
   id: number;
   name: string;
-  type: 'city' | 'region' | 'borough' | 'village';
+  type: 'city' | 'region' | 'borough' | 'location';
   parentId?: number;
   parentName?: string;
   cityId?: number;
@@ -35,11 +35,12 @@ const LocationList: React.FC = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [typeFilter, setTypeFilter] = useState<string>('all');
   const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
   const [cities, setCities] = useState<City[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [boroughs, setBoroughs] = useState<Borough[]>([]);
-  const [villages, setVillages] = useState<Village[]>([]);
+  const [locations, setLocations] = useState<LocationDetail[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -52,22 +53,22 @@ const LocationList: React.FC = () => {
     setError(null);
     
     try {
-      const [regionsData, citiesData, boroughsData, villagesData] = await Promise.all([
+      const [regionsData, citiesData, boroughsData, locationsData] = await Promise.all([
         getRegions(),
         getCities(),
         getBoroughs(),
-        getVillages()
+        getLocations()
       ]);
       
       console.log('Fetched regions:', regionsData);
       console.log('Fetched cities:', citiesData);
       console.log('Fetched boroughs:', boroughsData);
-      console.log('Fetched villages:', villagesData);
+      console.log('Fetched locations:', locationsData);
       
       setRegions(regionsData);
       setCities(citiesData);
       setBoroughs(boroughsData);
-      setVillages(villagesData);
+      setLocations(locationsData);
     } catch (err) {
       console.error('Error fetching location data:', err);
       setError('Failed to load location data. Please try again.');
@@ -77,10 +78,10 @@ const LocationList: React.FC = () => {
   };
 
   const allLocations: LocationItem[] = useMemo(() => {
-    const locations: LocationItem[] = [];
+    const locationItems: LocationItem[] = [];
 
     cities.forEach(city => {
-      locations.push({
+      locationItems.push({
         id: city.id,
         name: city.name,
         type: 'city',
@@ -90,7 +91,7 @@ const LocationList: React.FC = () => {
     });
 
     regions.forEach(region => {
-      locations.push({
+      locationItems.push({
         id: region.id,
         name: region.name,
         type: 'region',
@@ -102,7 +103,7 @@ const LocationList: React.FC = () => {
       const city = cities.find(c => c.id === borough.city_id);
       const region = regions.find(r => r.id === city?.region_id);
       
-      locations.push({
+      locationItems.push({
         id: borough.id,
         name: borough.name,
         type: 'borough',
@@ -113,24 +114,24 @@ const LocationList: React.FC = () => {
       });
     });
 
-    villages.forEach(village => {
-      const borough = boroughs.find(b => b.id === village.borough_id);
+    locations.forEach(location => {
+      const borough = boroughs.find(b => b.id === location.barangay_id);
       const city = cities.find(c => c.id === borough?.city_id);
       
-      locations.push({
-        id: village.id,
-        name: village.name,
-        type: 'village',
-        parentId: village.borough_id,
+      locationItems.push({
+        id: location.id,
+        name: location.location_name,
+        type: 'location',
+        parentId: location.barangay_id,
         parentName: borough?.name,
-        boroughId: village.borough_id,
+        boroughId: location.barangay_id,
         cityId: borough?.city_id,
         regionId: city?.region_id
       });
     });
 
-    return locations;
-  }, [cities, regions, boroughs, villages]);
+    return locationItems;
+  }, [cities, regions, boroughs, locations]);
 
   const filteredLocations = useMemo(() => {
     return allLocations.filter(location => {
@@ -138,9 +139,11 @@ const LocationList: React.FC = () => {
                            location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            (location.parentName && location.parentName.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      return matchesSearch;
+      const matchesType = typeFilter === 'all' || location.type === typeFilter;
+      
+      return matchesSearch && matchesType;
     });
-  }, [allLocations, searchQuery]);
+  }, [allLocations, searchQuery, typeFilter]);
 
   const handleAddLocation = (locationData: any) => {
     console.log('New location added:', locationData);
@@ -171,10 +174,7 @@ const LocationList: React.FC = () => {
   const handleSaveEdit = async (updatedLocation: LocationItem) => {
     try {
       console.log('Updating location:', updatedLocation);
-      // TODO: Call update API
-      // await updateLocation(updatedLocation.type, updatedLocation.id, { name: updatedLocation.name });
       
-      // Refresh data after update
       await fetchLocationData();
       setIsEditModalOpen(false);
       setSelectedLocation(null);
@@ -195,7 +195,6 @@ const LocationList: React.FC = () => {
     try {
       console.log('Deleting location:', location);
       
-      // Call the appropriate delete function based on location type
       switch (location.type) {
         case 'region':
           await deleteRegion(location.id, false);
@@ -206,8 +205,8 @@ const LocationList: React.FC = () => {
         case 'borough':
           await deleteBarangay(location.id, false);
           break;
-        case 'village':
-          await deleteVillage(location.id, false);
+        case 'location':
+          await deleteLocation(location.id);
           break;
         default:
           throw new Error(`Unknown location type: ${location.type}`);
@@ -215,21 +214,17 @@ const LocationList: React.FC = () => {
       
       console.log('Location deleted successfully');
       
-      // Refresh data after deletion
       await fetchLocationData();
       
-      // Close all modals
       setIsDetailsModalOpen(false);
       setIsEditModalOpen(false);
       setSelectedLocation(null);
     } catch (error: any) {
       console.error('Error deleting location:', error);
       
-      // Check if this error supports cascade delete
       if (error.response?.status === 422 && error.response?.data?.data?.can_cascade) {
         const data = error.response.data.data;
         
-        // Build detailed cascade message
         let cascadeMessage = `${location.name} contains:\n\n`;
         
         if (data.type === 'region') {
@@ -240,14 +235,13 @@ const LocationList: React.FC = () => {
           cascadeMessage += `- ${data.barangay_count} ${data.barangay_count === 1 ? 'barangay' : 'barangays'}\n`;
           cascadeMessage += `\nDeleting this city will also delete all barangays.`;
         } else if (data.type === 'barangay') {
-          cascadeMessage += `- ${data.village_count} ${data.village_count === 1 ? 'village' : 'villages'}\n`;
-          cascadeMessage += `\nDeleting this barangay will also delete all villages.`;
+          cascadeMessage += `- ${data.location_count} ${data.location_count === 1 ? 'location' : 'locations'}\n`;
+          cascadeMessage += `\nDeleting this barangay will also delete all locations.`;
         }
         
         cascadeMessage += `\n\nDo you want to proceed?`;
         
         if (window.confirm(cascadeMessage)) {
-          // User confirmed cascade delete
           try {
             switch (location.type) {
               case 'region':
@@ -259,8 +253,8 @@ const LocationList: React.FC = () => {
               case 'borough':
                 await deleteBarangay(location.id, true);
                 break;
-              case 'village':
-                await deleteVillage(location.id, true);
+              case 'location':
+                await deleteLocation(location.id);
                 break;
             }
             
@@ -275,7 +269,6 @@ const LocationList: React.FC = () => {
           }
         }
       } else if (error.response?.data?.message) {
-        // Show backend error message
         alert(error.response.data.message);
       } else {
         alert('Failed to delete location. Please try again.');
@@ -292,7 +285,7 @@ const LocationList: React.FC = () => {
       city: 'City',
       region: 'Region',
       borough: 'Barangay',
-      village: 'Village'
+      location: 'Location'
     };
     return labels[type] || type;
   };
@@ -302,7 +295,7 @@ const LocationList: React.FC = () => {
       city: 'text-blue-400',
       region: 'text-green-400',
       borough: 'text-purple-400',
-      village: 'text-yellow-400'
+      location: 'text-yellow-400'
     };
     return colors[type] || 'text-gray-400';
   };
@@ -323,6 +316,17 @@ const LocationList: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
+              <select
+                value={typeFilter}
+                onChange={(e) => setTypeFilter(e.target.value)}
+                className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+              >
+                <option value="all">All Types</option>
+                <option value="region">Region</option>
+                <option value="city">City</option>
+                <option value="borough">Barangay</option>
+                <option value="location">Location</option>
+              </select>
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center space-x-1"
@@ -404,14 +408,12 @@ const LocationList: React.FC = () => {
         </div>
       </div>
 
-      {/* Add Location Modal */}
       <AddLocationModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         onSave={handleAddLocation}
       />
 
-      {/* Location Details Modal */}
       <LocationDetailsModal
         isOpen={isDetailsModalOpen}
         location={selectedLocation}
@@ -423,7 +425,6 @@ const LocationList: React.FC = () => {
         onDelete={handleDeleteFromDetails}
       />
 
-      {/* Edit Location Modal */}
       <EditLocationModal
         isOpen={isEditModalOpen}
         location={selectedLocation}

@@ -1448,3 +1448,13 @@ Route::prefix('installment-schedules')->group(function () {
 Route::prefix('radius')->group(function () {
     Route::post('/create-account', [RadiusController::class, 'createAccount']);
 });
+
+// Location Details Management Routes - Using location table
+Route::prefix('location-details')->group(function () {
+    Route::get('/', [\App\Http\Controllers\LocationDetailController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\LocationDetailController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'destroy']);
+    Route::get('/barangay/{barangayId}', [\App\Http\Controllers\LocationDetailController::class, 'getByBarangay']);
+});

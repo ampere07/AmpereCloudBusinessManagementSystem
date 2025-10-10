@@ -5,16 +5,16 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
-class Village extends Model
+class LocationDetail extends Model
 {
     use HasFactory;
 
-    protected $table = 'village';
+    protected $table = 'location';
     
     public $timestamps = false;
     
     protected $fillable = [
-        'village',
+        'location_name',
         'barangay_id'
     ];
 

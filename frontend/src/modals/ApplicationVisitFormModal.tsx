@@ -27,9 +27,9 @@ interface VisitFormData {
   choosePlan: string;
   remarks: string;
   assignedEmail: string;
-  visitBy: string;
-  visitWith: string;
-  visitWithOther: string;
+  visit_by: string;
+  visit_with: string;
+  visit_with_other: string;
   visitType: string;
   visitNotes: string;
   status: string;
@@ -95,9 +95,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       choosePlan: applicationData?.desired_plan || 'SwitchConnect - P799',
       remarks: '',
       assignedEmail: '',
-      visitBy: '',
-      visitWith: 'None',
-      visitWithOther: '',
+      visit_by: '',
+      visit_with: 'None',
+      visit_with_other: '',
       visitType: 'Initial Visit',
       visitNotes: '',
       status: 'Scheduled',
@@ -367,9 +367,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     setFormData(prev => {
       const newFormData = { ...prev, [field]: value };
       
-      // If assignedEmail is updated, also update visitBy
+      // If assignedEmail is updated, also update visit_by
       if (field === 'assignedEmail') {
-        newFormData.visitBy = value;
+        newFormData.visit_by = value;
       }
       
       // Handle cascading dropdowns
@@ -421,8 +421,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     return {
       application_id: appId,
       assigned_email: formData.assignedEmail,
-      visit_by_user_email: formData.assignedEmail,
-      visit_with: formData.visitWith !== 'Other' && formData.visitWith !== 'None' ? formData.visitWith : (formData.visitWith === 'Other' ? formData.visitWithOther : null),
+      visit_by: formData.assignedEmail,
+      visit_with: formData.visit_with !== 'Other' && formData.visit_with !== 'None' ? formData.visit_with : (formData.visit_with === 'Other' ? formData.visit_with_other : null),
       visit_status: formData.status,
       visit_remarks: formData.remarks || formData.visitNotes || null,
       application_status: 'Scheduled',
@@ -783,7 +783,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
 
             {/* Hidden fields for form completion */}
-            <input type="hidden" value={formData.visitBy || formData.assignedEmail} />
+            <input type="hidden" value={formData.visit_by || formData.assignedEmail} />
             <input type="hidden" value={formData.visitType} />
             <input type="hidden" value={formData.status} />
           </div>

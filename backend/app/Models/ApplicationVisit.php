@@ -18,7 +18,7 @@ class ApplicationVisit extends Model
         'application_id',
         'timestamp',
         'assigned_email',
-        'visit_by_user_email',
+        'visit_by',
         'visit_with',
         'visit_with_other',
         'visit_status',
@@ -49,6 +49,6 @@ class ApplicationVisit extends Model
     
     public function visitByUser()
     {
-        return $this->belongsTo(User::class, 'visit_by_user_email', 'email_address');
+        return $this->belongsTo(User::class, 'visit_by', 'email_address');
     }
 }

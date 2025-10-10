@@ -4,7 +4,7 @@ import { X } from 'lucide-react';
 interface LocationItem {
   id: number;
   name: string;
-  type: 'city' | 'region' | 'borough' | 'village';
+  type: 'city' | 'region' | 'borough' | 'location';
   parentId?: number;
   parentName?: string;
   cityId?: number;
@@ -45,11 +45,11 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
       console.log('All locations count:', allLocations.length);
       console.log('All locations:', allLocations);
       
-      // For villages, get the barangay, city, and region names from allLocations
-      if (location.type === 'village') {
-        console.log('--- Village Lookup ---');
-        console.log('Village boroughId:', location.boroughId);
-        console.log('Village parentId:', location.parentId);
+      // For locations, get the barangay, city, and region names from allLocations
+      if (location.type === 'location') {
+        console.log('--- Location Lookup ---');
+        console.log('Location boroughId:', location.boroughId);
+        console.log('Location parentId:', location.parentId);
         
         // Get Barangay name
         if (location.boroughId || location.parentId) {
@@ -129,7 +129,7 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
       city: 'City',
       region: 'Region',
       borough: 'Barangay',
-      village: 'Village'
+      location: 'Location'
     };
     return labels[type] || type;
   };
@@ -183,8 +183,8 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
               />
             </div>
 
-            {/* Barangay Field (for Villages) */}
-            {location.type === 'village' && (
+            {/* Barangay Field (for Locations) */}
+            {location.type === 'location' && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Barangay<span className="text-red-500">*</span>
@@ -198,8 +198,8 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
               </div>
             )}
 
-            {/* City Field (for Villages) */}
-            {location.type === 'village' && (
+            {/* City Field (for Locations) */}
+            {location.type === 'location' && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   City<span className="text-red-500">*</span>
@@ -213,8 +213,8 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
               </div>
             )}
 
-            {/* Region Field (for Villages) */}
-            {location.type === 'village' && (
+            {/* Region Field (for Locations) */}
+            {location.type === 'location' && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Region<span className="text-red-500">*</span>
@@ -229,7 +229,7 @@ const EditLocationModal: React.FC<EditLocationModalProps> = ({
             )}
 
             {/* Parent Field (for City and Barangay) */}
-            {location.type !== 'village' && location.type !== 'region' && location.parentName && (
+            {location.type !== 'location' && location.type !== 'region' && location.parentName && (
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   {location.type === 'city' ? 'Region' : 
