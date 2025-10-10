@@ -99,7 +99,6 @@ class ApplicationVisitController extends Controller
                     }
                 }],
                 'visit_by_user_email' => 'nullable|email|max:255',
-                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
                 'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'required|string|max:100',
@@ -235,7 +234,6 @@ class ApplicationVisitController extends Controller
                     }
                 }],
                 'visit_by_user_email' => 'nullable|email|max:255',
-                'visit_by' => 'nullable|string|max:255',
                 'visit_with' => 'nullable|string|max:255',
                 'visit_with_other' => 'nullable|string|max:255',
                 'visit_status' => 'nullable|string|max:100',

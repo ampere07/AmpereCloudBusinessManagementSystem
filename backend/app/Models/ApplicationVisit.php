@@ -19,7 +19,6 @@ class ApplicationVisit extends Model
         'timestamp',
         'assigned_email',
         'visit_by_user_email',
-        'visit_by',
         'visit_with',
         'visit_with_other',
         'visit_status',

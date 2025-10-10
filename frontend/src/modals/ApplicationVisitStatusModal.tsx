@@ -21,7 +21,7 @@ interface ApplicationVisitStatusModalProps {
     status_remarks?: string;
     visit_notes?: string;
     assigned_email?: string;
-    visit_by?: string;
+    visit_by_user_email?: string;
     visit_with?: string;
     visit_with_other?: string;
     application_status?: string;
@@ -113,7 +113,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const [technicianFormData, setTechnicianFormData] = useState<TechnicianFormData>({
     fullAddress: visitData?.address || '',
     image1: null,
-    visitBy: visitData?.visit_by || '',
+    visitBy: visitData?.visit_by_user_email || '',
     visitWith: visitData?.visit_with || '',
     visitWithOther: visitData?.visit_with_other || '',
     visitStatus: visitData?.visit_status || '',
@@ -156,7 +156,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData(prev => ({
         ...prev,
         fullAddress: visitData.address || prev.fullAddress,
-        visitBy: visitData.visit_by || prev.visitBy,
+        visitBy: visitData.visit_by_user_email || prev.visitBy,
         visitWith: visitData.visit_with || prev.visitWith,
         visitWithOther: visitData.visit_with_other || prev.visitWithOther,
         visitStatus: visitData.visit_status || prev.visitStatus,
@@ -379,7 +379,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData({
         fullAddress: visitData.address || '',
         image1: null,
-        visitBy: visitData.visit_by || '',
+        visitBy: visitData.visit_by_user_email || '',
         visitWith: visitData.visit_with || '',
         visitWithOther: visitData.visit_with_other || '',
         visitStatus: visitData.visit_status || '',
@@ -453,7 +453,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const mapFormDataToUpdateData = () => {
     if (userRole === 'technician') {
       const data: any = {
-        visit_by: technicianFormData.visitBy,
+        visit_by_user_email: technicianFormData.visitBy,
         visit_with: technicianFormData.visitWith,
         visit_with_other: technicianFormData.visitWithOther,
         visit_status: technicianFormData.visitStatus,
@@ -651,7 +651,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWith ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With</option>
-                  {technicianFormData.visitWith && !technicians.some(t => t.name === technicianFormData.visitWith) && (
+                  <option value="None">None</option>
+                  {technicianFormData.visitWith && !technicians.some(t => t.name === technicianFormData.visitWith) && technicianFormData.visitWith !== 'None' && (
                     <option value={technicianFormData.visitWith}>{technicianFormData.visitWith}</option>
                   )}
                   {technicians.map((technician, index) => (
@@ -671,7 +672,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visitWithOther ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With(Other)</option>
-                  {technicianFormData.visitWithOther && !technicians.some(t => t.name === technicianFormData.visitWithOther) && (
+                  <option value="None">None</option>
+                  {technicianFormData.visitWithOther && !technicians.some(t => t.name === technicianFormData.visitWithOther) && technicianFormData.visitWithOther !== 'None' && (
                     <option value={technicianFormData.visitWithOther}>{technicianFormData.visitWithOther}</option>
                   )}
                   {technicians.map((technician, index) => (

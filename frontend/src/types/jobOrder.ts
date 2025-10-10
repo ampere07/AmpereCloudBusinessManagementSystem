@@ -42,6 +42,10 @@ export interface JobOrder {
   Connection_Type?: string | null;
   Usage_Type?: string | null;
   Username?: string | null;
+  pppoe_username?: string | null;
+  pppoe_password?: string | null;
+  PPPoE_Username?: string | null;
+  PPPoE_Password?: string | null;
   
   // Contract and Billing
   Contract_Template?: string | null;

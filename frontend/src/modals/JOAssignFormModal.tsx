@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown, Minus, Plus } from 'lucide-react';
 import { createJobOrder, JobOrderData } from '../services/jobOrderService';
 import { getContractTemplates, ContractTemplate } from '../services/lookupService';
+import { getAllGroups, Group } from '../services/groupService';
 import apiClient from '../config/api';
 import { UserData } from '../types/api';
 import { userService } from '../services/userService';
@@ -16,7 +17,7 @@ interface JOAssignFormModalProps {
 // Form interface for UI handling
 interface JOFormData {
   timestamp: string;
-  provider: string;
+  groupName: string;
   status: string;
   referredBy: string;
   firstName: string;
@@ -65,7 +66,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   const [formData, setFormData] = useState<JOFormData>({
     timestamp: new Date().toLocaleString('sv-SE').replace(' ', ' '),
-    provider: '',
+    groupName: '',
     status: '',
     referredBy: '',
     firstName: '',
@@ -138,6 +139,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   // Plans state
   const [plans, setPlans] = useState<Plan[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
 
   // Fetch technicians from database
   useEffect(() => {
@@ -170,6 +172,30 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     };
     
     fetchTechnicians();
+  }, [isOpen]);
+
+  // Fetch groups from database
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading groups from database...');
+          const response = await getAllGroups();
+          if (response.success && Array.isArray(response.data)) {
+            setGroups(response.data);
+            console.log('Loaded groups:', response.data.length);
+          } else {
+            console.warn('No groups data found');
+            setGroups([]);
+          }
+        } catch (error) {
+          console.error('Error fetching groups:', error);
+          setGroups([]);
+        }
+      }
+    };
+    
+    fetchGroups();
   }, [isOpen]);
 
   // Load contract templates on component mount
@@ -541,6 +567,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       onsite_remarks: toNullIfEmpty(data.remarks),
       contract_link: null,
       username: null,
+      group_name: toNullIfEmpty(data.groupName),
       created_by_user_email: data.modifiedBy,
       updated_by_user_email: data.modifiedBy,
     };
@@ -683,17 +710,23 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Provider<span className="text-red-500">*</span>
+                Group<span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
-                  value={formData.provider}
-                  onChange={(e) => handleInputChange('provider', e.target.value)}
+                  value={formData.groupName}
+                  onChange={(e) => handleInputChange('groupName', e.target.value)}
                   className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
                 >
-                  <option value=""></option>
-                  <option value="Provider 1">Provider 1</option>
-                  <option value="Provider 2">Provider 2</option>
+                  <option value="">Select Group</option>
+                  {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
+                    <option value={formData.groupName}>{formData.groupName}</option>
+                  )}
+                  {groups.map((group) => (
+                    <option key={group.id} value={group.group_name}>
+                      {group.group_name}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
