@@ -41,6 +41,7 @@ import Invoice from './Invoice';
 import InventoryCategoryList from './InventoryCategoryList';
 import SOAGeneration from './SOAGeneration';
 import UsageTypeList from './UsageTypeList';
+import Ports from './Ports';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -148,6 +149,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <LcpNapList />;
       case 'usage-type':
         return <UsageTypeList />;
+      case 'ports':
+        return <Ports />;
       case 'inventory':
         return <Inventory />;
       case 'inventory-category-list':

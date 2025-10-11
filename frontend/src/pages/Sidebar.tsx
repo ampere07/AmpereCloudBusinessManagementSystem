@@ -71,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'nap', label: 'NAP', icon: Network, allowedRoles: ['administrator', 'technician'] },
         { id: 'lcp-nap-list', label: 'LCP NAP List', icon: MapPin, allowedRoles: ['administrator', 'technician'] },
         { id: 'usage-type', label: 'Usage Type', icon: Activity, allowedRoles: ['administrator'] },
+        { id: 'ports', label: 'Ports', icon: Network, allowedRoles: ['administrator'] },
         { id: 'inventory', label: 'Inventory', icon: Package, allowedRoles: ['administrator'] },
         { id: 'inventory-category-list', label: 'Inventory Category List', icon: List, allowedRoles: ['administrator'] },
         { id: 'logs', label: 'Logs', icon: FileText, allowedRoles: ['administrator'] },

@@ -1117,8 +1117,18 @@ Route::prefix('nap')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'destroy']);
 });
 
-// Port Management Routes - Using port table
+// Port Management Routes - Using port table (both singular and plural for compatibility)
 Route::prefix('port')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\PortApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\PortApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\PortApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'destroy']);
+});
+
+// Ports (plural) for frontend compatibility
+Route::prefix('ports')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\PortApiController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Api\PortApiController::class, 'store']);
     Route::get('/statistics', [\App\Http\Controllers\Api\PortApiController::class, 'getStatistics']);
