@@ -36,7 +36,7 @@ interface InventoryFormData {
   totalStockIn: number;
 }
 
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://backend.atssfiber.ph/api';
 
 const Inventory: React.FC = () => {
   const [selectedCategory, setSelectedCategory] = useState<string>('');
