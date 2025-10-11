@@ -58,7 +58,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     { id: 'sms-blast-logs', label: 'SMS Blast Logs', icon: List, allowedRoles: ['administrator'] },
     { id: 'disconnected-logs', label: 'Disconnected Logs', icon: AlertTriangle, allowedRoles: ['administrator'] },
     { id: 'reconnection-logs', label: 'Reconnection Logs', icon: FileBarChart, allowedRoles: ['administrator'] },
-    { id: 'inventory-category-list', label: 'Inventory Category List', icon: List, allowedRoles: ['administrator'] },
     {
       id: 'configuration',
       label: 'Configuration',
@@ -73,6 +72,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'lcp-nap-list', label: 'LCP NAP List', icon: MapPin, allowedRoles: ['administrator', 'technician'] },
         { id: 'usage-type', label: 'Usage Type', icon: Activity, allowedRoles: ['administrator'] },
         { id: 'inventory', label: 'Inventory', icon: Package, allowedRoles: ['administrator'] },
+        { id: 'inventory-category-list', label: 'Inventory Category List', icon: List, allowedRoles: ['administrator'] },
         { id: 'logs', label: 'Logs', icon: FileText, allowedRoles: ['administrator'] },
         { id: 'soa-generation', label: 'SOA Generation', icon: FileBarChart, allowedRoles: ['administrator'] },
         { id: 'invoice-generation', label: 'Invoice Generation', icon: Receipt, allowedRoles: ['administrator'] }
