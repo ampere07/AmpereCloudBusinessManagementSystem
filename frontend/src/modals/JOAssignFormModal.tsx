@@ -146,7 +146,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const fetchTechnicians = async () => {
       if (isOpen) {
         try {
-          console.log('Loading technicians from database...');
           const response = await userService.getUsersByRole('technician');
           if (response.success && response.data) {
             const technicianList = response.data
@@ -162,7 +161,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               })
               .filter((tech: any) => tech.name && tech.email);
             setTechnicians(technicianList);
-            console.log('Loaded technicians:', technicianList.length);
           }
         } catch (error) {
           console.error('Error fetching technicians:', error);
@@ -179,7 +177,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const fetchGroups = async () => {
       if (isOpen) {
         try {
-          console.log('Loading groups from database...');
           const response = await getAllGroups();
           if (response.success && Array.isArray(response.data)) {
             setGroups(response.data);
@@ -384,10 +381,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     console.log('JO Form Modal - Full applicationData:', JSON.stringify(applicationData, null, 2));
     
     if (applicationData && isOpen) {
-      console.log('JO Form - Application Data exists and modal is open');
-      console.log('JO Form - Referred By value:', applicationData.referred_by);
-      console.log('JO Form - First Name:', applicationData.first_name);
-      console.log('JO Form - Last Name:', applicationData.last_name);
       
       setFormData(prev => {
         const newFormData = {

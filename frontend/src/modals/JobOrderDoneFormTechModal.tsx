@@ -245,13 +245,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchUsageTypes = async () => {
       if (isOpen) {
         try {
-          console.log('Loading usage types from database...');
           const response = await getAllUsageTypes();
-          console.log('Usage Type API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setUsageTypes(response.data);
-            console.log('Loaded Usage Types:', response.data.length);
           } else {
             console.warn('Unexpected Usage Type response structure:', response);
             setUsageTypes([]);
@@ -326,9 +323,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (jobOrderData && isOpen) {
-      console.log('JobOrderDoneFormTechModal - Received jobOrderData:', jobOrderData);
-      
+    if (jobOrderData && isOpen) {      
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
       setFormData(prev => ({
@@ -508,16 +503,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         jobOrderUpdateData.Status_Remarks = updatedFormData.statusRemarks;
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
 
-      console.log('Job order updated successfully:', jobOrderResponse);
 
       alert('Job Order updated successfully!');
       setErrors({});

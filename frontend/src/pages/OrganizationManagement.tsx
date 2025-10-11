@@ -22,12 +22,9 @@ const OrganizationManagement: React.FC = () => {
   const loadOrganizations = async () => {
     setLoading(true);
     try {
-      console.log('Loading organizations...');
       const response = await organizationService.getAllOrganizations();
-      console.log('Organizations API response:', response);
       
       if (response.success && response.data) {
-        console.log('Organizations data:', response.data);
         setOrganizations(response.data);
       } else {
         console.error('API returned success=false or no data:', response);
@@ -86,7 +83,6 @@ const OrganizationManagement: React.FC = () => {
       return;
     }
     
-    console.log('Organization created successfully:', newOrg);
     setOrganizations(prev => [...prev, newOrg]);
     setShowAddForm(false);
   };

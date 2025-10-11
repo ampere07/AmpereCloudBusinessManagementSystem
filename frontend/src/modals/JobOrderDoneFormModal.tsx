@@ -178,16 +178,12 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     const fetchLcps = async () => {
       if (isOpen) {
         try {
-          console.log('Loading LCPs from database...');
           const response = await apiClient.get<LCPResponse>('/lcp');
-          console.log('LCP API Response:', response.data);
           
           if (response.data?.success && Array.isArray(response.data.data)) {
             setLcps(response.data.data);
-            console.log('Loaded LCPs:', response.data.data.length);
           } else if (Array.isArray(response.data)) {
             setLcps(response.data as LCPData[]);
-            console.log('Loaded LCPs:', response.data.length);
           } else {
             console.warn('Unexpected LCP response structure:', response.data);
             setLcps([]);
@@ -450,9 +446,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   }, [isOpen, currentUserEmail]);
 
   useEffect(() => {
-    if (jobOrderData && isOpen) {
-      console.log('JobOrderDoneFormModal - Received jobOrderData:', jobOrderData);
-      
+    if (jobOrderData && isOpen) {      
       const loadedStatus = jobOrderData.Status || jobOrderData.status || 'Confirmed';
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
@@ -681,16 +675,11 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         }
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
-
-      console.log('Job order updated successfully:', jobOrderResponse);
 
       if (applicationId) {
         const applicationUpdateData: any = {
@@ -709,11 +698,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           status: updatedFormData.status
         };
 
-        console.log('Updating application with ID:', applicationId);
-        console.log('Application update data:', applicationUpdateData);
-
         const applicationResponse = await updateApplication(applicationId, applicationUpdateData);
-        console.log('Application updated successfully:', applicationResponse);
       } else {
         console.warn('No Application_ID found, skipping application table update');
       }

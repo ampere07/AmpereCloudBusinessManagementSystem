@@ -1,7 +1,6 @@
 import apiClient from '../config/api';
 import { Location } from '../types/location';
 
-// Response interface
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -51,8 +50,6 @@ export interface City {
 export const getCities = async (): Promise<City[]> => {
   try {
     const response = await apiClient.get('/cities');
-    console.log('Raw cities response:', response);
-    console.log('Cities response.data:', response.data);
     
     const data = response.data as any;
     
@@ -79,7 +76,6 @@ export const getCities = async (): Promise<City[]> => {
   }
 };
 
-// Get locations by type from the location management system
 export const getLocationsByType = async (type: 'region' | 'city' | 'borough' | 'village'): Promise<Location[]> => {
   try {
     const response = await apiClient.get<{

@@ -79,26 +79,16 @@ const JobOrderPage: React.FC = () => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch cities data
-        console.log('Fetching cities...');
         const citiesData = await getCities();
-        console.log(`Found ${citiesData.length} cities`);
         if (citiesData.length === 0) {
           console.warn('No cities returned from API. This may affect location filtering.');
         } else {
           console.log('Cities data sample:', citiesData[0]);
         }
         setCities(citiesData);
-        
-        // Fetch billing statuses
-        console.log('Fetching billing statuses...');
         const billingStatusesData = await getBillingStatuses();
-        console.log(`Found ${billingStatusesData.length} billing statuses`);
         setBillingStatuses(billingStatusesData);
         
-        // Fetch job orders data from job_orders table with email filter for technicians
-        console.log('Fetching job orders from job_orders table...');
         const authData = localStorage.getItem('authData');
         let assignedEmail: string | undefined;
         
@@ -107,7 +97,6 @@ const JobOrderPage: React.FC = () => {
             const userData = JSON.parse(authData);
             if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
               assignedEmail = userData.email;
-              console.log('Filtering job orders for technician:', assignedEmail);
             }
           } catch (error) {
             console.error('Error parsing auth data:', error);
@@ -115,35 +104,25 @@ const JobOrderPage: React.FC = () => {
         }
         
         const response = await getJobOrders(assignedEmail);
-        console.log('Job Orders API Response:', response);
-        console.log('Job Orders API Response - First Item:', response.data?.[0]);
-        console.log('Job Orders API - Secondary_Mobile_Number in first item:', response.data?.[0]?.Secondary_Mobile_Number);
         
         if (response.success && Array.isArray(response.data)) {
           console.log(`Found ${response.data.length} job orders`);
-          
-          // If we have data, log the first item to help with debugging
           if (response.data.length > 0) {
             console.log('First item example:', response.data[0]);
             console.log('City field example:', response.data[0].City);
           }
           
-          // Ensure each record has a proper ID and process any field mappings needed
           const processedOrders: JobOrder[] = response.data.map((order, index) => {
-            // Create a unique ID if none exists
             const id = order.id || order.JobOrder_ID || String(index);
             
-            // Make sure all expected fields are present with proper types
             return {
               ...order,
               id: id,
-              // Ensure these fields exist even if null
               Onsite_Status: order.Onsite_Status || null,
               Billing_Status: order.Billing_Status || null,
               Status_Remarks: order.Status_Remarks || null,
               Installation_Fee: order.Installation_Fee !== undefined ? 
                 Number(order.Installation_Fee) : null,
-              // Add any other critical fields that should always be available
               Assigned_Email: order.Assigned_Email || null,
               Contract_Template: order.Contract_Template || null,
               Billing_Day: order.Billing_Day || null,
@@ -153,9 +132,7 @@ const JobOrderPage: React.FC = () => {
           });
           
           setJobOrders(processedOrders);
-          console.log('Job orders data processed successfully');
         } else {
-          // If no job orders are returned, set an empty array
           console.warn('No job orders returned from API or invalid response format', response);
           setJobOrders([]);
         }
@@ -170,7 +147,6 @@ const JobOrderPage: React.FC = () => {
     fetchData();
   }, []);
   
-  // Get client full name
   const getClientFullName = (jobOrder: JobOrder): string => {
     return [
       jobOrder.First_Name || '',
@@ -179,7 +155,6 @@ const JobOrderPage: React.FC = () => {
     ].filter(Boolean).join(' ').trim() || 'Unknown Client';
   };
 
-  // Get client full address
   const getClientFullAddress = (jobOrder: JobOrder): string => {
     const addressParts = [
       jobOrder.Address,
@@ -192,7 +167,6 @@ const JobOrderPage: React.FC = () => {
     return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
   };
 
-  // Generate location items from cities data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
@@ -201,18 +175,13 @@ const JobOrderPage: React.FC = () => {
     }
   ];
 
-  // Add cities from database
   cities.forEach(city => {
-    // Count job orders in this city
     const cityCount = jobOrders.filter(job => {
-      // Try to match by city name (case insensitive)
-      // Using includes instead of exact match for more flexible matching
       const jobCity = (job.City || '').toLowerCase();
       const cityName = city.name.toLowerCase();
       return jobCity.includes(cityName) || cityName.includes(jobCity);
     }).length;
     
-    // Add all cities from the database, even if they don't have job orders yet
     locationItems.push({
       id: city.name.toLowerCase(),
       name: city.name,
@@ -220,16 +189,13 @@ const JobOrderPage: React.FC = () => {
     });
   });
   
-  // Filter job orders based on location and search query
   const filteredJobOrders = jobOrders.filter(jobOrder => {
     const jobLocation = (jobOrder.City || '').toLowerCase();
     
-    // Match location
     const matchesLocation = selectedLocation === 'all' || 
                           jobLocation.includes(selectedLocation) || 
                           selectedLocation.includes(jobLocation);
     
-    // Match search query
     const fullName = getClientFullName(jobOrder).toLowerCase();
     const matchesSearch = searchQuery === '' || 
                          fullName.includes(searchQuery.toLowerCase()) ||
@@ -239,8 +205,6 @@ const JobOrderPage: React.FC = () => {
     return matchesLocation && matchesSearch;
   });
 
-  // Get column headers for display (always show these even when no data)
-  // These should match exactly with the job_orders table columns shown in the images
   const tableColumns = [
     { id: 'timestamp', label: 'Timestamp', width: 'whitespace-nowrap' },
     { id: 'fullName', label: 'Full Name of Client', width: 'whitespace-nowrap' },
@@ -256,7 +220,6 @@ const JobOrderPage: React.FC = () => {
     { id: 'modifiedDate', label: 'Modified Date', width: 'whitespace-nowrap' }
   ];
   
-  // Status text color component
   const StatusText = ({ status, type }: { status?: string | null, type: 'onsite' | 'billing' }) => {
     if (!status) return <span className="text-gray-400">Unknown</span>;
     

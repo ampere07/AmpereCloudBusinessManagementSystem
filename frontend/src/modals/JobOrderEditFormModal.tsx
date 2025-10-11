@@ -166,7 +166,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
-      console.log('JobOrderEditFormModal - Received jobOrderData:', jobOrderData);
       
       const loadedStatus = jobOrderData.Status || jobOrderData.status || 'Confirmed';
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
@@ -385,16 +384,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
-
-      console.log('Job order updated successfully:', jobOrderResponse);
 
       if (applicationId) {
         const applicationUpdateData: any = {
@@ -413,11 +407,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           status: updatedFormData.status
         };
 
-        console.log('Updating application with ID:', applicationId);
-        console.log('Application update data:', applicationUpdateData);
-
         const applicationResponse = await updateApplication(applicationId, applicationUpdateData);
-        console.log('Application updated successfully:', applicationResponse);
       } else {
         console.warn('No Application_ID found, skipping application table update');
       }

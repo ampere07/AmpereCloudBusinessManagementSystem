@@ -60,11 +60,6 @@ const LocationList: React.FC = () => {
         getLocations()
       ]);
       
-      console.log('Fetched regions:', regionsData);
-      console.log('Fetched cities:', citiesData);
-      console.log('Fetched boroughs:', boroughsData);
-      console.log('Fetched locations:', locationsData);
-      
       setRegions(regionsData);
       setCities(citiesData);
       setBoroughs(boroughsData);
@@ -146,7 +141,6 @@ const LocationList: React.FC = () => {
   }, [allLocations, searchQuery, typeFilter]);
 
   const handleAddLocation = (locationData: any) => {
-    console.log('New location added:', locationData);
     fetchLocationData();
   };
 
@@ -173,7 +167,6 @@ const LocationList: React.FC = () => {
 
   const handleSaveEdit = async (updatedLocation: LocationItem) => {
     try {
-      console.log('Updating location:', updatedLocation);
       
       await fetchLocationData();
       setIsEditModalOpen(false);
@@ -192,9 +185,7 @@ const LocationList: React.FC = () => {
       return;
     }
 
-    try {
-      console.log('Deleting location:', location);
-      
+    try {      
       switch (location.type) {
         case 'region':
           await deleteRegion(location.id, false);
@@ -211,9 +202,7 @@ const LocationList: React.FC = () => {
         default:
           throw new Error(`Unknown location type: ${location.type}`);
       }
-      
-      console.log('Location deleted successfully');
-      
+            
       await fetchLocationData();
       
       setIsDetailsModalOpen(false);
@@ -258,7 +247,6 @@ const LocationList: React.FC = () => {
                 break;
             }
             
-            console.log('Location deleted successfully with cascade');
             await fetchLocationData();
             setIsDetailsModalOpen(false);
             setIsEditModalOpen(false);

@@ -18,8 +18,6 @@ export interface InventoryCategory {
 export const getInventoryCategories = async (): Promise<InventoryCategory[]> => {
   try {
     const response = await apiClient.get('/inventory-categories');
-    console.log('Raw inventory categories response:', response);
-    console.log('Inventory categories response.data:', response.data);
     
     const data = response.data as any;
     
@@ -30,7 +28,6 @@ export const getInventoryCategories = async (): Promise<InventoryCategory[]> => 
     
     if (data.success && Array.isArray(data.data)) {
       const categories = data.data;
-      console.log(`Successfully retrieved ${categories.length} inventory categories from wrapped response`);
       return categories;
     }
     

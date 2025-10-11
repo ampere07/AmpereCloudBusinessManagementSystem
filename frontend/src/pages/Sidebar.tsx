@@ -79,31 +79,21 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
     }
   ];
 
-  // Filter menu items based on user role
   const filterMenuByRole = (items: MenuItem[]): MenuItem[] => {
-    // Debug logging
-    console.log('Current user role:', userRole);
-    
+
     return items.filter(item => {
-      // If no allowedRoles specified, show to everyone
       if (!item.allowedRoles || item.allowedRoles.length === 0) {
         return true;
       }
       
-      // Normalize the user role to lowercase and trim whitespace
       const normalizedUserRole = userRole ? userRole.toLowerCase().trim() : '';
       
-      // Check if user's role is in the allowed roles (case-insensitive)
       const hasAccess = item.allowedRoles.some(role => 
         role.toLowerCase().trim() === normalizedUserRole
       );
       
-      console.log(`Item: ${item.id}, Allowed Roles:`, item.allowedRoles, 'Has Access:', hasAccess);
-      
-      // If item has children, filter them too
       if (hasAccess && item.children) {
         item.children = filterMenuByRole(item.children);
-        // If after filtering children, there are no children left, hide the parent
         if (item.children.length === 0) {
           return false;
         }

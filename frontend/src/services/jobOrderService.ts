@@ -1,10 +1,8 @@
 import apiClient from '../config/api';
 import { JobOrderData } from '../types/jobOrder';
 
-// Export JobOrderData for backwards compatibility
 export type { JobOrderData } from '../types/jobOrder';
 
-// Response interface
 interface ApiResponse<T> {
   success: boolean;
   data: T;
@@ -26,20 +24,13 @@ export const createJobOrder = async (jobOrderData: JobOrderData) => {
 
 export const getJobOrders = async (assignedEmail?: string) => {
   try {
-    console.log('Fetching job orders from database...');
     const params = assignedEmail ? { assigned_email: assignedEmail } : {};
     const response = await apiClient.get<ApiResponse<JobOrderData[]>>('/job-orders', { params });
-    console.log('Raw API response:', response);
     
-    // Process the data to ensure it matches our expected format
     if (response.data && response.data.success && Array.isArray(response.data.data)) {
-      // Map any database field names that might be different from our interface
       const processedData = response.data.data.map(item => {
         return {
           ...item,
-          // Add any field mappings here if the database column names differ from our interface
-          // For example, if the database returns job_order_id but our interface expects JobOrder_ID:
-          // JobOrder_ID: item.job_order_id,
           id: item.id || item.JobOrder_ID
         };
       });

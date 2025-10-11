@@ -71,9 +71,7 @@ const ApplicationVisit: React.FC = () => {
     const fetchApplicationVisits = async () => {
       try {
         setLoading(true);
-        console.log('Fetching application visits...');
         
-        // Check if user is a technician and filter by their email
         const authData = localStorage.getItem('authData');
         let assignedEmail: string | undefined;
         
@@ -82,14 +80,12 @@ const ApplicationVisit: React.FC = () => {
             const userData = JSON.parse(authData);
             if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
               assignedEmail = userData.email;
-              console.log('Filtering application visits for technician:', assignedEmail);
             }
           } catch (error) {
             console.error('Error parsing auth data:', error);
           }
         }
         
-        // Get all application visit data from the 'application_visits' table with optional email filter
         const response = await getAllApplicationVisits(assignedEmail);
         console.log('API Response:', response);
         
@@ -100,12 +96,10 @@ const ApplicationVisit: React.FC = () => {
         if (response.success && Array.isArray(response.data)) {
           console.log(`Found ${response.data.length} application visits`);
           
-          // If we have data, log the first item to help with debugging
           if (response.data.length > 0) {
             console.log('First item example:', response.data[0]);
           }
           
-          // Map the API response to our interface
           const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
             id: visit.id || '',
             application_id: visit.application_id || '',
@@ -132,10 +126,8 @@ const ApplicationVisit: React.FC = () => {
           setError(null);
           console.log('Application visits data processed successfully', visits);
         } else {
-          // If no visits are returned, set an empty array
           console.warn('No application visits returned from API or invalid response format', response);
           setApplicationVisits([]);
-          // Only set error if there's a message
           if (response.message) {
             setError(response.message);
           }
@@ -152,7 +144,6 @@ const ApplicationVisit: React.FC = () => {
     fetchApplicationVisits();
   }, []);
 
-  // Generate location items with counts based on real data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
@@ -200,13 +191,10 @@ const ApplicationVisit: React.FC = () => {
 
   const handleRowClick = async (visit: ApplicationVisit) => {
     try {
-      // When selecting a visit, fetch the associated application data if needed
       if (!visit.application_status) {
         try {
-          // Fetch application data to get the application status
           const applicationData = await getApplication(visit.application_id);
           
-          // Update the visit with application data
           const updatedVisit = {
             ...visit,
             application_status: applicationData.status || 'Pending'
@@ -215,7 +203,6 @@ const ApplicationVisit: React.FC = () => {
           setSelectedVisit(updatedVisit);
         } catch (err: any) {
           console.error('Error fetching application data:', err);
-          // Still set the selected visit even if we can't get the application data
           setSelectedVisit(visit);
         }
       } else {
@@ -227,7 +214,6 @@ const ApplicationVisit: React.FC = () => {
     }
   };
 
-  // Status text color component
   const StatusText = ({ status, type }: { status: string, type: 'visit' | 'application' }) => {
     let textColor = '';
     

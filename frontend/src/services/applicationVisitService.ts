@@ -42,7 +42,6 @@ export const createApplicationVisit = async (visitData: ApplicationVisitData) =>
     }
     
     const response = await apiClient.post<ApiResponse<ApplicationVisitData>>('/application-visits', visitData);
-    console.log('Visit created successfully:', response.data);
     
     if (!response.data.success) {
       throw new Error(response.data.message || 'Unknown API error');

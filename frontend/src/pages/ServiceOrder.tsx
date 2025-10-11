@@ -101,19 +101,12 @@ const ServiceOrder: React.FC = () => {
     }
   }, []);
 
-  // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        
-        // Fetch cities data
-        console.log('Fetching cities...');
         const citiesData = await getCities();
         setCities(citiesData || []);
-        
-        // Fetch service orders data with email filter for technicians
-        console.log('Fetching service orders from service_orders table...');
         const authData = localStorage.getItem('authData');
         let assignedEmail: string | undefined;
         
@@ -122,7 +115,6 @@ const ServiceOrder: React.FC = () => {
             const userData = JSON.parse(authData);
             if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
               assignedEmail = userData.email;
-              console.log('Filtering service orders for technician:', assignedEmail);
             }
           } catch (error) {
             console.error('Error parsing auth data:', error);
@@ -133,9 +125,7 @@ const ServiceOrder: React.FC = () => {
         console.log('Service Orders API Response:', response);
         
         if (response.success && Array.isArray(response.data)) {
-          console.log(`Found ${response.data.length} service orders`);
           
-          // Map the API response to our interface
           const processedOrders: ServiceOrder[] = response.data.map((order: ServiceOrderData) => ({
             id: order.ID || '',
             ticketId: order.Ticket_ID || '',
@@ -176,20 +166,15 @@ const ServiceOrder: React.FC = () => {
           }));
           
           setServiceOrders(processedOrders);
-          console.log('Service orders data processed successfully');
         } else {
-          // If no service orders are returned, set an empty array
           console.warn('No service orders returned from API or invalid response format', response);
           setServiceOrders([]);
           
-          // Log table information for debugging
           if (response.table) {
             console.info(`Table name specified in response: ${response.table}`);
           }
           
-          // Only set error if there's a message
           if (response.message) {
-            // If error is a database error, format it better
             if (response.message.includes('SQLSTATE') || response.message.includes('table')) {
               const formattedMessage = `Database error: ${response.message}\nPossible issue: Service orders might be using 'service_orders' table instead of 'service_orders'`;
               setError(formattedMessage);
@@ -211,7 +196,6 @@ const ServiceOrder: React.FC = () => {
     fetchData();
   }, []);
   
-  // Generate location items from cities and service orders data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
@@ -220,15 +204,12 @@ const ServiceOrder: React.FC = () => {
     }
   ];
   
-  // Add cities from database, or use existing data if cities not loaded
   if (cities.length > 0) {
     cities.forEach(city => {
-      // Count service orders in this city
       const cityCount = serviceOrders.filter(so => 
         so.fullAddress.toLowerCase().includes(city.name.toLowerCase())
       ).length;
       
-      // Add city to location items
       locationItems.push({
         id: city.name.toLowerCase(),
         name: city.name,
@@ -236,11 +217,9 @@ const ServiceOrder: React.FC = () => {
       });
     });
   } else {
-    // Extract locations from service orders if cities not available
     const locationSet = new Set<string>();
     
     serviceOrders.forEach(so => {
-      // Extract city from address if possible
       const addressParts = so.fullAddress.split(',');
       if (addressParts.length >= 2) {
         const cityPart = addressParts[addressParts.length - 2].trim().toLowerCase();
@@ -250,7 +229,6 @@ const ServiceOrder: React.FC = () => {
       }
     });
     
-    // Add unique locations to the list
     Array.from(locationSet).forEach(location => {
       const cityCount = serviceOrders.filter(so => 
         so.fullAddress.toLowerCase().includes(location)
@@ -258,13 +236,12 @@ const ServiceOrder: React.FC = () => {
       
       locationItems.push({
         id: location,
-        name: location.charAt(0).toUpperCase() + location.slice(1), // Capitalize
+        name: location.charAt(0).toUpperCase() + location.slice(1),
         count: cityCount
       });
     });
   }
   
-  // Filter service orders based on location and search query
   const filteredServiceOrders = serviceOrders.filter(serviceOrder => {
     const matchesLocation = selectedLocation === 'all' || 
                            serviceOrder.fullAddress.toLowerCase().includes(selectedLocation.toLowerCase());
@@ -277,7 +254,6 @@ const ServiceOrder: React.FC = () => {
     return matchesLocation && matchesSearch;
   });
   
-  // Status text color component
   const StatusText = ({ status, type }: { status?: string, type: 'support' | 'visit' }) => {
     if (!status) return <span className="text-gray-400">Unknown</span>;
     

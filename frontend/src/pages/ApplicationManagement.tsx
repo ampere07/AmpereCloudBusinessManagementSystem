@@ -50,7 +50,6 @@ const ApplicationManagement: React.FC = () => {
   const [locationDataLoaded, setLocationDataLoaded] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch cities and regions data
   useEffect(() => {
     const fetchLocationData = async () => {
       try {
@@ -72,18 +71,15 @@ const ApplicationManagement: React.FC = () => {
     fetchLocationData();
   }, []);
 
-  // Fetch applications data - only after location data is loaded
   useEffect(() => {
     if (!locationDataLoaded) return;
     fetchApplications();
   }, [locationDataLoaded]);
 
-  // Function to fetch applications (extracted for reuse) from 'applications' table
   const fetchApplications = async () => {
     try {
       setIsLoading(true);
       const apiApplications = await getApplications();
-      console.log('Fetched applications:', apiApplications);
       
       if (apiApplications && apiApplications.length > 0) {
         const transformedApplications: Application[] = apiApplications.map(app => {
@@ -137,18 +133,14 @@ const ApplicationManagement: React.FC = () => {
     }
   };
 
-  // Handle application refresh when status is updated
   const handleApplicationUpdate = () => {
     fetchApplications();
   };
   
-  // Listen for location updates to refresh city data
   useEffect(() => {
     const handleLocationUpdate = async () => {
       try {
-        console.log('Location updated, refreshing cities...');
         const citiesData = await getCities();
-        console.log('Updated cities:', citiesData);
         setCities(citiesData || []);
       } catch (err) {
         console.error('Failed to refresh cities after location update:', err);
@@ -162,7 +154,6 @@ const ApplicationManagement: React.FC = () => {
     };
   }, []);
   
-  // Generate location items with counts from string-based city data
   const locationItems: LocationItem[] = useMemo(() => {
     const items: LocationItem[] = [
       {
@@ -172,14 +163,12 @@ const ApplicationManagement: React.FC = () => {
       }
     ];
     
-    // Group by city string values
     const cityGroups: Record<string, number> = {};
     applications.forEach(app => {
       const cityKey = app.city || 'Unknown';
       cityGroups[cityKey] = (cityGroups[cityKey] || 0) + 1;
     });
     
-    // Add city groups to location items
     Object.entries(cityGroups).forEach(([cityName, count]) => {
       items.push({
         id: cityName.toLowerCase(),
@@ -188,7 +177,6 @@ const ApplicationManagement: React.FC = () => {
       });
     });
     
-    // Add cities from database for compatibility (with zero count if not in data)
     cities.forEach(city => {
       if (!cityGroups[city.name]) {
         items.push({
@@ -202,7 +190,6 @@ const ApplicationManagement: React.FC = () => {
     return items;
   }, [cities, applications]);
 
-  // Filter applications based on location and search query
   const filteredApplications = useMemo(() => {
     return applications.filter(application => {
       const matchesLocation = selectedLocation === 'all' || 
