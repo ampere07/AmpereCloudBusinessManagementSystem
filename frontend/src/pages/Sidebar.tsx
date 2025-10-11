@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare, Settings, Network } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, LogOut, ChevronRight, User, Building2, Shield, FileCheck, Wrench, Map, MapPin, Package, CreditCard, List, Router, DollarSign, Receipt, FileBarChart, Clock, Calendar, UserCheck, AlertTriangle, Tag, MessageSquare, Settings, Network, Activity } from 'lucide-react';
 
 interface SidebarProps {
   activeSection: string;
@@ -71,6 +71,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'lcp', label: 'LCP', icon: Network, allowedRoles: ['administrator', 'technician'] },
         { id: 'nap', label: 'NAP', icon: Network, allowedRoles: ['administrator', 'technician'] },
         { id: 'lcp-nap-list', label: 'LCP NAP List', icon: MapPin, allowedRoles: ['administrator', 'technician'] },
+        { id: 'usage-type', label: 'Usage Type', icon: Activity, allowedRoles: ['administrator'] },
         { id: 'inventory', label: 'Inventory', icon: Package, allowedRoles: ['administrator'] },
         { id: 'logs', label: 'Logs', icon: FileText, allowedRoles: ['administrator'] },
         { id: 'soa-generation', label: 'SOA Generation', icon: FileBarChart, allowedRoles: ['administrator'] },
