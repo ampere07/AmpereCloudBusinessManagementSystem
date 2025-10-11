@@ -47,4 +47,34 @@ class Handler extends ExceptionHandler
             //
         });
     }
+
+    /**
+     * Add CORS headers to all responses, including exceptions
+     */
+    public function render($request, Throwable $exception)
+    {
+        $response = parent::render($request, $exception);
+        
+        if ($request->expectsJson() || $request->is('api/*')) {
+            $origin = $request->header('Origin');
+            
+            $allowedOrigins = [
+                'http://localhost:3000',
+                'http://127.0.0.1:3000',
+                'https://sync.atssfiber.ph',
+                'https://backend.atssfiber.ph',
+                'https://www.atssfiber.ph',
+                'https://atssfiber.ph',
+            ];
+            
+            if (in_array($origin, $allowedOrigins)) {
+                $response->headers->set('Access-Control-Allow-Origin', $origin);
+                $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+                $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, X-XSRF-TOKEN');
+                $response->headers->set('Access-Control-Allow-Credentials', 'true');
+            }
+        }
+        
+        return $response;
+    }
 }

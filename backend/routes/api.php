@@ -2,6 +2,28 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Handle all OPTIONS requests for CORS preflight
+Route::options('{any}', function(Request $request) {
+    $origin = $request->header('Origin');
+    $allowedOrigins = [
+        'http://localhost:3000',
+        'http://127.0.0.1:3000',
+        'https://sync.atssfiber.ph',
+        'https://backend.atssfiber.ph',
+        'https://www.atssfiber.ph',
+        'https://atssfiber.ph'
+    ];
+    
+    $allowOrigin = in_array($origin, $allowedOrigins) ? $origin : 'http://localhost:3000';
+    
+    return response('', 200)
+        ->header('Access-Control-Allow-Origin', $allowOrigin)
+        ->header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+        ->header('Access-Control-Allow-Headers', 'Content-Type, Accept, Authorization, X-Requested-With, X-XSRF-TOKEN')
+        ->header('Access-Control-Allow-Credentials', 'true')
+        ->header('Access-Control-Max-Age', '86400');
+})->where('any', '.*');
 use Illuminate\Support\Facades\Hash;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\OrganizationController;

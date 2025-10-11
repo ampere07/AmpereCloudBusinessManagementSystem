@@ -10,6 +10,8 @@ class HandleCorsManually
     public function handle(Request $request, Closure $next)
     {
         $allowedOrigins = [
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
             'https://sync.atssfiber.ph',
             'https://backend.atssfiber.ph',
             'https://backend.atssfiber.ph/public',

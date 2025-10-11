@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import EditNapModal from '../modals/EditNapModal';
-
-interface NapItem {
-  id: number;
-  nap_name: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import {
+  getAllNaps,
+  createNap,
+  updateNap,
+  deleteNap,
+  NapItem
+} from '../services/napService';
 
 interface NapFormData {
   name: string;
@@ -23,8 +23,6 @@ const NapList: React.FC = () => {
   
   const [deletingItems, setDeletingItems] = useState<Set<number>>(new Set());
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
   useEffect(() => {
     loadNapItems();
   }, []);
@@ -33,24 +31,8 @@ const NapList: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/nap`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setNapItems(data.data || []);
-      } else {
-        setError(data.message || 'Failed to load NAP items');
-      }
+      const data = await getAllNaps();
+      setNapItems(data);
     } catch (error) {
       console.error('Error loading NAP items:', error);
       setError('Failed to load NAP items. Please try again.');
@@ -73,24 +55,11 @@ const NapList: React.FC = () => {
     });
     
     try {
-      const response = await fetch(`${API_BASE_URL}/nap/${item.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        await loadNapItems();
-      } else {
-        alert('❌ Failed to delete NAP: ' + (data.message || 'Unknown error'));
-      }
-    } catch (error) {
+      await deleteNap(item.id);
+      await loadNapItems();
+    } catch (error: any) {
       console.error('Error deleting NAP:', error);
-      alert('Failed to delete NAP: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      alert('❌ Failed to delete NAP: ' + (error.response?.data?.message || error.message || 'Unknown error'));
     } finally {
       setDeletingItems(prev => {
         const newSet = new Set(prev);
@@ -113,36 +82,16 @@ const NapList: React.FC = () => {
 
   const handleSave = async (formData: NapFormData) => {
     try {
-      const url = editingItem 
-        ? `${API_BASE_URL}/nap/${editingItem.id}`
-        : `${API_BASE_URL}/nap`;
-      
-      const method = editingItem ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: formData.name.trim() }),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        await loadNapItems();
+      if (editingItem) {
+        await updateNap(editingItem.id, { name: formData.name.trim() });
       } else {
-        if (data.errors) {
-          const errorMessages = Object.values(data.errors).flat().join('\n');
-          throw new Error('Validation errors:\n' + errorMessages);
-        } else {
-          throw new Error(data.message || `Failed to ${editingItem ? 'update' : 'add'} NAP`);
-        }
+        await createNap({ name: formData.name.trim() });
       }
-    } catch (error) {
+      await loadNapItems();
+    } catch (error: any) {
       console.error('Error submitting form:', error);
-      throw error;
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      throw new Error(errorMessage);
     }
   };
 
@@ -155,7 +104,6 @@ const NapList: React.FC = () => {
     <div className="bg-gray-950 h-full flex overflow-hidden">
       <div className="bg-gray-900 overflow-hidden flex-1">
         <div className="flex flex-col h-full">
-          {/* Header */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
@@ -178,7 +126,6 @@ const NapList: React.FC = () => {
             </div>
           </div>
           
-          {/* Content */}
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               {isLoading ? (
@@ -246,7 +193,6 @@ const NapList: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit/Add NAP Modal */}
       <EditNapModal
         isOpen={isModalOpen}
         onClose={() => {

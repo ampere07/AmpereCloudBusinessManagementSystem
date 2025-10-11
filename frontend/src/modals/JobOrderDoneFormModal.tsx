@@ -906,11 +906,11 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                 <div className="relative">
                   <select value={formData.routerModel} onChange={(e) => handleInputChange('routerModel', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.routerModel ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value=""></option>
-                    {formData.routerModel && !routerModels.some(rm => rm.model === formData.routerModel) && (
+                    {formData.routerModel && !routerModels.some(rm => rm.Model === formData.routerModel) && (
                       <option value={formData.routerModel}>{formData.routerModel}</option>
                     )}
                     {routerModels.map((routerModel, index) => (
-                      <option key={index} value={routerModel.model}>{routerModel.model}</option>
+                      <option key={index} value={routerModel.Model}>{routerModel.Model}</option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />

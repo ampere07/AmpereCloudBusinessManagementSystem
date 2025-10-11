@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Filter, Loader2, ChevronLeft, ChevronRight, Image as ImageIcon, Eye } from 'lucide-react';
+import apiClient from '../config/api';
 
 interface LcpNapItem {
   id: number;
@@ -66,8 +67,7 @@ const LcpNapList: React.FC = () => {
   const [savingForm, setSavingForm] = useState(false);
   const [panelAnimating, setPanelAnimating] = useState(false);
 
-  // Base API URL
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  // No need for API_BASE_URL - using apiClient which already has baseURL configured
 
   useEffect(() => {
     loadLcpNapItems();
@@ -85,18 +85,8 @@ const LcpNapList: React.FC = () => {
   // Load regions from Location API
   const loadRegions = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/locations/regions`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get('/locations/regions');
+      const data = response.data as any;
       
       if (data.success) {
         setRegions(data.data || []);
@@ -113,18 +103,8 @@ const LcpNapList: React.FC = () => {
   // Load LCP list from app_lcp table
   const loadLcpList = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/lcp`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get('/lcp');
+      const data = response.data as any;
       
       if (data.success) {
         setLcpList(data.data || []);
@@ -141,18 +121,8 @@ const LcpNapList: React.FC = () => {
   // Load NAP list from app_nap table
   const loadNapList = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/nap`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get('/nap');
+      const data = response.data as any;
       
       if (data.success) {
         setNapList(data.data || []);
@@ -176,18 +146,8 @@ const LcpNapList: React.FC = () => {
 
     setIsLoadingLocations(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/locations/regions/${regionId}/cities`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get(`/locations/regions/${regionId}/cities`);
+      const data = response.data as any;
       
       if (data.success) {
         setCities(data.data || []);
@@ -212,18 +172,8 @@ const LcpNapList: React.FC = () => {
 
     setIsLoadingLocations(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/locations/cities/${cityId}/barangays`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get(`/locations/cities/${cityId}/barangays`);
+      const data = response.data as any;
       
       if (data.success) {
         setBarangays(data.data || []);
@@ -280,25 +230,14 @@ const LcpNapList: React.FC = () => {
   const loadLcpNapItems = async () => {
     setIsLoading(true);
     try {
-      const params = new URLSearchParams({
+      const params = {
         page: currentPage.toString(),
         limit: itemsPerPage.toString(),
         ...(searchQuery && { search: searchQuery })
-      });
+      };
       
-      const response = await fetch(`${API_BASE_URL}/lcp-nap-list?${params}`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || 'Unknown error'}`);
-      }
-      
-      const data = await response.json();
+      const response = await apiClient.get('/lcp-nap-list', { params });
+      const data = response.data as any;
       
       if (data.success) {
         setLcpNapItems(data.data || []);
@@ -328,17 +267,10 @@ const LcpNapList: React.FC = () => {
     });
     
     try {
-      const response = await fetch(`${API_BASE_URL}/lcp-nap-list/${item.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await apiClient.delete(`/lcp-nap-list/${item.id}`);
+      const data = response.data as any;
       
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
+      if (data.success) {
         await loadLcpNapItems();
         alert('✅ LCP NAP item permanently deleted from database: ' + (data.message || 'Item deleted successfully'));
       } else {
@@ -427,23 +359,20 @@ const LcpNapList: React.FC = () => {
         formDataToSend.append('reading_image', formData.reading_image);
       }
 
-      const url = editingItem 
-        ? `${API_BASE_URL}/lcp-nap-list/${editingItem.id}`
-        : `${API_BASE_URL}/lcp-nap-list`;
-      
-      const method = editingItem ? 'PUT' : 'POST';
+      let response;
+      if (editingItem) {
+        response = await apiClient.put(`/lcp-nap-list/${editingItem.id}`, formDataToSend, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      } else {
+        response = await apiClient.post('/lcp-nap-list', formDataToSend, {
+          headers: { 'Content-Type': 'multipart/form-data' }
+        });
+      }
 
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Accept': 'application/json',
-        },
-        body: formDataToSend,
-      });
-
-      const data = await response.json();
+      const data = response.data as any;
       
-      if (response.ok && data.success) {
+      if (data.success) {
         await loadLcpNapItems();
         closePanel();
         resetForm();

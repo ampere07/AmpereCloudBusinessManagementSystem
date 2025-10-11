@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
 import EditLcpModal from '../modals/EditLcpModal';
-
-interface LcpItem {
-  id: number;
-  lcp_name: string;
-  created_at?: string;
-  updated_at?: string;
-}
+import {
+  getAllLcps,
+  createLcp,
+  updateLcp,
+  deleteLcp,
+  LcpItem
+} from '../services/lcpService';
 
 interface LcpFormData {
   name: string;
@@ -23,8 +23,6 @@ const LcpList: React.FC = () => {
   
   const [deletingItems, setDeletingItems] = useState<Set<number>>(new Set());
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
-
   useEffect(() => {
     loadLcpItems();
   }, []);
@@ -33,24 +31,8 @@ const LcpList: React.FC = () => {
     setIsLoading(true);
     setError(null);
     try {
-      const response = await fetch(`${API_BASE_URL}/lcp`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success) {
-        setLcpItems(data.data || []);
-      } else {
-        setError(data.message || 'Failed to load LCP items');
-      }
+      const data = await getAllLcps();
+      setLcpItems(data);
     } catch (error) {
       console.error('Error loading LCP items:', error);
       setError('Failed to load LCP items. Please try again.');
@@ -73,24 +55,11 @@ const LcpList: React.FC = () => {
     });
     
     try {
-      const response = await fetch(`${API_BASE_URL}/lcp/${item.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        await loadLcpItems();
-      } else {
-        alert('❌ Failed to delete LCP: ' + (data.message || 'Unknown error'));
-      }
-    } catch (error) {
+      await deleteLcp(item.id);
+      await loadLcpItems();
+    } catch (error: any) {
       console.error('Error deleting LCP:', error);
-      alert('Failed to delete LCP: ' + (error instanceof Error ? error.message : 'Unknown error'));
+      alert('❌ Failed to delete LCP: ' + (error.response?.data?.message || error.message || 'Unknown error'));
     } finally {
       setDeletingItems(prev => {
         const newSet = new Set(prev);
@@ -113,36 +82,16 @@ const LcpList: React.FC = () => {
 
   const handleSave = async (formData: LcpFormData) => {
     try {
-      const url = editingItem 
-        ? `${API_BASE_URL}/lcp/${editingItem.id}`
-        : `${API_BASE_URL}/lcp`;
-      
-      const method = editingItem ? 'PUT' : 'POST';
-
-      const response = await fetch(url, {
-        method,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ name: formData.name.trim() }),
-      });
-
-      const data = await response.json();
-      
-      if (response.ok && data.success) {
-        await loadLcpItems();
+      if (editingItem) {
+        await updateLcp(editingItem.id, { name: formData.name.trim() });
       } else {
-        if (data.errors) {
-          const errorMessages = Object.values(data.errors).flat().join('\n');
-          throw new Error('Validation errors:\n' + errorMessages);
-        } else {
-          throw new Error(data.message || `Failed to ${editingItem ? 'update' : 'add'} LCP`);
-        }
+        await createLcp({ name: formData.name.trim() });
       }
-    } catch (error) {
+      await loadLcpItems();
+    } catch (error: any) {
       console.error('Error submitting form:', error);
-      throw error;
+      const errorMessage = error.response?.data?.message || error.message || 'Unknown error';
+      throw new Error(errorMessage);
     }
   };
 
@@ -155,7 +104,6 @@ const LcpList: React.FC = () => {
     <div className="bg-gray-950 h-full flex overflow-hidden">
       <div className="bg-gray-900 overflow-hidden flex-1">
         <div className="flex flex-col h-full">
-          {/* Header */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
@@ -178,7 +126,6 @@ const LcpList: React.FC = () => {
             </div>
           </div>
           
-          {/* Content */}
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               {isLoading ? (
@@ -246,7 +193,6 @@ const LcpList: React.FC = () => {
         </div>
       </div>
 
-      {/* Edit/Add LCP Modal */}
       <EditLcpModal
         isOpen={isModalOpen}
         onClose={() => {
