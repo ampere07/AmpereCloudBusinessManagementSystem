@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Search, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { FileText, Search, ChevronDown, RefreshCw } from 'lucide-react';
 import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
 import { getAllApplicationVisits } from '../services/applicationVisitService';
 import { getApplication } from '../services/applicationService';
 
-// Interfaces for application visit data from 'application_visits' table (previously 'application_visit')
 interface ApplicationVisit {
   id: string;
   application_id: string;
@@ -41,8 +40,8 @@ const ApplicationVisit: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
-  // Format date function
   const formatDate = (dateStr?: string): string => {
     if (!dateStr) return 'Not scheduled';
     try {
@@ -51,8 +50,6 @@ const ApplicationVisit: React.FC = () => {
       return dateStr;
     }
   };
-
-  const [userEmail, setUserEmail] = useState<string>('');
   
   useEffect(() => {
     const authData = localStorage.getItem('authData');
@@ -60,99 +57,117 @@ const ApplicationVisit: React.FC = () => {
       try {
         const userData = JSON.parse(authData);
         setUserRole(userData.role || '');
-        setUserEmail(userData.email || '');
-      } catch (error) {
-        console.error('Error parsing auth data:', error);
+      } catch (err) {
+        console.error('Error parsing auth data:', err);
+      }
+    }
+  }, []);
+
+  const fetchApplicationVisits = useCallback(async (isInitialLoad: boolean = false) => {
+    try {
+      if (isInitialLoad) {
+        setLoading(true);
+      }
+      console.log('Fetching application visits...');
+      
+      const authData = localStorage.getItem('authData');
+      let assignedEmail: string | undefined;
+      
+      if (authData) {
+        try {
+          const userData = JSON.parse(authData);
+          if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+            assignedEmail = userData.email;
+            console.log('Filtering application visits for technician:', assignedEmail);
+          }
+        } catch (err) {
+          console.error('Error parsing auth data:', err);
+        }
+      }
+      
+      const response = await getAllApplicationVisits(assignedEmail);
+      console.log('API Response:', response);
+      
+      if (!response.success) {
+        throw new Error(response.message || 'Failed to fetch application visits');
+      }
+      
+      if (response.success && Array.isArray(response.data)) {
+        console.log(`Found ${response.data.length} application visits`);
+        
+        if (response.data.length > 0) {
+          console.log('First item example:', response.data[0]);
+        }
+        
+        const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
+          id: visit.id || '',
+          application_id: visit.application_id || '',
+          timestamp: visit.timestamp || visit.created_at || '',
+          assigned_email: visit.assigned_email || '',
+          visit_by_user_email: visit.visit_by_user_email || '',
+          visit_with: visit.visit_with || '',
+          visit_status: visit.visit_status || 'Scheduled',
+          visit_remarks: visit.visit_remarks || '',
+          status_remarks: visit.status_remarks || '',
+          application_status: visit.application_status || 'Pending',
+          full_name: visit.full_name || '',
+          full_address: visit.full_address || '',
+          referred_by: visit.referred_by || '',
+          updated_by_user_email: visit.updated_by_user_email || 'System',
+          created_at: visit.created_at || '',
+          updated_at: visit.updated_at || '',
+          first_name: visit.first_name || '',
+          middle_initial: visit.middle_initial || '',
+          last_name: visit.last_name || '',
+        }));
+        
+        setApplicationVisits(visits);
+        setError(null);
+        console.log('Application visits data processed successfully', visits);
+      } else {
+        console.warn('No application visits returned from API or invalid response format', response);
+        setApplicationVisits([]);
+        if (response.message) {
+          setError(response.message);
+        }
+      }
+    } catch (err: any) {
+      console.error('Error fetching application visits:', err);
+      if (isInitialLoad) {
+        setError(err.message || 'Failed to load application visits. Please try again.');
+        setApplicationVisits([]);
+      }
+    } finally {
+      if (isInitialLoad) {
+        setLoading(false);
       }
     }
   }, []);
 
   useEffect(() => {
-    const fetchApplicationVisits = async () => {
-      try {
-        setLoading(true);
-        console.log('Fetching application visits...');
-        
-        // Check if user is a technician and filter by their email
-        const authData = localStorage.getItem('authData');
-        let assignedEmail: string | undefined;
-        
-        if (authData) {
-          try {
-            const userData = JSON.parse(authData);
-            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
-              assignedEmail = userData.email;
-              console.log('Filtering application visits for technician:', assignedEmail);
-            }
-          } catch (error) {
-            console.error('Error parsing auth data:', error);
-          }
-        }
-        
-        // Get all application visit data from the 'application_visits' table with optional email filter
-        const response = await getAllApplicationVisits(assignedEmail);
-        console.log('API Response:', response);
-        
-        if (!response.success) {
-          throw new Error(response.message || 'Failed to fetch application visits');
-        }
-        
-        if (response.success && Array.isArray(response.data)) {
-          console.log(`Found ${response.data.length} application visits`);
-          
-          // If we have data, log the first item to help with debugging
-          if (response.data.length > 0) {
-            console.log('First item example:', response.data[0]);
-          }
-          
-          // Map the API response to our interface
-          const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
-            id: visit.id || '',
-            application_id: visit.application_id || '',
-            timestamp: visit.timestamp || visit.created_at || '',
-            assigned_email: visit.assigned_email || '',
-            visit_by_user_email: visit.visit_by_user_email || '',
-            visit_with: visit.visit_with || '',
-            visit_status: visit.visit_status || 'Scheduled',
-            visit_remarks: visit.visit_remarks || '',
-            status_remarks: visit.status_remarks || '',
-            application_status: visit.application_status || 'Pending',
-            full_name: visit.full_name || '',
-            full_address: visit.full_address || '',
-            referred_by: visit.referred_by || '',
-            updated_by_user_email: visit.updated_by_user_email || 'System',
-            created_at: visit.created_at || '',
-            updated_at: visit.updated_at || '',
-            first_name: visit.first_name || '',
-            middle_initial: visit.middle_initial || '',
-            last_name: visit.last_name || '',
-          }));
-          
-          setApplicationVisits(visits);
-          setError(null);
-          console.log('Application visits data processed successfully', visits);
-        } else {
-          // If no visits are returned, set an empty array
-          console.warn('No application visits returned from API or invalid response format', response);
-          setApplicationVisits([]);
-          // Only set error if there's a message
-          if (response.message) {
-            setError(response.message);
-          }
-        }
-      } catch (err: any) {
-        console.error('Error fetching application visits:', err);
-        setError(err.message || 'Failed to load application visits. Please try again.');
-        setApplicationVisits([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    fetchApplicationVisits(true);
+  }, [fetchApplicationVisits]);
 
-    fetchApplicationVisits();
-  }, []);
+  useEffect(() => {
+    const intervalId = setInterval(() => {
+      console.log('Auto-refreshing application visits...');
+      fetchApplicationVisits(false);
+    }, 5 * 60 * 1000);
 
-  // Generate location items with counts based on real data
+    return () => clearInterval(intervalId);
+  }, [fetchApplicationVisits]);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await fetchApplicationVisits(false);
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const handleVisitUpdate = async () => {
+    console.log('Visit updated, refreshing data...');
+    await fetchApplicationVisits(false);
+  };
+
   const locationItems: LocationItem[] = [
     {
       id: 'all',
@@ -200,13 +215,10 @@ const ApplicationVisit: React.FC = () => {
 
   const handleRowClick = async (visit: ApplicationVisit) => {
     try {
-      // When selecting a visit, fetch the associated application data if needed
       if (!visit.application_status) {
         try {
-          // Fetch application data to get the application status
           const applicationData = await getApplication(visit.application_id);
           
-          // Update the visit with application data
           const updatedVisit = {
             ...visit,
             application_status: applicationData.status || 'Pending'
@@ -215,7 +227,6 @@ const ApplicationVisit: React.FC = () => {
           setSelectedVisit(updatedVisit);
         } catch (err: any) {
           console.error('Error fetching application data:', err);
-          // Still set the selected visit even if we can't get the application data
           setSelectedVisit(visit);
         }
       } else {
@@ -227,8 +238,7 @@ const ApplicationVisit: React.FC = () => {
     }
   };
 
-  // Status text color component
-  const StatusText = ({ status, type }: { status: string, type: 'visit' | 'application' }) => {
+  const StatusText = ({ status, type }: { status: string; type: 'visit' | 'application' }) => {
     let textColor = '';
     
     if (type === 'visit') {
@@ -312,7 +322,7 @@ const ApplicationVisit: React.FC = () => {
                     <br /><br />
                     <span className="text-yellow-400">Suggestion:</span>
                     <br />
-                    Verify that the table 'application_visits' exists in your database.
+                    Verify that the table &apos;application_visits&apos; exists in your database.
                   </>
                 ) : error}
               </pre>
@@ -325,7 +335,6 @@ const ApplicationVisit: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container - Hidden for technician role */}
       {userRole.toLowerCase() !== 'technician' && (
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
@@ -365,10 +374,8 @@ const ApplicationVisit: React.FC = () => {
       </div>
       )}
 
-      {/* Application Visits List - Shrinks when detail view is shown */}
       <div className={`bg-gray-900 overflow-hidden flex-1`}>
         <div className="flex flex-col h-full">
-          {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
@@ -381,6 +388,14 @@ const ApplicationVisit: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
+              <button
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+                className="bg-gray-800 text-white px-3 py-2 rounded border border-gray-700 flex items-center hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="Refresh application visits"
+              >
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+              </button>
               <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
                 <span className="mr-2">Filter</span>
                 <ChevronDown className="h-4 w-4" />
@@ -388,7 +403,6 @@ const ApplicationVisit: React.FC = () => {
             </div>
           </div>
           
-          {/* Table Container */}
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-x-auto overflow-y-auto pb-4">
               <table className="min-w-full divide-y divide-gray-700 text-sm">
@@ -506,12 +520,12 @@ const ApplicationVisit: React.FC = () => {
         </div>
       </div>
 
-      {/* Application Visit Detail View - Only visible when a visit is selected */}
       {selectedVisit && (
         <div className="w-full max-w-2xl overflow-hidden">
           <ApplicationVisitDetails 
             applicationVisit={selectedVisit}
             onClose={() => setSelectedVisit(null)}
+            onUpdate={handleVisitUpdate}
           />
         </div>
       )}
