@@ -33,9 +33,10 @@ interface ApplicationVisitDetailsProps {
     [key: string]: any;
   };
   onClose: () => void;
+  onUpdate?: () => void;
 }
 
-const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ applicationVisit, onClose }) => {
+const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ applicationVisit, onClose, onUpdate }) => {
   const [applicationDetails, setApplicationDetails] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -95,8 +96,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const handleSaveJOForm = (formData: JobOrderData) => {
     console.log('Job Order saved successfully:', formData);
     console.log('Application Visit ID:', applicationVisit.id);
-    // Job order has already been saved by the modal
     setShowJOAssignForm(false);
+    if (onUpdate) {
+      onUpdate();
+    }
   };
 
   const handleEditVisit = () => {
@@ -105,11 +108,11 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
 
   const handleSaveEditedVisit = (updatedVisit: any) => {
     console.log('Visit details updated successfully:', updatedVisit);
-    // Update the current visit data with the new information
     setCurrentVisitData({ ...currentVisitData, ...updatedVisit });
     setShowEditStatusModal(false);
-    // You might want to trigger a refresh of the parent component here
-    // or call a callback prop to notify the parent of the update
+    if (onUpdate) {
+      onUpdate();
+    }
   };
 
   // Format the scheduled date
@@ -153,6 +156,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
       
       const statusMessage = newStatus ? `Status updated to ${newStatus}` : 'Status cleared successfully';
       alert(statusMessage);
+      
+      if (onUpdate) {
+        onUpdate();
+      }
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
       setError(`Failed to update status: ${errorMessage}`);
