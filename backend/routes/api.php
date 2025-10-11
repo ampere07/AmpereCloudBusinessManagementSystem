@@ -1073,6 +1073,31 @@ Route::prefix('router-models')->group(function () {
 // Status Remarks Management Routes
 Route::prefix('status-remarks')->group(function () {
     Route::get('/', [\App\Http\Controllers\StatusRemarksController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\StatusRemarksController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\StatusRemarksController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\StatusRemarksController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\StatusRemarksController::class, 'destroy']);
+});
+
+// Debug route for status_remarks_list table
+Route::get('/debug/status-remarks-structure', function() {
+    try {
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('status_remarks_list');
+        $sample = \Illuminate\Support\Facades\DB::table('status_remarks_list')->first();
+        
+        return response()->json([
+            'success' => true,
+            'table' => 'status_remarks_list',
+            'columns' => $columns,
+            'sample_data' => $sample,
+            'count' => \Illuminate\Support\Facades\DB::table('status_remarks_list')->count()
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
 });
 
 // Inventory Management Routes - Using Inventory table
@@ -1117,8 +1142,18 @@ Route::prefix('nap')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\NapApiController::class, 'destroy']);
 });
 
-// Port Management Routes - Using port table
+// Port Management Routes - Using port table (both singular and plural for compatibility)
 Route::prefix('port')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\PortApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\PortApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\PortApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\PortApiController::class, 'destroy']);
+});
+
+// Ports (plural) for frontend compatibility
+Route::prefix('ports')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\PortApiController::class, 'index']);
     Route::post('/', [\App\Http\Controllers\Api\PortApiController::class, 'store']);
     Route::get('/statistics', [\App\Http\Controllers\Api\PortApiController::class, 'getStatistics']);

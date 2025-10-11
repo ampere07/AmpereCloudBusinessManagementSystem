@@ -24,14 +24,14 @@ class PortApiController extends Controller
             $query = Port::query();
             
             if (!empty($search)) {
-                $query->where('Label', 'like', '%' . $search . '%')
-                      ->orWhere('PORT_ID', 'like', '%' . $search . '%');
+                $query->where('label', 'like', '%' . $search . '%')
+                      ->orWhere('port_id', 'like', '%' . $search . '%');
             }
             
             $totalItems = $query->count();
             $totalPages = ceil($totalItems / $limit);
             
-            $portItems = $query->orderBy('Label')
+            $portItems = $query->orderBy('label')
                              ->skip(($page - 1) * $limit)
                              ->take($limit)
                              ->get();
@@ -78,7 +78,7 @@ class PortApiController extends Controller
             $label = $request->input('label');
             $portId = $request->input('port_id');
             
-            $existing = Port::where('PORT_ID', $portId)->first();
+            $existing = Port::where('port_id', $portId)->first();
             if ($existing) {
                 return response()->json([
                     'success' => false,
@@ -87,8 +87,8 @@ class PortApiController extends Controller
             }
             
             $port = new Port();
-            $port->PORT_ID = $portId;
-            $port->Label = $label;
+            $port->port_id = $portId;
+            $port->label = $label;
             $port->save();
             
             return response()->json([
@@ -158,7 +158,7 @@ class PortApiController extends Controller
             $label = $request->input('label');
             $portId = $request->input('port_id');
             
-            $duplicate = Port::where('PORT_ID', $portId)->where('id', '!=', $id)->first();
+            $duplicate = Port::where('port_id', $portId)->where('id', '!=', $id)->first();
             if ($duplicate) {
                 return response()->json([
                     'success' => false,
@@ -166,8 +166,8 @@ class PortApiController extends Controller
                 ], 422);
             }
             
-            $port->PORT_ID = $portId;
-            $port->Label = $label;
+            $port->port_id = $portId;
+            $port->label = $label;
             $port->save();
             
             return response()->json([

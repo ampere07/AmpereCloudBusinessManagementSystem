@@ -13,13 +13,16 @@ class StatusRemarksList extends Model
 
     protected $fillable = [
         'status_remarks',
-        'modified_date',
-        'modified_by'
+        'created_at',
+        'created_by_user_id',
+        'updated_at',
+        'updated_by_user_id'
     ];
 
     protected $casts = [
-        'modified_date' => 'datetime',
+        'created_at' => 'datetime',
+        'updated_at' => 'datetime',
     ];
 
-    public $timestamps = false;
+    public $timestamps = true;
 }
