@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { MapPin, Search, Plus, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Search, Plus, Edit2, Trash2, ChevronRight, ChevronDown } from 'lucide-react';
 import AddLocationModal from '../modals/AddLocationModal';
 import EditLocationModal from '../modals/EditLocationModal';
 import LocationDetailsModal from '../modals/LocationDetailsModal';
@@ -29,13 +29,17 @@ interface LocationItem {
   boroughId?: number;
 }
 
-const LocationList: React.FC = () => {
+interface SidebarFilter {
+  type: 'all' | 'region' | 'city' | 'borough';
+  id?: number;
+}
 
+const LocationList: React.FC = () => {
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [sidebarFilter, setSidebarFilter] = useState<SidebarFilter>({ type: 'all' });
   const [selectedLocation, setSelectedLocation] = useState<LocationItem | null>(null);
   const [cities, setCities] = useState<City[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
@@ -43,6 +47,8 @@ const LocationList: React.FC = () => {
   const [locations, setLocations] = useState<LocationDetail[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [expandedRegions, setExpandedRegions] = useState<Set<number>>(new Set());
+  const [expandedCities, setExpandedCities] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     fetchLocationData();
@@ -59,11 +65,6 @@ const LocationList: React.FC = () => {
         getBoroughs(),
         getLocations()
       ]);
-      
-      console.log('Fetched regions:', regionsData);
-      console.log('Fetched cities:', citiesData);
-      console.log('Fetched boroughs:', boroughsData);
-      console.log('Fetched locations:', locationsData);
       
       setRegions(regionsData);
       setCities(citiesData);
@@ -86,7 +87,8 @@ const LocationList: React.FC = () => {
         name: city.name,
         type: 'city',
         parentId: city.region_id,
-        parentName: regions.find(r => r.id === city.region_id)?.name
+        parentName: regions.find(r => r.id === city.region_id)?.name,
+        regionId: city.region_id
       });
     });
 
@@ -134,19 +136,83 @@ const LocationList: React.FC = () => {
   }, [cities, regions, boroughs, locations]);
 
   const filteredLocations = useMemo(() => {
-    return allLocations.filter(location => {
+    const filtered = allLocations.filter(location => {
       const matchesSearch = searchQuery === '' || 
                            location.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                            (location.parentName && location.parentName.toLowerCase().includes(searchQuery.toLowerCase()));
       
-      const matchesType = typeFilter === 'all' || location.type === typeFilter;
+      let matchesSidebar = false;
+      if (sidebarFilter.type === 'all') {
+        matchesSidebar = true;
+      } else if (sidebarFilter.type === 'region') {
+        matchesSidebar = location.regionId === sidebarFilter.id;
+      } else if (sidebarFilter.type === 'city') {
+        matchesSidebar = location.cityId === sidebarFilter.id || (location.type === 'city' && location.id === sidebarFilter.id);
+      } else if (sidebarFilter.type === 'borough') {
+        matchesSidebar = location.boroughId === sidebarFilter.id || (location.type === 'borough' && location.id === sidebarFilter.id);
+      }
       
-      return matchesSearch && matchesType;
+      return matchesSearch && matchesSidebar;
     });
-  }, [allLocations, searchQuery, typeFilter]);
+
+    return filtered.sort((a, b) => {
+      const isASelected = 
+        (sidebarFilter.type === 'region' && a.type === 'region' && a.id === sidebarFilter.id) ||
+        (sidebarFilter.type === 'city' && a.type === 'city' && a.id === sidebarFilter.id) ||
+        (sidebarFilter.type === 'borough' && a.type === 'borough' && a.id === sidebarFilter.id);
+      
+      const isBSelected = 
+        (sidebarFilter.type === 'region' && b.type === 'region' && b.id === sidebarFilter.id) ||
+        (sidebarFilter.type === 'city' && b.type === 'city' && b.id === sidebarFilter.id) ||
+        (sidebarFilter.type === 'borough' && b.type === 'borough' && b.id === sidebarFilter.id);
+      
+      if (isASelected && !isBSelected) return -1;
+      if (!isASelected && isBSelected) return 1;
+      
+      const typeOrder: Record<string, number> = { region: 1, city: 2, borough: 3, location: 4 };
+      const typeComparison = (typeOrder[a.type] || 5) - (typeOrder[b.type] || 5);
+      
+      if (typeComparison !== 0) {
+        return typeComparison;
+      }
+      
+      return a.name.localeCompare(b.name);
+    });
+  }, [allLocations, searchQuery, sidebarFilter]);
+
+  const toggleRegion = (regionId: number) => {
+    const newExpanded = new Set(expandedRegions);
+    if (newExpanded.has(regionId)) {
+      newExpanded.delete(regionId);
+    } else {
+      newExpanded.add(regionId);
+    }
+    setExpandedRegions(newExpanded);
+  };
+
+  const toggleCity = (cityId: number) => {
+    const newExpanded = new Set(expandedCities);
+    if (newExpanded.has(cityId)) {
+      newExpanded.delete(cityId);
+    } else {
+      newExpanded.add(cityId);
+    }
+    setExpandedCities(newExpanded);
+  };
+
+  const getCountForRegion = (regionId: number): number => {
+    return allLocations.filter(loc => loc.regionId === regionId).length;
+  };
+
+  const getCountForCity = (cityId: number): number => {
+    return allLocations.filter(loc => loc.cityId === cityId || (loc.type === 'city' && loc.id === cityId)).length;
+  };
+
+  const getCountForBarangay = (boroughId: number): number => {
+    return allLocations.filter(loc => loc.boroughId === boroughId || (loc.type === 'borough' && loc.id === boroughId)).length;
+  };
 
   const handleAddLocation = (locationData: any) => {
-    console.log('New location added:', locationData);
     fetchLocationData();
   };
 
@@ -173,8 +239,6 @@ const LocationList: React.FC = () => {
 
   const handleSaveEdit = async (updatedLocation: LocationItem) => {
     try {
-      console.log('Updating location:', updatedLocation);
-      
       await fetchLocationData();
       setIsEditModalOpen(false);
       setSelectedLocation(null);
@@ -193,8 +257,6 @@ const LocationList: React.FC = () => {
     }
 
     try {
-      console.log('Deleting location:', location);
-      
       switch (location.type) {
         case 'region':
           await deleteRegion(location.id, false);
@@ -212,10 +274,7 @@ const LocationList: React.FC = () => {
           throw new Error(`Unknown location type: ${location.type}`);
       }
       
-      console.log('Location deleted successfully');
-      
       await fetchLocationData();
-      
       setIsDetailsModalOpen(false);
       setIsEditModalOpen(false);
       setSelectedLocation(null);
@@ -258,7 +317,6 @@ const LocationList: React.FC = () => {
                 break;
             }
             
-            console.log('Location deleted successfully with cascade');
             await fetchLocationData();
             setIsDetailsModalOpen(false);
             setIsEditModalOpen(false);
@@ -300,8 +358,195 @@ const LocationList: React.FC = () => {
     return colors[type] || 'text-gray-400';
   };
 
+  const tableColumns = [
+    { id: 'name', label: 'Location Name', width: 'whitespace-nowrap' },
+    { id: 'type', label: 'Type', width: 'whitespace-nowrap' },
+    { id: 'parent', label: 'Parent Location', width: 'whitespace-nowrap' },
+    { id: 'actions', label: 'Actions', width: 'whitespace-nowrap' }
+  ];
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="flex flex-col items-center">
+          <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-orange-500 mb-3"></div>
+          <p className="text-gray-300">Loading locations...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-full bg-gray-950">
+        <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
+          <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
+          <p className="text-gray-300 mb-4">{error}</p>
+          <button 
+            onClick={() => fetchLocationData()}
+            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
+        <div className="p-4 border-b border-gray-700 flex-shrink-0">
+          <div className="flex items-center mb-1">
+            <h2 className="text-lg font-semibold text-white">Locations</h2>
+          </div>
+        </div>
+        <div className="flex-1 overflow-y-auto">
+          {/* All */}
+          <button
+            onClick={() => setSidebarFilter({ type: 'all' })}
+            className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
+              sidebarFilter.type === 'all'
+                ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                : 'text-gray-300'
+            }`}
+          >
+            <div className="flex items-center">
+              <MapPin className="h-4 w-4 mr-2" />
+              <span>All</span>
+            </div>
+            {allLocations.length > 0 && (
+              <span className={`px-2 py-1 rounded-full text-xs ${
+                sidebarFilter.type === 'all'
+                  ? 'bg-orange-600 text-white'
+                  : 'bg-gray-700 text-gray-300'
+              }`}>
+                {allLocations.length}
+              </span>
+            )}
+          </button>
+
+          {/* Regions */}
+          {regions.map(region => {
+            const regionCities = cities.filter(city => city.region_id === region.id);
+            const isExpanded = expandedRegions.has(region.id);
+            const regionCount = getCountForRegion(region.id);
+            const isSelected = sidebarFilter.type === 'region' && sidebarFilter.id === region.id;
+
+            return (
+              <div key={`region-${region.id}`}>
+                <div className="flex items-center">
+                  <button
+                    onClick={() => toggleRegion(region.id)}
+                    className="p-2 hover:bg-gray-800 transition-colors"
+                  >
+                    {isExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-gray-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-gray-400" />
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setSidebarFilter({ type: 'region', id: region.id })}
+                    className={`flex-1 flex items-center justify-between py-3 pr-4 text-sm transition-colors hover:bg-gray-800 ${
+                      isSelected
+                        ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                        : 'text-gray-300'
+                    }`}
+                  >
+                    <span>{region.name}</span>
+                    {regionCount > 0 && (
+                      <span className={`px-2 py-1 rounded-full text-xs ${
+                        isSelected
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}>
+                        {regionCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+
+                {/* Cities under Region */}
+                {isExpanded && regionCities.map(city => {
+                  const cityBarangays = boroughs.filter(borough => borough.city_id === city.id);
+                  const isCityExpanded = expandedCities.has(city.id);
+                  const cityCount = getCountForCity(city.id);
+                  const isCitySelected = sidebarFilter.type === 'city' && sidebarFilter.id === city.id;
+
+                  return (
+                    <div key={`city-${city.id}`} className="ml-6">
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => toggleCity(city.id)}
+                          className="p-2 hover:bg-gray-800 transition-colors"
+                        >
+                          {isCityExpanded ? (
+                            <ChevronDown className="h-3 w-3 text-gray-400" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3 text-gray-400" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setSidebarFilter({ type: 'city', id: city.id })}
+                          className={`flex-1 flex items-center justify-between py-2 pr-4 text-sm transition-colors hover:bg-gray-800 ${
+                            isCitySelected
+                              ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                              : 'text-gray-300'
+                          }`}
+                        >
+                          <span className="text-xs">{city.name}</span>
+                          {cityCount > 0 && (
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              isCitySelected
+                                ? 'bg-orange-600 text-white'
+                                : 'bg-gray-700 text-gray-300'
+                            }`}>
+                              {cityCount}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Barangays under City */}
+                      {isCityExpanded && cityBarangays.map(barangay => {
+                        const barangayCount = getCountForBarangay(barangay.id);
+                        const isBarangaySelected = sidebarFilter.type === 'borough' && sidebarFilter.id === barangay.id;
+
+                        return (
+                          <button
+                            key={`barangay-${barangay.id}`}
+                            onClick={() => setSidebarFilter({ type: 'borough', id: barangay.id })}
+                            className={`w-full flex items-center justify-between py-2 pl-12 pr-4 text-sm transition-colors hover:bg-gray-800 ${
+                              isBarangaySelected
+                                ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                                : 'text-gray-300'
+                            }`}
+                          >
+                            <span className="text-xs">{barangay.name}</span>
+                            {barangayCount > 0 && (
+                              <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                isBarangaySelected
+                                  ? 'bg-orange-600 text-white'
+                                  : 'bg-gray-700 text-gray-300'
+                              }`}>
+                                {barangayCount}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Main Content */}
       <div className="bg-gray-900 overflow-hidden flex-1">
         <div className="flex flex-col h-full">
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
@@ -316,17 +561,6 @@ const LocationList: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <select
-                value={typeFilter}
-                onChange={(e) => setTypeFilter(e.target.value)}
-                className="bg-gray-800 text-white border border-gray-700 rounded px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-              >
-                <option value="all">All Types</option>
-                <option value="region">Region</option>
-                <option value="city">City</option>
-                <option value="borough">Barangay</option>
-                <option value="location">Location</option>
-              </select>
               <button
                 onClick={() => setIsAddModalOpen(true)}
                 className="bg-orange-600 hover:bg-orange-700 text-white px-4 py-2 rounded text-sm transition-colors flex items-center space-x-1"
@@ -338,71 +572,73 @@ const LocationList: React.FC = () => {
           </div>
           
           <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-y-auto">
-              {isLoading ? (
-                <div className="px-4 py-12 text-center text-gray-400">
-                  <div className="animate-pulse flex flex-col items-center">
-                    <div className="h-4 w-1/3 bg-gray-700 rounded mb-4"></div>
-                    <div className="h-4 w-1/2 bg-gray-700 rounded"></div>
-                  </div>
-                  <p className="mt-4">Loading locations...</p>
-                </div>
-              ) : error ? (
-                <div className="px-4 py-12 text-center text-red-400">
-                  <p>{error}</p>
-                  <button 
-                    onClick={() => fetchLocationData()}
-                    className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">
-                    Retry
-                  </button>
-                </div>
-              ) : filteredLocations.length > 0 ? (
-                <div className="space-y-0">
-                  {filteredLocations.map((location) => (
-                    <div
-                      key={`${location.type}-${location.id}`}
-                      onClick={() => handleLocationClick(location)}
-                      className="px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800"
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white font-medium text-sm mb-1 uppercase">
-                            {location.name}
-                          </div>
-                          <div className="text-gray-400 text-xs">
-                            {location.parentName && (
-                              <span>{location.parentName} | </span>
-                            )}
-                            <span className={getLocationTypeColor(location.type)}>
-                              {getLocationTypeLabel(location.type)}
-                            </span>
-                          </div>
+            <div className="h-full overflow-x-auto overflow-y-auto pb-4">
+              <table className="min-w-full divide-y divide-gray-700 text-sm">
+                <thead className="bg-gray-800 sticky top-0">
+                  <tr>
+                    {tableColumns.map(column => (
+                      <th 
+                        key={column.id}
+                        scope="col" 
+                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
+                      >
+                        <div className="flex items-center">
+                          {column.label}
                         </div>
-                        <div className="flex items-center space-x-2 ml-4 flex-shrink-0">
-                          <button
-                            onClick={(e) => handleEditLocation(location, e)}
-                            className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded transition-colors"
-                            title="Edit location"
-                          >
-                            <Edit2 size={16} />
-                          </button>
-                          <button
-                            onClick={(e) => handleDeleteLocation(location, e)}
-                            className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded transition-colors"
-                            title="Delete location"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-gray-400">
-                  No locations found matching your filters
-                </div>
-              )}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody className="bg-gray-900 divide-y divide-gray-800">
+                  {filteredLocations.length > 0 ? (
+                    filteredLocations.map((location) => (
+                      <tr 
+                        key={`${location.type}-${location.id}`}
+                        className={`hover:bg-gray-800 cursor-pointer ${selectedLocation?.id === location.id && selectedLocation?.type === location.type ? 'bg-gray-800' : ''}`}
+                        onClick={() => handleLocationClick(location)}
+                      >
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs uppercase font-medium">
+                          {location.name}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
+                          <span className={getLocationTypeColor(location.type)}>
+                            {getLocationTypeLabel(location.type)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
+                          {location.parentName || '-'}
+                        </td>
+                        <td className="px-4 py-3 whitespace-nowrap text-xs">
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => handleEditLocation(location, e)}
+                              className="p-1.5 text-gray-400 hover:text-blue-400 hover:bg-gray-700 rounded transition-colors"
+                              title="Edit location"
+                            >
+                              <Edit2 size={16} />
+                            </button>
+                            <button
+                              onClick={(e) => handleDeleteLocation(location, e)}
+                              className="p-1.5 text-gray-400 hover:text-red-400 hover:bg-gray-700 rounded transition-colors"
+                              title="Delete location"
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={tableColumns.length} className="px-4 py-12 text-center text-gray-400">
+                        {allLocations.length > 0
+                          ? 'No locations found matching your filters'
+                          : 'No locations found. Create your first location.'}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
