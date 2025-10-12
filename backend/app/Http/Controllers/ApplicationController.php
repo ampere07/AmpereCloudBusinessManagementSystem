@@ -99,35 +99,91 @@ class ApplicationController extends Controller
 
     public function store(Request $request)
     {
-        $validatedData = $request->validate([
-            'email_address' => 'required|email',
-            'first_name' => 'required|string|max:255',
-            'middle_initial' => 'nullable|string|max:1',
-            'last_name' => 'required|string|max:255',
-            'mobile_number' => 'required|string|max:50',
-            'secondary_mobile_number' => 'nullable|string|max:50',
-            'region' => 'required|string|max:255',
-            'city' => 'required|string|max:255',
-            'barangay' => 'nullable|string|max:255',
-            'village' => 'nullable|string|max:255',
-            'installation_address' => 'required',
-            'landmark' => 'nullable',
-            'referred_by' => 'nullable|string|max:255',
-            'desired_plan' => 'nullable|string|max:255',
-            'promo' => 'nullable|string|max:255',
-            'status' => 'nullable|string|max:100'
-        ]);
+        try {
+            $validatedData = $request->validate([
+                'email_address' => 'required|email',
+                'first_name' => 'required|string|max:255',
+                'middle_initial' => 'nullable|string|max:1',
+                'last_name' => 'required|string|max:255',
+                'mobile_number' => 'required|string|max:50',
+                'secondary_mobile_number' => 'nullable|string|max:50',
+                'region' => 'required|string|max:255',
+                'city' => 'required|string|max:255',
+                'barangay' => 'nullable|string|max:255',
+                'village' => 'nullable|string|max:255',
+                'installation_address' => 'required',
+                'landmark' => 'nullable',
+                'referred_by' => 'nullable|string|max:255',
+                'desired_plan' => 'nullable|string|max:255',
+                'promo' => 'nullable|string|max:255',
+                'proof_of_billing_url' => 'nullable|string|max:255',
+                'government_valid_id_url' => 'nullable|string|max:255',
+                'second_government_valid_id_url' => 'nullable|string|max:255',
+                'house_front_picture_url' => 'nullable|string|max:255',
+                'document_attachment_url' => 'nullable|string|max:255',
+                'other_isp_bill_url' => 'nullable|string|max:255',
+                'terms_agreed' => 'nullable|boolean',
+                'status' => 'nullable|string|max:100'
+            ]);
 
-        $validatedData['timestamp'] = now();
-        $validatedData['created_by_user_id'] = auth()->id();
+            $validatedData['timestamp'] = now();
+            $validatedData['created_by_user_id'] = auth()->id();
 
-        $application = Application::create($validatedData);
+            $application = Application::create($validatedData);
 
-        return response()->json([
-            'message' => 'Application created successfully',
-            'application' => $application,
-            'success' => true
-        ], 201);
+            $formattedApplication = [
+                'id' => (string)$application->id,
+                'customer_name' => $this->getFullName($application),
+                'timestamp' => $application->timestamp ? $application->timestamp->format('Y-m-d H:i:s') : null,
+                'address' => $application->installation_address ?? '',
+                'status' => $application->status ?? 'pending',
+                'location' => $this->getLocationName($application->region ?? '', $application->city ?? ''),
+                'email_address' => $application->email_address,
+                'first_name' => $application->first_name,
+                'middle_initial' => $application->middle_initial,
+                'last_name' => $application->last_name,
+                'mobile_number' => $application->mobile_number,
+                'secondary_mobile_number' => $application->secondary_mobile_number,
+                'installation_address' => $application->installation_address,
+                'landmark' => $application->landmark,
+                'region' => $application->region,
+                'city' => $application->city,
+                'barangay' => $application->barangay,
+                'village' => $application->village,
+                'desired_plan' => $application->desired_plan,
+                'promo' => $application->promo,
+                'referred_by' => $application->referred_by,
+                'proof_of_billing_url' => $application->proof_of_billing_url,
+                'government_valid_id_url' => $application->government_valid_id_url,
+                'second_government_valid_id_url' => $application->second_government_valid_id_url,
+                'house_front_picture_url' => $application->house_front_picture_url,
+                'document_attachment_url' => $application->document_attachment_url,
+                'other_isp_bill_url' => $application->other_isp_bill_url,
+                'terms_agreed' => $application->terms_agreed,
+            ];
+
+            return response()->json([
+                'message' => 'Application created successfully',
+                'application' => $formattedApplication,
+                'success' => true
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('ApplicationController store validation error: ' . json_encode($e->errors()));
+            return response()->json([
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+                'success' => false
+            ], 422);
+        } catch (\Exception $e) {
+            Log::error('ApplicationController store error: ' . $e->getMessage());
+            Log::error('ApplicationController store trace: ' . $e->getTraceAsString());
+            
+            return response()->json([
+                'message' => 'Failed to create application',
+                'error' => $e->getMessage(),
+                'success' => false
+            ], 500);
+        }
     }
 
     public function show($id)

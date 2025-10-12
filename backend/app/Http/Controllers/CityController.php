@@ -14,13 +14,16 @@ class CityController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $cities = City::orderBy('name', 'asc')->get();
+            $cities = City::orderBy('city', 'asc')->get();
             
             return response()->json([
                 'success' => true,
                 'data' => $cities,
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('CityController index error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch cities',
@@ -56,15 +59,27 @@ class CityController extends Controller
     public function getByRegion($regionId): JsonResponse
     {
         try {
+            \Illuminate\Support\Facades\Log::info('CityController getByRegion called', [
+                'region_id' => $regionId
+            ]);
+            
             $cities = City::where('region_id', $regionId)
-                ->orderBy('name', 'asc')
+                ->orderBy('city', 'asc')
                 ->get();
+            
+            \Illuminate\Support\Facades\Log::info('Cities found', [
+                'count' => $cities->count(),
+                'region_id' => $regionId
+            ]);
             
             return response()->json([
                 'success' => true,
                 'data' => $cities,
             ]);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('CityController getByRegion error: ' . $e->getMessage());
+            \Illuminate\Support\Facades\Log::error('Trace: ' . $e->getTraceAsString());
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch cities by region',

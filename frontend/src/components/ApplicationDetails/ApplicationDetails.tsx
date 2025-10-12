@@ -9,7 +9,7 @@ import ConfirmationModal from '../../modals/MoveToJoModal';
 import JOAssignFormModal from '../../modals/JOAssignFormModal';
 import ApplicationVisitFormModal from '../../modals/ApplicationVisitFormModal';
 import { JobOrderData } from '../../services/jobOrderService';
-import { ApplicationVisitData } from '../../services/applicationVisitService';
+import { ApplicationVisitData, getApplicationVisits } from '../../services/applicationVisitService';
 
 interface ApplicationDetailsProps {
   application: {
@@ -37,6 +37,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   const [showVisitForm, setShowVisitForm] = useState(false);
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string>('');
+  const [showVisitExistsConfirmation, setShowVisitExistsConfirmation] = useState(false);
 
   const handleMoveToJO = () => {
     setShowMoveConfirmation(true);
@@ -47,8 +48,32 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
     setShowJOAssignForm(true);
   };
 
-  const handleScheduleVisit = () => {
+  const handleScheduleVisit = async () => {
+    try {
+      setLoading(true);
+      
+      const existingVisitsResponse = await getApplicationVisits(application.id);
+      
+      if (existingVisitsResponse.success && existingVisitsResponse.data && existingVisitsResponse.data.length > 0) {
+        setShowVisitExistsConfirmation(true);
+      } else {
+        setShowVisitForm(true);
+      }
+    } catch (error) {
+      console.error('Error checking existing visits:', error);
+      setShowVisitForm(true);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleConfirmCreateNewVisit = () => {
+    setShowVisitExistsConfirmation(false);
     setShowVisitForm(true);
+  };
+
+  const handleCancelCreateNewVisit = () => {
+    setShowVisitExistsConfirmation(false);
   };
 
   const handleStatusChange = (newStatus: string) => {
@@ -100,8 +125,11 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   const handleSaveVisitForm = (formData: ApplicationVisitData) => {
     console.log('Visit scheduled successfully:', formData);
     console.log('Application ID:', application.id);
-    // Visit has already been saved by the modal
     setShowVisitForm(false);
+    
+    if (onApplicationUpdate) {
+      onApplicationUpdate();
+    }
   };
 
   useEffect(() => {
@@ -456,6 +484,17 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         applicationData={detailedApplication}
       />
 
+      {/* Visit Exists Confirmation Modal */}
+      <ConfirmationModal
+        isOpen={showVisitExistsConfirmation}
+        title="Visit Already Exists"
+        message="This application already has a scheduled visit. Do you want to schedule another visit for this application?"
+        confirmText="Continue"
+        cancelText="Cancel"
+        onConfirm={handleConfirmCreateNewVisit}
+        onCancel={handleCancelCreateNewVisit}
+      />
+
       {/* Use the ApplicationVisitFormModal component */}
       <ApplicationVisitFormModal
         isOpen={showVisitForm}
@@ -463,9 +502,8 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         onSave={handleSaveVisitForm}
         applicationData={{
           ...detailedApplication,
-          // Explicitly ensure secondaryNumber is included
+          id: detailedApplication?.id || application.id,
           secondaryNumber: detailedApplication?.mobile_alt || '',
-          // Log what's being passed
           __debug: console.log('DEBUG - Data passed to Visit Modal:', {
             applicationId: application.id,
             mobile_alt: detailedApplication?.mobile_alt,

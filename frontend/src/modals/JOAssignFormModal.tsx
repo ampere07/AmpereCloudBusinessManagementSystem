@@ -30,6 +30,7 @@ interface JOFormData {
   city: string;
   region: string;
   choosePlan: string;
+  promo: string;
   remarks: string;
   installationFee: number;
   contractTemplate: string;
@@ -79,6 +80,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     city: '',
     region: '',
     choosePlan: '',
+    promo: '',
     remarks: '',
     installationFee: 0.00,
     contractTemplate: '0',
@@ -115,6 +117,12 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     price?: number;
   }
 
+  interface Promo {
+    id: number;
+    promo_name: string;
+    description?: string;
+  }
+
   interface ApiResponse<T> {
     success: boolean;
     data: T;
@@ -138,6 +146,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   
   // Plans state
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [promos, setPromos] = useState<Promo[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [groups, setGroups] = useState<Group[]>([]);
 
@@ -244,6 +253,35 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     };
 
     loadPlans();
+  }, [isOpen]);
+
+  // Fetch promos from database
+  useEffect(() => {
+    const loadPromos = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading promos from database...');
+          const response = await apiClient.get<ApiResponse<Promo[]> | Promo[]>('/promos');
+          const data = response.data;
+          
+          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
+            setPromos(data.data);
+            console.log('Loaded promos:', data.data.length);
+          } else if (Array.isArray(data)) {
+            setPromos(data);
+            console.log('Loaded promos:', data.length);
+          } else {
+            console.warn('No promos data found');
+            setPromos([]);
+          }
+        } catch (error) {
+          console.error('Error loading promos:', error);
+          setPromos([]);
+        }
+      }
+    };
+
+    loadPromos();
   }, [isOpen]);
 
   // Fetch regions from database
@@ -403,6 +441,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           city: applicationData.city || '',
           region: applicationData.region || '',
           choosePlan: applicationData.desired_plan || '',
+          promo: applicationData.promo || '',
           installationLandmark: applicationData.landmark || ''
         };
         
@@ -464,7 +503,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         };
       } else if (field === 'billingDay') {
         const currentValue = parseInt(prev[field]) || 1;
-        const newValue = increment ? currentValue + 1 : Math.max(1, currentValue - 1);
+        const newValue = increment ? Math.min(31, currentValue + 1) : Math.max(1, currentValue - 1);
         return {
           ...prev,
           [field]: newValue.toString()
@@ -482,6 +521,21 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    // Required timestamp
+    if (!formData.timestamp.trim()) {
+      newErrors.timestamp = 'Timestamp is required';
+    }
+
+    // Required group
+    if (!formData.groupName.trim()) {
+      newErrors.groupName = 'Group is required';
+    }
+
+    // Required status
+    if (!formData.status.trim()) {
+      newErrors.status = 'Status is required';
+    }
 
     // Required personal information
     if (!formData.firstName.trim()) {
@@ -504,13 +558,36 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       newErrors.email = 'Please enter a valid email address';
     }
     
+    // Required address information
     if (!formData.address.trim()) {
       newErrors.address = 'Address is required';
+    }
+
+    if (!formData.region.trim()) {
+      newErrors.region = 'Region is required';
+    }
+
+    if (!formData.city.trim()) {
+      newErrors.city = 'City is required';
+    }
+
+    if (!formData.barangay.trim()) {
+      newErrors.barangay = 'Barangay is required';
+    }
+
+    // Required plan
+    if (!formData.choosePlan.trim()) {
+      newErrors.choosePlan = 'Choose Plan is required';
     }
     
     // Validate installation fee (must be non-negative)
     if (formData.installationFee < 0) {
       newErrors.installationFee = 'Installation fee cannot be negative';
+    }
+
+    // Required contract template
+    if (!formData.contractTemplate.trim()) {
+      newErrors.contractTemplate = 'Contract Template is required';
     }
     
     // Validate billing day
@@ -518,16 +595,19 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     if (!formData.isLastDayOfMonth) {
       if (isNaN(billingDayNum) || billingDayNum < 1) {
         newErrors.billingDay = 'Billing Day must be at least 1';
-      } else if (billingDayNum > 1000) {
-        newErrors.billingDay = 'Billing Day cannot exceed 1000';
+      } else if (billingDayNum > 31) {
+        newErrors.billingDay = 'Billing Day cannot exceed 31';
       }
     }
-    
-    // Validate contract template (must be a valid number if provided)
-    if (formData.contractTemplate && formData.contractTemplate !== '0') {
-      const templateNum = parseInt(formData.contractTemplate);
-      if (isNaN(templateNum)) {
-        newErrors.contractTemplate = 'Contract Template must be a valid number';
+
+    // Conditional required fields when status is 'Confirmed'
+    if (formData.status === 'Confirmed') {
+      if (!formData.onsiteStatus.trim()) {
+        newErrors.onsiteStatus = 'Onsite Status is required when status is Confirmed';
+      }
+
+      if (formData.onsiteStatus !== 'Failed' && !formData.assignedEmail.trim()) {
+        newErrors.assignedEmail = 'Assigned Email is required when onsite status is not Failed';
       }
     }
 
@@ -702,10 +782,11 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   type="datetime-local"
                   value={formData.timestamp}
                   onChange={(e) => handleInputChange('timestamp', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.timestamp ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 />
                 <Calendar className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {errors.timestamp && <p className="text-red-500 text-xs mt-1">{errors.timestamp}</p>}
             </div>
 
             <div>
@@ -716,7 +797,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.groupName}
                   onChange={(e) => handleInputChange('groupName', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Group</option>
                   {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
@@ -730,6 +811,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {errors.groupName && <p className="text-red-500 text-xs mt-1">{errors.groupName}</p>}
             </div>
 
             <div>
@@ -740,7 +822,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.status}
                   onChange={(e) => handleInputChange('status', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.status ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="" disabled>Select Status</option>
                   <option value="Confirmed">Confirmed</option>
@@ -749,6 +831,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {errors.status && <p className="text-red-500 text-xs mt-1">{errors.status}</p>}
             </div>
 
             <div>
@@ -850,7 +933,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   value={formData.region}
                   onChange={(e) => handleInputChange('region', e.target.value)}
                   disabled={locationsLoading}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
                 >
                   <option value="">Select Region</option>
                   {formData.region && !regions.some(r => r.region === formData.region) && (
@@ -867,6 +950,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {locationsLoading && (
                 <p className="text-gray-400 text-xs mt-1">Loading regions...</p>
               )}
+              {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
             </div>
 
             <div>
@@ -878,7 +962,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
                   disabled={!selectedRegionId}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
                 >
                   <option value="">Select City</option>
                   {formData.city && !cities.some(c => c.city === formData.city) && (
@@ -892,6 +976,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
             </div>
 
             <div>
@@ -903,7 +988,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
                   disabled={!selectedCityId}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
                 >
                   <option value="">Select Barangay</option>
                   {formData.barangay && !barangays.some(b => b.barangay === formData.barangay) && (
@@ -917,6 +1002,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
+              {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
             </div>
           </div>
 
@@ -929,7 +1015,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.choosePlan}
                   onChange={(e) => handleInputChange('choosePlan', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Plan</option>
                   {formData.choosePlan && !plans.some(p => p.name === formData.choosePlan) && (
@@ -938,6 +1024,33 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   {plans.map((plan) => (
                     <option key={plan.id} value={plan.name}>
                       {plan.name}{plan.price ? ` - ₱${parseFloat(plan.price.toString()).toFixed(2)}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+              </div>
+              {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
+            </div>
+
+            {/* Promo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Promo
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.promo}
+                  onChange={(e) => handleInputChange('promo', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                >
+                  <option value="">Select Promo</option>
+                  <option value="None">None</option>
+                  {formData.promo && formData.promo !== 'None' && !promos.some(p => p.promo_name === formData.promo) && (
+                    <option value={formData.promo}>{formData.promo}</option>
+                  )}
+                  {promos.map((promo) => (
+                    <option key={promo.id} value={promo.promo_name}>
+                      {promo.promo_name}{promo.description ? ` - ${promo.description}` : ''}
                     </option>
                   ))}
                 </select>
@@ -978,12 +1091,12 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Contract Template<span className="text-red-500">*</span>
               </label>
-              <div className="flex items-center bg-gray-800 border border-gray-700 rounded">
+              <div className={`flex items-center bg-gray-800 border ${errors.contractTemplate ? 'border-red-500' : 'border-gray-700'} rounded`}>
                 <input
                   type="number"
                   value={formData.contractTemplate}
                   onChange={(e) => handleInputChange('contractTemplate', e.target.value)}
-                  className={`flex-1 px-3 py-2 bg-transparent text-white focus:outline-none ${errors.contractTemplate ? 'border-red-500' : ''}`}
+                  className="flex-1 px-3 py-2 bg-transparent text-white focus:outline-none"
                 />
                 <div className="flex">
                   <button
@@ -1013,7 +1126,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <input
                   type="number"
                   min="1"
-                  max="1000"
+                  max="31"
                   value={formData.billingDay}
                   onChange={(e) => handleInputChange('billingDay', e.target.value)}
                   disabled={formData.isLastDayOfMonth}
@@ -1052,10 +1165,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 </label>
               </div>
               
-              {parseInt(formData.billingDay) > 1000 && !formData.isLastDayOfMonth && (
+              {parseInt(formData.billingDay) > 31 && !formData.isLastDayOfMonth && (
                 <p className="text-orange-500 text-xs mt-1 flex items-center">
                   <span className="mr-1">⚠</span>
-                  Billing Day count cannot exceed 1000
+                  Billing Day must be between 1 and 31
                 </p>
               )}
               {errors.billingDay && <p className="text-red-500 text-xs mt-1">{errors.billingDay}</p>}
@@ -1072,7 +1185,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   <select
                     value={formData.onsiteStatus}
                     onChange={(e) => handleInputChange('onsiteStatus', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                    className={`w-full px-3 py-2 bg-gray-800 border ${errors.onsiteStatus ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                   >
                     <option value="In Progress">In Progress</option>
                     <option value="Done">Done</option>
@@ -1081,6 +1194,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
                 </div>
+                {errors.onsiteStatus && <p className="text-red-500 text-xs mt-1">{errors.onsiteStatus}</p>}
               </div>
             )}
 
@@ -1093,7 +1207,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   <select
                     value={formData.assignedEmail}
                     onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                    className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                   >
                     <option value="">Select Assigned Email</option>
                     {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && (
@@ -1107,6 +1221,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
                 </div>
+                {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
               </div>
             )}
 
