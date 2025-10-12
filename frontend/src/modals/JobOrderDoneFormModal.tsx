@@ -7,6 +7,7 @@ import { userService } from '../services/userService';
 import { planService, Plan } from '../services/planService';
 import { routerModelService, RouterModel } from '../services/routerModelService';
 import { getAllPorts, Port } from '../services/portService';
+import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
 import { getAllVLANs, VLAN } from '../services/vlanService';
 import { getAllGroups, Group } from '../services/groupService';
 import { getAllUsageTypes, UsageType } from '../services/usageTypeService';
@@ -19,25 +20,7 @@ interface JobOrderDoneFormModalProps {
   jobOrderData?: any;
 }
 
-interface LCPData {
-  id: number;
-  lcp_name: string;
-}
 
-interface LCPResponse {
-  success: boolean;
-  data: LCPData[];
-}
-
-interface NAPData {
-  id: number;
-  nap_name: string;
-}
-
-interface NAPResponse {
-  success: boolean;
-  data: NAPData[];
-}
 
 interface JobOrderDoneFormData {
   referredBy: string;
@@ -60,8 +43,7 @@ interface JobOrderDoneFormData {
   routerModel: string;
   modemSN: string;
   groupName: string;
-  lcp: string;
-  nap: string;
+  lcpnap: string;
   port: string;
   vlan: string;
   username: string;
@@ -128,8 +110,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     routerModel: '',
     modemSN: '',
     groupName: '',
-    lcp: '',
-    nap: '',
+    lcpnap: '',
     port: '',
     vlan: '',
     username: '',
@@ -167,67 +148,35 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [routerModels, setRouterModels] = useState<RouterModel[]>([]);
-  const [lcps, setLcps] = useState<LCPData[]>([]);
-  const [naps, setNaps] = useState<NAPData[]>([]);
+  const [lcpnaps, setLcpnaps] = useState<LCPNAP[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
   const [vlans, setVlans] = useState<VLAN[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
 
   useEffect(() => {
-    const fetchLcps = async () => {
+    const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Loading LCPs from database...');
-          const response = await apiClient.get<LCPResponse>('/lcp');
-          console.log('LCP API Response:', response.data);
+          console.log('Loading LCPNAP records from database...');
+          const response = await getAllLCPNAPs();
+          console.log('LCPNAP API Response:', response);
           
-          if (response.data?.success && Array.isArray(response.data.data)) {
-            setLcps(response.data.data);
-            console.log('Loaded LCPs:', response.data.data.length);
-          } else if (Array.isArray(response.data)) {
-            setLcps(response.data as LCPData[]);
-            console.log('Loaded LCPs:', response.data.length);
+          if (response.success && Array.isArray(response.data)) {
+            setLcpnaps(response.data);
+            console.log('Loaded LCPNAP records:', response.data.length);
           } else {
-            console.warn('Unexpected LCP response structure:', response.data);
-            setLcps([]);
+            console.warn('Unexpected LCPNAP response structure:', response);
+            setLcpnaps([]);
           }
         } catch (error) {
-          console.error('Error fetching LCPs:', error);
-          setLcps([]);
+          console.error('Error fetching LCPNAP records:', error);
+          setLcpnaps([]);
         }
       }
     };
     
-    fetchLcps();
-  }, [isOpen]);
-
-  useEffect(() => {
-    const fetchNaps = async () => {
-      if (isOpen) {
-        try {
-          console.log('Loading NAPs from database...');
-          const response = await apiClient.get<NAPResponse>('/nap');
-          console.log('NAP API Response:', response.data);
-          
-          if (response.data?.success && Array.isArray(response.data.data)) {
-            setNaps(response.data.data);
-            console.log('Loaded NAPs:', response.data.data.length);
-          } else if (Array.isArray(response.data)) {
-            setNaps(response.data as NAPData[]);
-            console.log('Loaded NAPs:', response.data.length);
-          } else {
-            console.warn('Unexpected NAP response structure:', response.data);
-            setNaps([]);
-          }
-        } catch (error) {
-          console.error('Error fetching NAPs:', error);
-          setNaps([]);
-        }
-      }
-    };
-    
-    fetchNaps();
+    fetchLcpnaps();
   }, [isOpen]);
 
   useEffect(() => {
@@ -412,8 +361,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         routerModel: '',
         modemSN: '',
         groupName: '',
-        lcp: '',
-        nap: '',
+        lcpnap: '',
         port: '',
         vlan: '',
         username: '',
@@ -478,8 +426,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
         modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
         groupName: jobOrderData.group_name || jobOrderData.Group_Name || '',
-        lcp: jobOrderData.LCP || jobOrderData.lcp || '',
-        nap: jobOrderData.NAP || jobOrderData.nap || '',
+        lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
         port: jobOrderData.PORT || jobOrderData.port || '',
         vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
         username: jobOrderData.Username || jobOrderData.username || '',
@@ -560,8 +507,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           if (!formData.ip.trim()) newErrors.ip = 'IP is required';
           if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
         } else if (formData.connectionType === 'Fiber') {
-          if (!formData.lcp.trim()) newErrors.lcp = 'LCP is required';
-          if (!formData.nap.trim()) newErrors.nap = 'NAP is required';
+          if (!formData.lcpnap.trim()) newErrors.lcpnap = 'LCP-NAP is required';
           if (!formData.port.trim()) newErrors.port = 'PORT is required';
           if (!formData.vlan.trim()) newErrors.vlan = 'VLAN is required';
         } else if (formData.connectionType === 'Local') {
@@ -661,8 +607,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           jobOrderUpdateData.Router_Model = updatedFormData.routerModel;
           jobOrderUpdateData.Modem_SN = updatedFormData.modemSN;
           jobOrderUpdateData.IP = updatedFormData.ip;
-          jobOrderUpdateData.LCP = updatedFormData.lcp;
-          jobOrderUpdateData.NAP = updatedFormData.nap;
+          jobOrderUpdateData.LCPNAP = updatedFormData.lcpnap;
           jobOrderUpdateData.PORT = updatedFormData.port;
           jobOrderUpdateData.VLAN = updatedFormData.vlan;
           jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
@@ -1024,46 +969,22 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           {formData.status === 'Confirmed' && formData.onsiteStatus === 'Done' && formData.connectionType === 'Fiber' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">LCP<span className="text-red-500">*</span></label>
+                <label className="block text-sm font-medium text-gray-300 mb-2">LCP-NAP<span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select value={formData.lcp} onChange={(e) => handleInputChange('lcp', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcp ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value="">Select LCP</option>
-                    {formData.lcp && !lcps.some(l => l.lcp_name === formData.lcp) && (
-                      <option value={formData.lcp}>{formData.lcp}</option>
+                  <select value={formData.lcpnap} onChange={(e) => handleInputChange('lcpnap', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                    <option value="">Select LCP-NAP</option>
+                    {formData.lcpnap && !lcpnaps.some(ln => ln.lcpnap_name === formData.lcpnap) && (
+                      <option value={formData.lcpnap}>{formData.lcpnap}</option>
                     )}
-                    {lcps.map((lcp) => (
-                      <option key={lcp.id} value={lcp.lcp_name}>
-                        {lcp.lcp_name}
+                    {lcpnaps.map((lcpnap) => (
+                      <option key={lcpnap.id} value={lcpnap.lcpnap_name}>
+                        {lcpnap.lcpnap_name}
                       </option>
                     ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
-                {errors.lcp && (
-                  <div className="flex items-center mt-1">
-                    <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                    <p className="text-orange-500 text-xs">This entry is required</p>
-                  </div>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">NAP<span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <select value={formData.nap} onChange={(e) => handleInputChange('nap', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.nap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value="">Select NAP</option>
-                    {formData.nap && !naps.some(n => n.nap_name === formData.nap) && (
-                      <option value={formData.nap}>{formData.nap}</option>
-                    )}
-                    {naps.map((nap) => (
-                      <option key={nap.id} value={nap.nap_name}>
-                        {nap.nap_name}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
-                </div>
-                {errors.nap && (
+                {errors.lcpnap && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>

@@ -25,6 +25,7 @@ interface VisitFormData {
   city: string;
   region: string;
   choosePlan: string;
+  promo: string;
   remarks: string;
   assignedEmail: string;
   visit_by: string;
@@ -93,6 +94,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       city: applicationData?.city || '',
       region: applicationData?.region || '',
       choosePlan: applicationData?.desired_plan || 'SwitchConnect - P799',
+      promo: applicationData?.promo || '',
       remarks: '',
       assignedEmail: '',
       visit_by: '',
@@ -133,6 +135,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     price?: number;
   }
 
+  interface Promo {
+    id: number;
+    promo_name: string;
+    description?: string;
+  }
+
   interface ApiResponse<T> {
     success: boolean;
     data: T;
@@ -143,6 +151,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const [cities, setCities] = useState<City[]>([]);
   const [barangays, setBarangays] = useState<Barangay[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [promos, setPromos] = useState<Promo[]>([]);
   const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
   const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
@@ -173,6 +182,35 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     };
 
     loadPlans();
+  }, [isOpen]);
+
+  // Fetch promos from database
+  useEffect(() => {
+    const loadPromos = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading promos from database...');
+          const response = await apiClient.get<ApiResponse<Promo[]> | Promo[]>('/promos');
+          const data = response.data;
+          
+          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
+            setPromos(data.data);
+            console.log('Loaded promos:', data.data.length);
+          } else if (Array.isArray(data)) {
+            setPromos(data);
+            console.log('Loaded promos:', data.length);
+          } else {
+            console.warn('No promos data found');
+            setPromos([]);
+          }
+        } catch (error) {
+          console.error('Error loading promos:', error);
+          setPromos([]);
+        }
+      }
+    };
+
+    loadPromos();
   }, [isOpen]);
 
   // Fetch regions from database
@@ -357,7 +395,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
           barangay: applicationData.barangay || prev.barangay,
           city: applicationData.city || prev.city,
           region: applicationData.region || prev.region,
-          choosePlan: applicationData.desired_plan || prev.choosePlan
+          choosePlan: applicationData.desired_plan || prev.choosePlan,
+          promo: applicationData.promo || prev.promo
         };
       });
     }
@@ -744,6 +783,32 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
               </div>
               {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
+            </div>
+
+            {/* Promo */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Promo
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.promo}
+                  onChange={(e) => handleInputChange('promo', e.target.value)}
+                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                >
+                  <option value="">Select Promo</option>
+                  <option value="None">None</option>
+                  {formData.promo && formData.promo !== 'None' && !promos.some(p => p.promo_name === formData.promo) && (
+                    <option value={formData.promo}>{formData.promo}</option>
+                  )}
+                  {promos.map((promo) => (
+                    <option key={promo.id} value={promo.promo_name}>
+                      {promo.promo_name}{promo.description ? ` - ${promo.description}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+              </div>
             </div>
 
             {/* Remarks */}

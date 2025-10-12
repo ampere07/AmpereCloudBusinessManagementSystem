@@ -1061,6 +1061,13 @@ Route::get('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, '
 Route::put('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'update']);
 Route::delete('/plans/{id}', [\App\Http\Controllers\Api\PlanApiController::class, 'destroy']);
 
+// Promo Management Routes - Direct routes at API root level for maximum compatibility
+Route::get('/promos', [\App\Http\Controllers\Api\PromoApiController::class, 'index']);
+Route::post('/promos', [\App\Http\Controllers\Api\PromoApiController::class, 'store']);
+Route::get('/promos/{id}', [\App\Http\Controllers\Api\PromoApiController::class, 'show']);
+Route::put('/promos/{id}', [\App\Http\Controllers\Api\PromoApiController::class, 'update']);
+Route::delete('/promos/{id}', [\App\Http\Controllers\Api\PromoApiController::class, 'destroy']);
+
 // Router Models Management Routes
 Route::prefix('router-models')->group(function () {
     Route::get('/', [\App\Http\Controllers\RouterModelController::class, 'index']);
