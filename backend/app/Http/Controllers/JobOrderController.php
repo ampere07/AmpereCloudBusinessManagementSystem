@@ -9,8 +9,6 @@ use App\Models\BillingAccount;
 use App\Models\Application;
 use App\Models\ModemRouterSN;
 use App\Models\ContractTemplate;
-use App\Models\LCP;
-use App\Models\NAP;
 use App\Models\Port;
 use App\Models\VLAN;
 use App\Models\LCPNAP;
@@ -326,8 +324,6 @@ class JobOrderController extends Controller
                 'router_model' => $jobOrder->router_model,
                 'router_modem_sn' => $modemSN,
                 'ip_address' => $jobOrder->ip_address,
-                'lcp' => null,
-                'nap' => null,
                 'port' => $jobOrder->port,
                 'vlan' => $jobOrder->vlan,
                 'lcpnap' => $jobOrder->lcpnap,
@@ -398,40 +394,6 @@ class JobOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch contract templates',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function getLCPs(): JsonResponse
-    {
-        try {
-            $lcps = LCP::all();
-            return response()->json([
-                'success' => true,
-                'data' => $lcps,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch LCPs',
-                'error' => $e->getMessage(),
-            ], 500);
-        }
-    }
-
-    public function getNAPs(): JsonResponse
-    {
-        try {
-            $naps = NAP::all();
-            return response()->json([
-                'success' => true,
-                'data' => $naps,
-            ]);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to fetch NAPs',
                 'error' => $e->getMessage(),
             ], 500);
         }

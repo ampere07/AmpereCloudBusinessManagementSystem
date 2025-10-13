@@ -5,6 +5,7 @@ import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
 import { userService } from '../services/userService';
 import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
+import { getAllPorts, Port } from '../services/portService';
 
 interface JobOrderEditFormModalProps {
   isOpen: boolean;
@@ -44,7 +45,7 @@ interface JobOrderEditFormData {
   setupImage: File | null;
   boxReadingImage: File | null;
   routerReadingImage: File | null;
-  clientSignature: string | null;
+  clientSignatureImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
   contractLink: string;
@@ -109,7 +110,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     setupImage: null,
     boxReadingImage: null,
     routerReadingImage: null,
-    clientSignature: null,
+    clientSignatureImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
       month: '2-digit',
@@ -134,6 +135,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [lcpnaps, setLcpnaps] = useState<LCPNAP[]>([]);
+  const [ports, setPorts] = useState<Port[]>([]);
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -168,19 +170,22 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Loading LCPNAP records from database...');
+          console.log('Fetching LCPNAP data from database...');
           const response = await getAllLCPNAPs();
           console.log('LCPNAP API Response:', response);
+          console.log('LCPNAP Data:', response.data);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Loaded LCPNAP records:', response.data.length);
+            console.log('Successfully loaded LCPNAP records:', response.data.length);
+            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
             console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
           console.error('Error fetching LCPNAP records:', error);
+          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }
@@ -188,6 +193,32 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     
     fetchLcpnaps();
   }, [isOpen]);
+
+  useEffect(() => {
+    const fetchPorts = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading Ports from database...');
+          const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
+          const response = await getAllPorts('', 1, 100, true, jobOrderId);
+          console.log('Port API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setPorts(response.data);
+            console.log('Loaded Ports:', response.data.length);
+          } else {
+            console.warn('Unexpected Port response structure:', response);
+            setPorts([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Ports:', error);
+          setPorts([]);
+        }
+      }
+    };
+    
+    fetchPorts();
+  }, [isOpen, jobOrderData]);
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
@@ -243,7 +274,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'clientSignatureImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -301,7 +332,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
         if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
         if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
-        if (!formData.clientSignature) newErrors.clientSignature = 'Client Signature is required';
+        if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
         if (!formData.itemName1.trim()) newErrors.itemName1 = 'Item Name 1 is required';
         if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
         if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
@@ -702,7 +733,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">LCP-NAP<span className="text-red-500">*</span></label>
                 <div className="relative">
-                  <select value={formData.lcpnap} onChange={(e) => handleInputChange('lcpnap', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                  <select 
+                    value={formData.lcpnap} 
+                    onChange={(e) => handleInputChange('lcpnap', e.target.value)} 
+                    className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                  >
                     <option value="">Select LCP-NAP</option>
                     {formData.lcpnap && !lcpnaps.some(ln => ln.lcpnap_name === formData.lcpnap) && (
                       <option value={formData.lcpnap}>{formData.lcpnap}</option>
@@ -727,9 +762,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">PORT<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.port} onChange={(e) => handleInputChange('port', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.port ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
-                    <option value="Port1">Port1</option>
-                    <option value="Port2">Port2</option>
+                    <option value="">Select PORT</option>
+                    {formData.port && !ports.some(p => p.Label === formData.port) && (
+                      <option value={formData.port}>{formData.port}</option>
+                    )}
+                    {ports.map((port) => (
+                      <option key={port.id} value={port.Label}>
+                        {port.Label}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
@@ -943,11 +984,16 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature<span className="text-red-500">*</span></label>
-                    <div className="w-full h-40 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-                      <span className="text-gray-400">Signature canvas placeholder</span>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature Image<span className="text-red-500">*</span></label>
+                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
+                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('clientSignatureImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                      {formData.clientSignatureImage ? (
+                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
+                      ) : (
+                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
+                      )}
                     </div>
-                    {errors.clientSignature && (
+                    {errors.clientSignatureImage && (
                       <div className="flex items-center mt-1">
                         <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                         <p className="text-orange-500 text-xs">This entry is required</p>

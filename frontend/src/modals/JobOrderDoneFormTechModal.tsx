@@ -42,7 +42,7 @@ interface JobOrderDoneFormData {
   boxReadingImage: File | null;
   routerReadingImage: File | null;
   portLabelImage: File | null;
-  clientSignature: string | null;
+  clientSignatureImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
   itemName1: string;
@@ -98,7 +98,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     boxReadingImage: null,
     routerReadingImage: null,
     portLabelImage: null,
-    clientSignature: null,
+    clientSignatureImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
       month: '2-digit',
@@ -141,19 +141,22 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Loading LCPNAP records from database...');
+          console.log('Fetching LCPNAP data from database...');
           const response = await getAllLCPNAPs();
           console.log('LCPNAP API Response:', response);
+          console.log('LCPNAP Data:', response.data);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Loaded LCPNAP records:', response.data.length);
+            console.log('Successfully loaded LCPNAP records:', response.data.length);
+            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
             console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
           console.error('Error fetching LCPNAP records:', error);
+          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }
@@ -166,7 +169,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchPorts = async () => {
       if (isOpen) {
         try {
-          const response = await getAllPorts();
+          const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
+          const response = await getAllPorts('', 1, 100, true, jobOrderId);
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
           } else {
@@ -179,7 +183,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       }
     };
     fetchPorts();
-  }, [isOpen]);
+  }, [isOpen, jobOrderData]);
 
   useEffect(() => {
     const fetchVlans = async () => {
@@ -366,7 +370,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -439,7 +443,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
       if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
       if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
-      if (!formData.clientSignature) newErrors.clientSignature = 'Client Signature is required';
+      if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
     }
     
     if (formData.onsiteStatus === 'Failed' || formData.onsiteStatus === 'Reschedule') {
@@ -766,7 +770,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">LCP-NAP<span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <select value={formData.lcpnap} onChange={(e) => handleInputChange('lcpnap', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                      <select 
+                        value={formData.lcpnap} 
+                        onChange={(e) => handleInputChange('lcpnap', e.target.value)} 
+                        className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                      >
                         <option value="">Select LCP-NAP</option>
                         {formData.lcpnap && !lcpnaps.some(ln => ln.lcpnap_name === formData.lcpnap) && (
                           <option value={formData.lcpnap}>{formData.lcpnap}</option>
@@ -816,12 +824,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                     <div className="relative">
                       <select value={formData.vlan} onChange={(e) => handleInputChange('vlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.vlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                         <option value="">Select VLAN</option>
-                        {formData.vlan && !vlans.some(v => v.Value === formData.vlan) && (
+                        {formData.vlan && !vlans.some(v => v.value.toString() === formData.vlan) && (
                           <option value={formData.vlan}>{formData.vlan}</option>
                         )}
                         {vlans.map((vlan) => (
-                          <option key={vlan.id} value={vlan.Value}>
-                            {vlan.Value}
+                          <option key={vlan.vlan_id} value={vlan.value}>
+                            {vlan.value}
                           </option>
                         ))}
                       </select>
@@ -1009,11 +1017,16 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature<span className="text-red-500">*</span></label>
-                <div className="w-full h-40 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-                  <span className="text-gray-400">Signature canvas placeholder</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature Image<span className="text-red-500">*</span></label>
+                <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('clientSignatureImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  {formData.clientSignatureImage ? (
+                    <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
+                  ) : (
+                    <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
+                  )}
                 </div>
-                {errors.clientSignature && (
+                {errors.clientSignatureImage && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>

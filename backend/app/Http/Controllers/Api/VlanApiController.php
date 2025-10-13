@@ -9,11 +9,6 @@ use Illuminate\Support\Facades\Validator;
 
 class VlanApiController extends Controller
 {
-    private function getCurrentUser()
-    {
-        return 'ravenampere0123@gmail.com';
-    }
-
     public function index(Request $request)
     {
         try {
@@ -24,14 +19,14 @@ class VlanApiController extends Controller
             $query = VLAN::query();
             
             if (!empty($search)) {
-                $query->where('Value', 'like', '%' . $search . '%')
-                      ->orWhere('VLAN_ID', 'like', '%' . $search . '%');
+                $query->where('value', 'like', '%' . $search . '%')
+                      ->orWhere('vlan_id', 'like', '%' . $search . '%');
             }
             
             $totalItems = $query->count();
             $totalPages = ceil($totalItems / $limit);
             
-            $vlanItems = $query->orderBy('Value')
+            $vlanItems = $query->orderBy('value')
                              ->skip(($page - 1) * $limit)
                              ->take($limit)
                              ->get();
@@ -63,7 +58,7 @@ class VlanApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'value' => 'required|string|max:255',
+                'value' => 'required|integer',
                 'vlan_id' => 'required|string|max:255',
             ]);
 
@@ -78,7 +73,7 @@ class VlanApiController extends Controller
             $value = $request->input('value');
             $vlanId = $request->input('vlan_id');
             
-            $existing = VLAN::where('VLAN_ID', $vlanId)->first();
+            $existing = VLAN::where('vlan_id', $vlanId)->first();
             if ($existing) {
                 return response()->json([
                     'success' => false,
@@ -87,8 +82,8 @@ class VlanApiController extends Controller
             }
             
             $vlan = new VLAN();
-            $vlan->VLAN_ID = $vlanId;
-            $vlan->Value = $value;
+            $vlan->vlan_id = $vlanId;
+            $vlan->value = $value;
             $vlan->save();
             
             return response()->json([
@@ -135,7 +130,7 @@ class VlanApiController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'value' => 'required|string|max:255',
+                'value' => 'required|integer',
                 'vlan_id' => 'required|string|max:255',
             ]);
 
@@ -158,7 +153,7 @@ class VlanApiController extends Controller
             $value = $request->input('value');
             $vlanId = $request->input('vlan_id');
             
-            $duplicate = VLAN::where('VLAN_ID', $vlanId)->where('id', '!=', $id)->first();
+            $duplicate = VLAN::where('vlan_id', $vlanId)->where('vlan_id', '!=', $id)->first();
             if ($duplicate) {
                 return response()->json([
                     'success' => false,
@@ -166,8 +161,8 @@ class VlanApiController extends Controller
                 ], 422);
             }
             
-            $vlan->VLAN_ID = $vlanId;
-            $vlan->Value = $value;
+            $vlan->vlan_id = $vlanId;
+            $vlan->value = $value;
             $vlan->save();
             
             return response()->json([

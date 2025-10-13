@@ -908,8 +908,6 @@ Route::prefix('job-orders')->middleware('ensure.database.tables')->group(functio
     // Lookup table endpoints
     Route::get('/lookup/modem-router-sns', [JobOrderController::class, 'getModemRouterSNs']);
     Route::get('/lookup/contract-templates', [JobOrderController::class, 'getContractTemplates']);
-    Route::get('/lookup/lcps', [JobOrderController::class, 'getLCPs']);
-    Route::get('/lookup/naps', [JobOrderController::class, 'getNAPs']);
     Route::get('/lookup/ports', [JobOrderController::class, 'getPorts']);
     Route::get('/lookup/vlans', [JobOrderController::class, 'getVLANs']);
     Route::get('/lookup/lcpnaps', [JobOrderController::class, 'getLCPNAPs']);
@@ -1198,6 +1196,37 @@ Route::prefix('lcp-nap-list')->group(function () {
     Route::get('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'show']);
     Route::put('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'destroy']);
+});
+
+// LCPNAP Routes (singular) for frontend compatibility
+Route::prefix('lcpnap')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'getStatistics']);
+    Route::get('/lookup', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'getLookupData']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'destroy']);
+});
+
+// VLANs (plural) for frontend compatibility
+Route::prefix('vlans')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\VlanApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\VlanApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\VlanApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'destroy']);
+});
+
+// Inventory Items for frontend compatibility
+Route::prefix('inventory-items')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\InventoryApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\InventoryApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\InventoryApiController::class, 'getStatistics']);
+    Route::get('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'show']);
+    Route::put('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'update']);
+    Route::delete('/{itemName}', [\App\Http\Controllers\Api\InventoryApiController::class, 'destroy']);
 });
 
 

@@ -22,11 +22,17 @@ export interface Port {
   updated_at?: string;
 }
 
-export const getAllPorts = async (search?: string, page: number = 1, limit: number = 100): Promise<ApiResponse<Port[]>> => {
+export const getAllPorts = async (search?: string, page: number = 1, limit: number = 100, excludeUsed: boolean = false, currentJobOrderId?: number): Promise<ApiResponse<Port[]>> => {
   try {
     const params: any = { page, limit };
     if (search) {
       params.search = search;
+    }
+    if (excludeUsed) {
+      params.exclude_used = true;
+    }
+    if (currentJobOrderId) {
+      params.current_job_order_id = currentJobOrderId;
     }
     
     const response = await apiClient.get<ApiResponse<Port[]>>('/ports', { params });
