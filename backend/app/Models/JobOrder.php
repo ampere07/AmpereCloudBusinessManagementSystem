@@ -70,4 +70,9 @@ class JobOrder extends Model
     {
         return $this->belongsTo(Application::class, 'application_id', 'id');
     }
+
+    public function items()
+    {
+        return $this->hasMany(JobOrderItem::class, 'job_order_id', 'id');
+    }
 }

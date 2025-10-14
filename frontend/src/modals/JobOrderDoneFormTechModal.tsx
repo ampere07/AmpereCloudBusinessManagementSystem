@@ -534,30 +534,80 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       console.log('Job order updated successfully:', jobOrderResponse);
 
       if (updatedFormData.onsiteStatus === 'Done') {
+        console.log('========== ITEMS BEFORE FILTERING ==========');
+        console.log('Total order items count:', orderItems.length);
+        orderItems.forEach((item, index) => {
+          console.log(`Item ${index + 1}:`, {
+            itemId: item.itemId,
+            itemId_type: typeof item.itemId,
+            itemId_isEmpty: item.itemId === '',
+            itemId_length: item.itemId.length,
+            quantity: item.quantity,
+            quantity_type: typeof item.quantity,
+            quantity_parsed: parseInt(item.quantity),
+            quantity_isValid: !isNaN(parseInt(item.quantity)) && parseInt(item.quantity) > 0
+          });
+        });
+        console.log('==========================================');
+
         const validItems = orderItems.filter(item => {
-          const itemId = parseInt(item.itemId);
           const quantity = parseInt(item.quantity);
-          return !isNaN(itemId) && itemId > 0 && !isNaN(quantity) && quantity > 0;
+          const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
+          
+          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
+          
+          return isValid;
         });
 
-        if (validItems.length > 0) {
-          const jobOrderItems: JobOrderItem[] = validItems.map(item => ({
-            job_order_id: parseInt(jobOrderId.toString()),
-            item_id: parseInt(item.itemId),
-            quantity: parseInt(item.quantity)
-          }));
+        console.log('Filtered valid items:', validItems);
+        console.log('Total order items:', orderItems);
 
-          console.log('Creating job order items:', jobOrderItems);
+        if (validItems.length > 0) {
+          const jobOrderItems: JobOrderItem[] = validItems.map(item => {
+            return {
+              job_order_id: parseInt(jobOrderId.toString()),
+              item_name: item.itemId,
+              quantity: parseInt(item.quantity)
+            };
+          });
+
+          console.log('Sending job order items to API:');
+          console.log('- Job Order ID:', jobOrderId);
+          console.log('- Items:', JSON.stringify(jobOrderItems, null, 2));
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
+            
+            if (!itemsResponse.success) {
+              throw new Error(itemsResponse.message || 'Failed to create job order items');
+            }
+            
             console.log('Job order items created successfully:', itemsResponse);
+            console.log('Items saved:', itemsResponse.data);
           } catch (itemsError: any) {
+            console.error('========== JOB ORDER ITEMS ERROR ==========');
             console.error('Error creating job order items:', itemsError);
+            console.error('Error message:', itemsError.message);
+            console.error('Error response:', itemsError.response);
+            console.error('Error response data:', itemsError.response?.data);
+            console.error('Error response status:', itemsError.response?.status);
+            console.error('Items that failed:', jobOrderItems);
+            console.error('=========================================');
+            
             const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
-            console.error('Detailed error:', errorMsg, itemsError.response?.data);
-            alert(`Job order saved but failed to save items: ${errorMsg}. Please add items manually.`);
+            const validationErrors = itemsError.response?.data?.errors;
+            
+            let errorDetails = `Failed to save items: ${errorMsg}`;
+            if (validationErrors) {
+              errorDetails += '\n\nValidation Errors:\n' + JSON.stringify(validationErrors, null, 2);
+            }
+            
+            alert(`Job order saved but items were not saved:\n\n${errorDetails}\n\nPlease check the console for more details or contact support.`);
+            setLoading(false);
+            return;
           }
+        } else {
+          console.warn('No valid items to save');
         }
       }
 
@@ -1035,7 +1085,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                           >
                             <option value="">Select Item {index + 1}</option>
                             {inventoryItems.map((invItem) => (
-                              <option key={invItem.id} value={invItem.id}>
+                              <option key={invItem.id} value={invItem.item_name}>
                                 {invItem.item_name}
                               </option>
                             ))}
