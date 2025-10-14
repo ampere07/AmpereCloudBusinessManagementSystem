@@ -913,6 +913,15 @@ Route::prefix('job-orders')->middleware('ensure.database.tables')->group(functio
     Route::get('/lookup/lcpnaps', [JobOrderController::class, 'getLCPNAPs']);
 });
 
+// Job Order Items Management Routes
+Route::prefix('job-order-items')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'destroy']);
+});
+
 // Application Visits Management Routes
 Route::prefix('application-visits')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [ApplicationVisitController::class, 'index']);

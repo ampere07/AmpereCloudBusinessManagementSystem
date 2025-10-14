@@ -5,7 +5,6 @@ import { updateJobOrder } from '../services/jobOrderService';
 import { userService } from '../services/userService';
 import { planService, Plan } from '../services/planService';
 import { routerModelService, RouterModel } from '../services/routerModelService';
-import { createAccount } from '../services/autoAccount';
 import { getAllPorts, Port } from '../services/portService';
 import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
 import { getAllVLANs, VLAN } from '../services/vlanService';
@@ -490,60 +489,41 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
       
       const jobOrderUpdateData: any = {
-        Choose_Plan: updatedFormData.choosePlan,
-        Onsite_Status: updatedFormData.onsiteStatus,
-        group_name: updatedFormData.groupName,
-        Modified_By: updatedFormData.modifiedBy,
-        Modified_Date: updatedFormData.modifiedDate
+        date_installed: updatedFormData.dateInstalled,
+        usage_type: updatedFormData.usageType,
+        router_model: updatedFormData.routerModel,
+        lcpnap: updatedFormData.lcpnap,
+        port: updatedFormData.port,
+        vlan: updatedFormData.vlan,
+        visit_by: updatedFormData.visit_by,
+        visit_with: updatedFormData.visit_with,
+        visit_with_other: updatedFormData.visit_with_other,
+        updated_by_user_email: updatedFormData.modifiedBy
       };
       
       if (updatedFormData.onsiteStatus === 'Done') {
-        jobOrderUpdateData.Date_Installed = updatedFormData.dateInstalled;
-        jobOrderUpdateData.Usage_Type = updatedFormData.usageType;
-        jobOrderUpdateData.Connection_Type = updatedFormData.connectionType;
-        jobOrderUpdateData.Router_Model = updatedFormData.routerModel;
-        jobOrderUpdateData.Modem_SN = updatedFormData.modemSN;
-        jobOrderUpdateData.LCPNAP = updatedFormData.lcpnap;
-        jobOrderUpdateData.PORT = updatedFormData.port;
-        jobOrderUpdateData.VLAN = updatedFormData.vlan;
-        jobOrderUpdateData.IP = updatedFormData.ip;
-        jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
-        jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
-        jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
-        jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
-        jobOrderUpdateData.Address_Coordinates = updatedFormData.addressCoordinates;
-
-        try {
-          const lastName = (jobOrderData?.Last_Name || jobOrderData?.last_name || '').toLowerCase();
-          const mobileNumber = (jobOrderData?.Mobile_Number || jobOrderData?.mobile_number || '').replace(/[^0-9]/g, '');
-          
-          const username = `${lastName}${mobileNumber}`;
-          const password = mobileNumber;
-          const plan = updatedFormData.choosePlan;
-
-          console.log('Creating RADIUS account:', { username, plan });
-          
-          const accountName = await createAccount(username, plan, password);
-          console.log('RADIUS account created successfully:', accountName);
-
-          jobOrderUpdateData.pppoe_username = username;
-          jobOrderUpdateData.pppoe_password = password;
-        } catch (accountError: any) {
-          console.error('Error creating RADIUS account:', accountError);
-          alert(`Warning: RADIUS account creation failed: ${accountError.message || 'Unknown error'}. Job order will be saved without PPPoE credentials.`);
-        }
+        jobOrderUpdateData.connection_type = updatedFormData.connectionType;
+        jobOrderUpdateData.modem_router_sn = updatedFormData.modemSN;
+        jobOrderUpdateData.ip_address = updatedFormData.ip;
+        jobOrderUpdateData.onsite_remarks = updatedFormData.onsiteRemarks;
+        jobOrderUpdateData.address_coordinates = updatedFormData.addressCoordinates;
+        jobOrderUpdateData.onsite_status = 'Done';
+        jobOrderUpdateData.group_name = updatedFormData.groupName;
       }
       
       if (updatedFormData.onsiteStatus === 'Failed' || updatedFormData.onsiteStatus === 'Reschedule') {
-        jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
-        jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
-        jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
-        jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
-        jobOrderUpdateData.Status_Remarks = updatedFormData.statusRemarks;
+        jobOrderUpdateData.onsite_remarks = updatedFormData.onsiteRemarks;
+        jobOrderUpdateData.status_remarks = updatedFormData.statusRemarks;
+        jobOrderUpdateData.onsite_status = updatedFormData.onsiteStatus;
+      }
+      
+      if (updatedFormData.onsiteStatus === 'In Progress') {
+        jobOrderUpdateData.onsite_status = 'In Progress';
+        jobOrderUpdateData.group_name = updatedFormData.groupName;
       }
 
       console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
+      console.log('Job order update data:', JSON.stringify(jobOrderUpdateData, null, 2));
 
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
@@ -554,10 +534,15 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       console.log('Job order updated successfully:', jobOrderResponse);
 
       if (updatedFormData.onsiteStatus === 'Done') {
-        const validItems = orderItems.filter(item => item.itemId && item.quantity);
+        const validItems = orderItems.filter(item => {
+          const itemId = parseInt(item.itemId);
+          const quantity = parseInt(item.quantity);
+          return !isNaN(itemId) && itemId > 0 && !isNaN(quantity) && quantity > 0;
+        });
+
         if (validItems.length > 0) {
           const jobOrderItems: JobOrderItem[] = validItems.map(item => ({
-            job_order_id: jobOrderId,
+            job_order_id: parseInt(jobOrderId.toString()),
             item_id: parseInt(item.itemId),
             quantity: parseInt(item.quantity)
           }));
@@ -567,9 +552,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
             console.log('Job order items created successfully:', itemsResponse);
-          } catch (itemsError) {
+          } catch (itemsError: any) {
             console.error('Error creating job order items:', itemsError);
-            alert('Job order saved but failed to save items. Please add items manually.');
+            const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
+            console.error('Detailed error:', errorMsg, itemsError.response?.data);
+            alert(`Job order saved but failed to save items: ${errorMsg}. Please add items manually.`);
           }
         }
       }
@@ -707,9 +694,9 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Connection Type<span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Antenna</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-red-600 border-red-700' : 'bg-gray-800 border-gray-700'} text-white`}>Fiber</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Local</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Antenna</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Fiber</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Local</button>
                 </div>
                 {errors.connectionType && (
                   <div className="flex items-center mt-1">

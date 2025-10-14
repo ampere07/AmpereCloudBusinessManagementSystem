@@ -9,8 +9,8 @@ use Exception;
 
 class RadiusController extends Controller
 {
-    private $primaryUrl = 'https://103.249.198.36:8282/rest/user-manage/user';
-    private $backupUrl = 'https://124.107.177.177:8282/rest/user-manage/user';
+    private $primaryUrl = 'https://103.186.139.138:8484/rest/user-manage/user';
+    private $backupUrl = 'https://103.186.139.138:8484/rest/user-manage/user';
     private $username = 'googleapi';
     private $password = 'Edward123@';
 
@@ -32,15 +32,22 @@ class RadiusController extends Controller
             Log::info('Creating RADIUS account', [
                 'original_username' => $username,
                 'modified_username' => $modifiedUsername,
-                'plan' => $plan
+                'plan' => $plan,
+                'password_length' => strlen($password)
             ]);
 
             $result = $this->putRadiusUser($modifiedUsername, $plan, $password);
 
             if (!$result) {
+                Log::error('RADIUS account creation failed', [
+                    'username' => $modifiedUsername,
+                    'plan' => $plan,
+                    'message' => 'Both primary and backup RADIUS servers failed'
+                ]);
+
                 return response()->json([
                     'success' => false,
-                    'message' => 'Failed to create RADIUS account on both primary and backup servers'
+                    'message' => 'Failed to create RADIUS account on both primary and backup servers. Please check: 1) RADIUS server connectivity, 2) Group/Plan "' . $plan . '" exists in RADIUS server, 3) Authentication credentials'
                 ], 500);
             }
 
@@ -86,6 +93,15 @@ class RadiusController extends Controller
     private function fetchUserData($url, $payload)
     {
         try {
+            Log::info('Attempting RADIUS API request', [
+                'url' => $url,
+                'payload' => [
+                    'name' => $payload['name'],
+                    'group' => $payload['group'],
+                    'password_set' => isset($payload['password'])
+                ]
+            ]);
+
             $response = Http::withBasicAuth($this->username, $this->password)
                 ->withOptions([
                     'verify' => false
@@ -94,13 +110,18 @@ class RadiusController extends Controller
                 ->put($url, $payload);
 
             if ($response->successful()) {
+                Log::info('RADIUS API request successful', [
+                    'url' => $url,
+                    'status' => $response->status()
+                ]);
                 return $response->json();
             }
 
             Log::error('RADIUS API request failed', [
                 'url' => $url,
                 'status' => $response->status(),
-                'body' => $response->body()
+                'body' => $response->body(),
+                'reason' => $response->reason()
             ]);
 
             return null;
@@ -108,7 +129,8 @@ class RadiusController extends Controller
         } catch (Exception $e) {
             Log::error('RADIUS API request exception', [
                 'url' => $url,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'error_class' => get_class($e)
             ]);
 
             return null;

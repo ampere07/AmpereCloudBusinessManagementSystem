@@ -168,18 +168,35 @@ class JobOrderController extends Controller
     public function update(Request $request, $id): JsonResponse
     {
         try {
+            \Log::info('JobOrder Update Request', [
+                'id' => $id,
+                'request_data' => $request->all()
+            ]);
+
             $jobOrder = JobOrder::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
                 'application_id' => 'nullable|integer|exists:applications,id',
                 'timestamp' => 'nullable|date',
+                'date_installed' => 'nullable|date',
                 'installation_fee' => 'nullable|numeric|min:0',
                 'billing_day' => 'nullable|integer|min:0',
-                'onsite_status' => 'nullable|string|max:255',
+                'onsite_status' => 'nullable|string|max:100',
                 'assigned_email' => 'nullable|email|max:255',
                 'onsite_remarks' => 'nullable|string',
                 'status_remarks' => 'nullable|string|max:255',
                 'modem_router_sn' => 'nullable|string|max:255',
+                'router_model' => 'nullable|string|max:255',
+                'connection_type' => 'nullable|string|max:100',
+                'usage_type' => 'nullable|string|max:255',
+                'ip_address' => 'nullable|string|max:45',
+                'lcpnap' => 'nullable|string|max:255',
+                'port' => 'nullable|string|max:255',
+                'vlan' => 'nullable|string|max:255',
+                'visit_by' => 'nullable|string|max:255',
+                'visit_with' => 'nullable|string|max:255',
+                'visit_with_other' => 'nullable|string|max:255',
+                'address_coordinates' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'group_name' => 'nullable|string|max:255',
                 'pppoe_username' => 'nullable|string|max:255',
@@ -189,6 +206,11 @@ class JobOrderController extends Controller
             ]);
 
             if ($validator->fails()) {
+                \Log::error('JobOrder Update Validation Failed', [
+                    'id' => $id,
+                    'errors' => $validator->errors()->toArray()
+                ]);
+
                 return response()->json([
                     'success' => false,
                     'message' => 'Validation failed',
@@ -198,7 +220,17 @@ class JobOrderController extends Controller
 
             $data = $request->all();
             
+            \Log::info('JobOrder Updating with data', [
+                'id' => $id,
+                'data' => $data
+            ]);
+
             $jobOrder->update($data);
+
+            \Log::info('JobOrder Updated Successfully', [
+                'id' => $id,
+                'updated_fields' => array_keys($data)
+            ]);
 
             $jobOrder->load('application');
 
@@ -208,6 +240,12 @@ class JobOrderController extends Controller
                 'data' => $jobOrder,
             ]);
         } catch (\Exception $e) {
+            \Log::error('JobOrder Update Failed', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to update job order',
