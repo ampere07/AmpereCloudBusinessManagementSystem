@@ -136,6 +136,50 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   }, [isOpen]);
 
+  // Load existing job order items from database
+  useEffect(() => {
+    const fetchJobOrderItems = async () => {
+      if (isOpen && jobOrderData) {
+        const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
+        if (jobOrderId) {
+          try {
+            console.log('Fetching job order items for job order:', jobOrderId);
+            const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
+            const data = response.data as { success: boolean; data: any[] };
+            
+            if (data.success && Array.isArray(data.data)) {
+              const items = data.data;
+              console.log('Loaded job order items:', items);
+              
+              if (items.length > 0) {
+                // Map database items to form format
+                const formattedItems = items.map((item: any) => ({
+                  itemId: item.item_name || '',
+                  quantity: item.quantity ? item.quantity.toString() : ''
+                }));
+                
+                // Add empty row at the end
+                formattedItems.push({ itemId: '', quantity: '' });
+                
+                setOrderItems(formattedItems);
+                console.log('Set order items to:', formattedItems);
+              } else {
+                // No items in database, keep default empty row
+                setOrderItems([{ itemId: '', quantity: '' }]);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching job order items:', error);
+            // Keep default empty row on error
+            setOrderItems([{ itemId: '', quantity: '' }]);
+          }
+        }
+      }
+    };
+    
+    fetchJobOrderItems();
+  }, [isOpen, jobOrderData]);
+
   useEffect(() => {
     const fetchLcpnaps = async () => {
       if (isOpen) {
@@ -334,30 +378,77 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   useEffect(() => {
     if (jobOrderData && isOpen) {
       console.log('JobOrderDoneFormTechModal - Received jobOrderData:', jobOrderData);
+      console.log('Raw jobOrderData keys:', Object.keys(jobOrderData));
       
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
+      // Helper function to check if value should be treated as empty
+      const isEmptyValue = (value: any): boolean => {
+        if (value === null || value === undefined || value === '') return true;
+        if (typeof value === 'string') {
+          const trimmed = value.trim().toLowerCase();
+          return trimmed === 'none' || trimmed === 'null';
+        }
+        return false;
+      };
+      
+      // Helper function to get value or empty string
+      const getValue = (value: any, fieldName: string): string => {
+        const result = isEmptyValue(value) ? '' : value;
+        console.log(`getValue(${fieldName}): "${value}" -> "${result}"`);
+        return result;
+      };
+      
+      console.log('========== LOADING FORM DATA FROM DATABASE ==========');
+      console.log('Date Installed:', jobOrderData.Date_Installed || jobOrderData.date_installed);
+      console.log('Usage Type:', jobOrderData.Usage_Type || jobOrderData.usage_type);
+      console.log('Choose Plan:', jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan);
+      console.log('Connection Type:', jobOrderData.Connection_Type || jobOrderData.connection_type);
+      console.log('Router Model:', jobOrderData.Router_Model || jobOrderData.router_model);
+      console.log('Modem SN:', jobOrderData.Modem_SN || jobOrderData.modem_sn);
+      console.log('Group Name:', jobOrderData.group_name || jobOrderData.Group_Name);
+      console.log('LCP-NAP:', jobOrderData.LCPNAP || jobOrderData.lcpnap);
+      console.log('PORT:', jobOrderData.PORT || jobOrderData.port);
+      console.log('VLAN:', jobOrderData.VLAN || jobOrderData.vlan);
+      console.log('Visit By:', jobOrderData.Visit_By || jobOrderData.visit_by);
+      console.log('Visit With:', jobOrderData.Visit_With || jobOrderData.visit_with);
+      console.log('Visit With Other:', jobOrderData.Visit_With_Other || jobOrderData.visit_with_other);
+      console.log('Onsite Status:', loadedOnsiteStatus);
+      console.log('Status Remarks:', jobOrderData.Status_Remarks || jobOrderData.status_remarks);
+      console.log('IP:', jobOrderData.IP || jobOrderData.ip);
+      console.log('Address Coordinates:', jobOrderData.Address_Coordinates || jobOrderData.address_coordinates);
+      console.log('Onsite Remarks:', jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks);
+      console.log('=====================================================');
+      
+      const newFormData = {
+        dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+        usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
+        choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
+        connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
+        routerModel: getValue(jobOrderData.Router_Model || jobOrderData.router_model, 'routerModel'),
+        modemSN: getValue(jobOrderData.Modem_SN || jobOrderData.modem_sn, 'modemSN'),
+        groupName: getValue(jobOrderData.group_name || jobOrderData.Group_Name, 'groupName'),
+        lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
+        port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
+        vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
+        onsiteStatus: loadedOnsiteStatus,
+        onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
+        itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
+        visit_by: getValue(jobOrderData.Visit_By || jobOrderData.visit_by, 'visit_by'),
+        visit_with: getValue(jobOrderData.Visit_With || jobOrderData.visit_with, 'visit_with'),
+        visit_with_other: getValue(jobOrderData.Visit_With_Other || jobOrderData.visit_with_other, 'visit_with_other'),
+        statusRemarks: getValue(jobOrderData.Status_Remarks || jobOrderData.status_remarks, 'statusRemarks'),
+        ip: getValue(jobOrderData.IP || jobOrderData.ip, 'ip'),
+        addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
+      };
+      
+      console.log('========== NEW FORM DATA TO BE SET ==========');
+      console.log(newFormData);
+      console.log('=============================================');
+      
       setFormData(prev => ({
         ...prev,
-        dateInstalled: jobOrderData.Date_Installed || jobOrderData.date_installed || '',
-        usageType: jobOrderData.Usage_Type || jobOrderData.usage_type || '',
-        choosePlan: jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan || '',
-        connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
-        routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
-        modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
-        groupName: jobOrderData.group_name || jobOrderData.Group_Name || '',
-        lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
-        port: jobOrderData.PORT || jobOrderData.port || '',
-        vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
-        onsiteStatus: loadedOnsiteStatus,
-        onsiteRemarks: jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks || '',
-        itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
-        visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
-        visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
-        visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
-        statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || '',
-        ip: jobOrderData.IP || jobOrderData.ip || '',
-        addressCoordinates: jobOrderData.Address_Coordinates || jobOrderData.address_coordinates || ''
+        ...newFormData
       }));
     }
   }, [jobOrderData, isOpen]);
@@ -611,7 +702,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         }
       }
 
-      alert('Job Order updated successfully!');
       setErrors({});
       onSave(updatedFormData);
       onClose();
