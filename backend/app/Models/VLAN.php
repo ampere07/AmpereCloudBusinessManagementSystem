@@ -6,18 +6,14 @@ use Illuminate\Database\Eloquent\Model;
 
 class VLAN extends Model
 {
-    protected $table = 'vlan';
-    protected $primaryKey = 'id';
-    public $incrementing = true;
-    protected $keyType = 'int';
+    protected $table = 'vlans';
+    protected $primaryKey = 'vlan_id';
+    public $incrementing = false;
+    protected $keyType = 'string';
+    public $timestamps = true;
     
     protected $fillable = [
-        'VLAN_ID',
-        'Value',
+        'vlan_id',
+        'value',
     ];
-
-    public function jobOrders()
-    {
-        return $this->hasMany(JobOrder::class, 'VLAN', 'VLAN_ID');
-    }
 }

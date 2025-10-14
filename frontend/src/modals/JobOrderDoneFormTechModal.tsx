@@ -5,7 +5,6 @@ import { updateJobOrder } from '../services/jobOrderService';
 import { userService } from '../services/userService';
 import { planService, Plan } from '../services/planService';
 import { routerModelService, RouterModel } from '../services/routerModelService';
-import { createAccount } from '../services/autoAccount';
 import { getAllPorts, Port } from '../services/portService';
 import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
 import { getAllVLANs, VLAN } from '../services/vlanService';
@@ -42,7 +41,7 @@ interface JobOrderDoneFormData {
   boxReadingImage: File | null;
   routerReadingImage: File | null;
   portLabelImage: File | null;
-  clientSignature: string | null;
+  clientSignatureImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
   itemName1: string;
@@ -98,7 +97,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     boxReadingImage: null,
     routerReadingImage: null,
     portLabelImage: null,
-    clientSignature: null,
+    clientSignatureImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
       month: '2-digit',
@@ -141,19 +140,22 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Loading LCPNAP records from database...');
+          console.log('Fetching LCPNAP data from database...');
           const response = await getAllLCPNAPs();
           console.log('LCPNAP API Response:', response);
+          console.log('LCPNAP Data:', response.data);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Loaded LCPNAP records:', response.data.length);
+            console.log('Successfully loaded LCPNAP records:', response.data.length);
+            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
             console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
           console.error('Error fetching LCPNAP records:', error);
+          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }
@@ -166,7 +168,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchPorts = async () => {
       if (isOpen) {
         try {
-          const response = await getAllPorts();
+          const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
+          const response = await getAllPorts('', 1, 100, true, jobOrderId);
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
           } else {
@@ -179,7 +182,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       }
     };
     fetchPorts();
-  }, [isOpen]);
+  }, [isOpen, jobOrderData]);
 
   useEffect(() => {
     const fetchVlans = async () => {
@@ -366,7 +369,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -439,7 +442,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
       if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
       if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
-      if (!formData.clientSignature) newErrors.clientSignature = 'Client Signature is required';
+      if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
     }
     
     if (formData.onsiteStatus === 'Failed' || formData.onsiteStatus === 'Reschedule') {
@@ -486,60 +489,41 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
       
       const jobOrderUpdateData: any = {
-        Choose_Plan: updatedFormData.choosePlan,
-        Onsite_Status: updatedFormData.onsiteStatus,
-        group_name: updatedFormData.groupName,
-        Modified_By: updatedFormData.modifiedBy,
-        Modified_Date: updatedFormData.modifiedDate
+        date_installed: updatedFormData.dateInstalled,
+        usage_type: updatedFormData.usageType,
+        router_model: updatedFormData.routerModel,
+        lcpnap: updatedFormData.lcpnap,
+        port: updatedFormData.port,
+        vlan: updatedFormData.vlan,
+        visit_by: updatedFormData.visit_by,
+        visit_with: updatedFormData.visit_with,
+        visit_with_other: updatedFormData.visit_with_other,
+        updated_by_user_email: updatedFormData.modifiedBy
       };
       
       if (updatedFormData.onsiteStatus === 'Done') {
-        jobOrderUpdateData.Date_Installed = updatedFormData.dateInstalled;
-        jobOrderUpdateData.Usage_Type = updatedFormData.usageType;
-        jobOrderUpdateData.Connection_Type = updatedFormData.connectionType;
-        jobOrderUpdateData.Router_Model = updatedFormData.routerModel;
-        jobOrderUpdateData.Modem_SN = updatedFormData.modemSN;
-        jobOrderUpdateData.LCPNAP = updatedFormData.lcpnap;
-        jobOrderUpdateData.PORT = updatedFormData.port;
-        jobOrderUpdateData.VLAN = updatedFormData.vlan;
-        jobOrderUpdateData.IP = updatedFormData.ip;
-        jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
-        jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
-        jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
-        jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
-        jobOrderUpdateData.Address_Coordinates = updatedFormData.addressCoordinates;
-
-        try {
-          const lastName = (jobOrderData?.Last_Name || jobOrderData?.last_name || '').toLowerCase();
-          const mobileNumber = (jobOrderData?.Mobile_Number || jobOrderData?.mobile_number || '').replace(/[^0-9]/g, '');
-          
-          const username = `${lastName}${mobileNumber}`;
-          const password = mobileNumber;
-          const plan = updatedFormData.choosePlan;
-
-          console.log('Creating RADIUS account:', { username, plan });
-          
-          const accountName = await createAccount(username, plan, password);
-          console.log('RADIUS account created successfully:', accountName);
-
-          jobOrderUpdateData.pppoe_username = username;
-          jobOrderUpdateData.pppoe_password = password;
-        } catch (accountError: any) {
-          console.error('Error creating RADIUS account:', accountError);
-          alert(`Warning: RADIUS account creation failed: ${accountError.message || 'Unknown error'}. Job order will be saved without PPPoE credentials.`);
-        }
+        jobOrderUpdateData.connection_type = updatedFormData.connectionType;
+        jobOrderUpdateData.modem_router_sn = updatedFormData.modemSN;
+        jobOrderUpdateData.ip_address = updatedFormData.ip;
+        jobOrderUpdateData.onsite_remarks = updatedFormData.onsiteRemarks;
+        jobOrderUpdateData.address_coordinates = updatedFormData.addressCoordinates;
+        jobOrderUpdateData.onsite_status = 'Done';
+        jobOrderUpdateData.group_name = updatedFormData.groupName;
       }
       
       if (updatedFormData.onsiteStatus === 'Failed' || updatedFormData.onsiteStatus === 'Reschedule') {
-        jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
-        jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
-        jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
-        jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
-        jobOrderUpdateData.Status_Remarks = updatedFormData.statusRemarks;
+        jobOrderUpdateData.onsite_remarks = updatedFormData.onsiteRemarks;
+        jobOrderUpdateData.status_remarks = updatedFormData.statusRemarks;
+        jobOrderUpdateData.onsite_status = updatedFormData.onsiteStatus;
+      }
+      
+      if (updatedFormData.onsiteStatus === 'In Progress') {
+        jobOrderUpdateData.onsite_status = 'In Progress';
+        jobOrderUpdateData.group_name = updatedFormData.groupName;
       }
 
       console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
+      console.log('Job order update data:', JSON.stringify(jobOrderUpdateData, null, 2));
 
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
@@ -550,10 +534,15 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       console.log('Job order updated successfully:', jobOrderResponse);
 
       if (updatedFormData.onsiteStatus === 'Done') {
-        const validItems = orderItems.filter(item => item.itemId && item.quantity);
+        const validItems = orderItems.filter(item => {
+          const itemId = parseInt(item.itemId);
+          const quantity = parseInt(item.quantity);
+          return !isNaN(itemId) && itemId > 0 && !isNaN(quantity) && quantity > 0;
+        });
+
         if (validItems.length > 0) {
           const jobOrderItems: JobOrderItem[] = validItems.map(item => ({
-            job_order_id: jobOrderId,
+            job_order_id: parseInt(jobOrderId.toString()),
             item_id: parseInt(item.itemId),
             quantity: parseInt(item.quantity)
           }));
@@ -563,9 +552,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
             console.log('Job order items created successfully:', itemsResponse);
-          } catch (itemsError) {
+          } catch (itemsError: any) {
             console.error('Error creating job order items:', itemsError);
-            alert('Job order saved but failed to save items. Please add items manually.');
+            const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
+            console.error('Detailed error:', errorMsg, itemsError.response?.data);
+            alert(`Job order saved but failed to save items: ${errorMsg}. Please add items manually.`);
           }
         }
       }
@@ -703,9 +694,9 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Connection Type<span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Antenna</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-red-600 border-red-700' : 'bg-gray-800 border-gray-700'} text-white`}>Fiber</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Local</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Antenna</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Fiber</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Local</button>
                 </div>
                 {errors.connectionType && (
                   <div className="flex items-center mt-1">
@@ -766,7 +757,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">LCP-NAP<span className="text-red-500">*</span></label>
                     <div className="relative">
-                      <select value={formData.lcpnap} onChange={(e) => handleInputChange('lcpnap', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                      <select 
+                        value={formData.lcpnap} 
+                        onChange={(e) => handleInputChange('lcpnap', e.target.value)} 
+                        className={`w-full px-3 py-2 bg-gray-800 border ${errors.lcpnap ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                      >
                         <option value="">Select LCP-NAP</option>
                         {formData.lcpnap && !lcpnaps.some(ln => ln.lcpnap_name === formData.lcpnap) && (
                           <option value={formData.lcpnap}>{formData.lcpnap}</option>
@@ -816,12 +811,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                     <div className="relative">
                       <select value={formData.vlan} onChange={(e) => handleInputChange('vlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.vlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                         <option value="">Select VLAN</option>
-                        {formData.vlan && !vlans.some(v => v.Value === formData.vlan) && (
+                        {formData.vlan && !vlans.some(v => v.value.toString() === formData.vlan) && (
                           <option value={formData.vlan}>{formData.vlan}</option>
                         )}
                         {vlans.map((vlan) => (
-                          <option key={vlan.id} value={vlan.Value}>
-                            {vlan.Value}
+                          <option key={vlan.vlan_id} value={vlan.value}>
+                            {vlan.value}
                           </option>
                         ))}
                       </select>
@@ -1009,11 +1004,16 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature<span className="text-red-500">*</span></label>
-                <div className="w-full h-40 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-                  <span className="text-gray-400">Signature canvas placeholder</span>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature Image<span className="text-red-500">*</span></label>
+                <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('clientSignatureImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  {formData.clientSignatureImage ? (
+                    <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
+                  ) : (
+                    <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
+                  )}
                 </div>
-                {errors.clientSignature && (
+                {errors.clientSignatureImage && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>

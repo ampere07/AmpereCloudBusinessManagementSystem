@@ -20,12 +20,30 @@ class PortApiController extends Controller
             $page = (int) $request->get('page', 1);
             $limit = min((int) $request->get('limit', 10), 100);
             $search = $request->get('search', '');
+            $excludeUsed = $request->get('exclude_used', false);
+            $currentJobOrderId = $request->get('current_job_order_id', null);
             
             $query = Port::query();
             
             if (!empty($search)) {
                 $query->where('label', 'like', '%' . $search . '%')
                       ->orWhere('port_id', 'like', '%' . $search . '%');
+            }
+            
+            if ($excludeUsed) {
+                $usedPortsQuery = \DB::table('job_orders')
+                    ->whereNotNull('port')
+                    ->where('port', '!=', '');
+                
+                if ($currentJobOrderId) {
+                    $usedPortsQuery->where('id', '!=', $currentJobOrderId);
+                }
+                
+                $usedPorts = $usedPortsQuery->pluck('port')->toArray();
+                
+                if (!empty($usedPorts)) {
+                    $query->whereNotIn('label', $usedPorts);
+                }
             }
             
             $totalItems = $query->count();
