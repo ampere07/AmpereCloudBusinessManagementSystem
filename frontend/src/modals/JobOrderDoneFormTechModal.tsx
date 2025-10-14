@@ -136,6 +136,50 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   }, [isOpen]);
 
+  // Load existing job order items from database
+  useEffect(() => {
+    const fetchJobOrderItems = async () => {
+      if (isOpen && jobOrderData) {
+        const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
+        if (jobOrderId) {
+          try {
+            console.log('Fetching job order items for job order:', jobOrderId);
+            const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
+            const data = response.data as { success: boolean; data: any[] };
+            
+            if (data.success && Array.isArray(data.data)) {
+              const items = data.data;
+              console.log('Loaded job order items:', items);
+              
+              if (items.length > 0) {
+                // Map database items to form format
+                const formattedItems = items.map((item: any) => ({
+                  itemId: item.item_name || '',
+                  quantity: item.quantity ? item.quantity.toString() : ''
+                }));
+                
+                // Add empty row at the end
+                formattedItems.push({ itemId: '', quantity: '' });
+                
+                setOrderItems(formattedItems);
+                console.log('Set order items to:', formattedItems);
+              } else {
+                // No items in database, keep default empty row
+                setOrderItems([{ itemId: '', quantity: '' }]);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching job order items:', error);
+            // Keep default empty row on error
+            setOrderItems([{ itemId: '', quantity: '' }]);
+          }
+        }
+      }
+    };
+    
+    fetchJobOrderItems();
+  }, [isOpen, jobOrderData]);
+
   useEffect(() => {
     const fetchLcpnaps = async () => {
       if (isOpen) {
@@ -334,30 +378,77 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   useEffect(() => {
     if (jobOrderData && isOpen) {
       console.log('JobOrderDoneFormTechModal - Received jobOrderData:', jobOrderData);
+      console.log('Raw jobOrderData keys:', Object.keys(jobOrderData));
       
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
+      // Helper function to check if value should be treated as empty
+      const isEmptyValue = (value: any): boolean => {
+        if (value === null || value === undefined || value === '') return true;
+        if (typeof value === 'string') {
+          const trimmed = value.trim().toLowerCase();
+          return trimmed === 'none' || trimmed === 'null';
+        }
+        return false;
+      };
+      
+      // Helper function to get value or empty string
+      const getValue = (value: any, fieldName: string): string => {
+        const result = isEmptyValue(value) ? '' : value;
+        console.log(`getValue(${fieldName}): "${value}" -> "${result}"`);
+        return result;
+      };
+      
+      console.log('========== LOADING FORM DATA FROM DATABASE ==========');
+      console.log('Date Installed:', jobOrderData.Date_Installed || jobOrderData.date_installed);
+      console.log('Usage Type:', jobOrderData.Usage_Type || jobOrderData.usage_type);
+      console.log('Choose Plan:', jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan);
+      console.log('Connection Type:', jobOrderData.Connection_Type || jobOrderData.connection_type);
+      console.log('Router Model:', jobOrderData.Router_Model || jobOrderData.router_model);
+      console.log('Modem SN:', jobOrderData.Modem_SN || jobOrderData.modem_sn);
+      console.log('Group Name:', jobOrderData.group_name || jobOrderData.Group_Name);
+      console.log('LCP-NAP:', jobOrderData.LCPNAP || jobOrderData.lcpnap);
+      console.log('PORT:', jobOrderData.PORT || jobOrderData.port);
+      console.log('VLAN:', jobOrderData.VLAN || jobOrderData.vlan);
+      console.log('Visit By:', jobOrderData.Visit_By || jobOrderData.visit_by);
+      console.log('Visit With:', jobOrderData.Visit_With || jobOrderData.visit_with);
+      console.log('Visit With Other:', jobOrderData.Visit_With_Other || jobOrderData.visit_with_other);
+      console.log('Onsite Status:', loadedOnsiteStatus);
+      console.log('Status Remarks:', jobOrderData.Status_Remarks || jobOrderData.status_remarks);
+      console.log('IP:', jobOrderData.IP || jobOrderData.ip);
+      console.log('Address Coordinates:', jobOrderData.Address_Coordinates || jobOrderData.address_coordinates);
+      console.log('Onsite Remarks:', jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks);
+      console.log('=====================================================');
+      
+      const newFormData = {
+        dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+        usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
+        choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
+        connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
+        routerModel: getValue(jobOrderData.Router_Model || jobOrderData.router_model, 'routerModel'),
+        modemSN: getValue(jobOrderData.Modem_SN || jobOrderData.modem_sn, 'modemSN'),
+        groupName: getValue(jobOrderData.group_name || jobOrderData.Group_Name, 'groupName'),
+        lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
+        port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
+        vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
+        onsiteStatus: loadedOnsiteStatus,
+        onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
+        itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
+        visit_by: getValue(jobOrderData.Visit_By || jobOrderData.visit_by, 'visit_by'),
+        visit_with: getValue(jobOrderData.Visit_With || jobOrderData.visit_with, 'visit_with'),
+        visit_with_other: getValue(jobOrderData.Visit_With_Other || jobOrderData.visit_with_other, 'visit_with_other'),
+        statusRemarks: getValue(jobOrderData.Status_Remarks || jobOrderData.status_remarks, 'statusRemarks'),
+        ip: getValue(jobOrderData.IP || jobOrderData.ip, 'ip'),
+        addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
+      };
+      
+      console.log('========== NEW FORM DATA TO BE SET ==========');
+      console.log(newFormData);
+      console.log('=============================================');
+      
       setFormData(prev => ({
         ...prev,
-        dateInstalled: jobOrderData.Date_Installed || jobOrderData.date_installed || '',
-        usageType: jobOrderData.Usage_Type || jobOrderData.usage_type || '',
-        choosePlan: jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan || '',
-        connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
-        routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
-        modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
-        groupName: jobOrderData.group_name || jobOrderData.Group_Name || '',
-        lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
-        port: jobOrderData.PORT || jobOrderData.port || '',
-        vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
-        onsiteStatus: loadedOnsiteStatus,
-        onsiteRemarks: jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks || '',
-        itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
-        visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
-        visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
-        visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
-        statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || '',
-        ip: jobOrderData.IP || jobOrderData.ip || '',
-        addressCoordinates: jobOrderData.Address_Coordinates || jobOrderData.address_coordinates || ''
+        ...newFormData
       }));
     }
   }, [jobOrderData, isOpen]);
@@ -534,34 +625,83 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       console.log('Job order updated successfully:', jobOrderResponse);
 
       if (updatedFormData.onsiteStatus === 'Done') {
+        console.log('========== ITEMS BEFORE FILTERING ==========');
+        console.log('Total order items count:', orderItems.length);
+        orderItems.forEach((item, index) => {
+          console.log(`Item ${index + 1}:`, {
+            itemId: item.itemId,
+            itemId_type: typeof item.itemId,
+            itemId_isEmpty: item.itemId === '',
+            itemId_length: item.itemId.length,
+            quantity: item.quantity,
+            quantity_type: typeof item.quantity,
+            quantity_parsed: parseInt(item.quantity),
+            quantity_isValid: !isNaN(parseInt(item.quantity)) && parseInt(item.quantity) > 0
+          });
+        });
+        console.log('==========================================');
+
         const validItems = orderItems.filter(item => {
-          const itemId = parseInt(item.itemId);
           const quantity = parseInt(item.quantity);
-          return !isNaN(itemId) && itemId > 0 && !isNaN(quantity) && quantity > 0;
+          const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
+          
+          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
+          
+          return isValid;
         });
 
-        if (validItems.length > 0) {
-          const jobOrderItems: JobOrderItem[] = validItems.map(item => ({
-            job_order_id: parseInt(jobOrderId.toString()),
-            item_id: parseInt(item.itemId),
-            quantity: parseInt(item.quantity)
-          }));
+        console.log('Filtered valid items:', validItems);
+        console.log('Total order items:', orderItems);
 
-          console.log('Creating job order items:', jobOrderItems);
+        if (validItems.length > 0) {
+          const jobOrderItems: JobOrderItem[] = validItems.map(item => {
+            return {
+              job_order_id: parseInt(jobOrderId.toString()),
+              item_name: item.itemId,
+              quantity: parseInt(item.quantity)
+            };
+          });
+
+          console.log('Sending job order items to API:');
+          console.log('- Job Order ID:', jobOrderId);
+          console.log('- Items:', JSON.stringify(jobOrderItems, null, 2));
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
+            
+            if (!itemsResponse.success) {
+              throw new Error(itemsResponse.message || 'Failed to create job order items');
+            }
+            
             console.log('Job order items created successfully:', itemsResponse);
+            console.log('Items saved:', itemsResponse.data);
           } catch (itemsError: any) {
+            console.error('========== JOB ORDER ITEMS ERROR ==========');
             console.error('Error creating job order items:', itemsError);
+            console.error('Error message:', itemsError.message);
+            console.error('Error response:', itemsError.response);
+            console.error('Error response data:', itemsError.response?.data);
+            console.error('Error response status:', itemsError.response?.status);
+            console.error('Items that failed:', jobOrderItems);
+            console.error('=========================================');
+            
             const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
-            console.error('Detailed error:', errorMsg, itemsError.response?.data);
-            alert(`Job order saved but failed to save items: ${errorMsg}. Please add items manually.`);
+            const validationErrors = itemsError.response?.data?.errors;
+            
+            let errorDetails = `Failed to save items: ${errorMsg}`;
+            if (validationErrors) {
+              errorDetails += '\n\nValidation Errors:\n' + JSON.stringify(validationErrors, null, 2);
+            }
+            
+            alert(`Job order saved but items were not saved:\n\n${errorDetails}\n\nPlease check the console for more details or contact support.`);
+            setLoading(false);
+            return;
           }
+        } else {
+          console.warn('No valid items to save');
         }
       }
 
-      alert('Job Order updated successfully!');
       setErrors({});
       onSave(updatedFormData);
       onClose();
@@ -1035,7 +1175,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                           >
                             <option value="">Select Item {index + 1}</option>
                             {inventoryItems.map((invItem) => (
-                              <option key={invItem.id} value={invItem.id}>
+                              <option key={invItem.id} value={invItem.item_name}>
                                 {invItem.item_name}
                               </option>
                             ))}

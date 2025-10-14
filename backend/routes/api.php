@@ -922,6 +922,27 @@ Route::prefix('job-order-items')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\JobOrderItemApiController::class, 'destroy']);
 });
 
+// Test endpoint for job-order-items
+Route::get('/job-order-items-test', function() {
+    return response()->json([
+        'success' => true,
+        'message' => 'Job Order Items routes are working',
+        'routes' => [
+            'GET /api/job-order-items' => 'List all items (filter by job_order_id)',
+            'POST /api/job-order-items' => 'Create items (batch)',
+            'GET /api/job-order-items/{id}' => 'Get specific item',
+            'PUT /api/job-order-items/{id}' => 'Update item',
+            'DELETE /api/job-order-items/{id}' => 'Delete item'
+        ],
+        'model' => 'JobOrderItem',
+        'table' => 'job_order_items',
+        'table_exists' => \Illuminate\Support\Facades\Schema::hasTable('job_order_items'),
+        'columns' => \Illuminate\Support\Facades\Schema::hasTable('job_order_items') 
+            ? \Illuminate\Support\Facades\Schema::getColumnListing('job_order_items')
+            : []
+    ]);
+});
+
 // Application Visits Management Routes
 Route::prefix('application-visits')->middleware('ensure.database.tables')->group(function () {
     Route::get('/', [ApplicationVisitController::class, 'index']);

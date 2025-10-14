@@ -55,13 +55,31 @@ class JobOrderController extends Controller
                     'billing_status_id' => $jobOrder->billing_status_id,
                     'Status_Remarks' => $jobOrder->status_remarks,
                     'Assigned_Email' => $jobOrder->assigned_email,
-                    'Contract_Template' => $jobOrder->modem_router_sn,
+                    'Contract_Template' => $jobOrder->contract_link,
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'Username' => $jobOrder->username,
                     'group_name' => $jobOrder->group_name,
                     'pppoe_username' => $jobOrder->pppoe_username,
                     'pppoe_password' => $jobOrder->pppoe_password,
+                    
+                    // Technical fields from job_orders table
+                    'date_installed' => $jobOrder->date_installed,
+                    'usage_type' => $jobOrder->usage_type,
+                    'connection_type' => $jobOrder->connection_type,
+                    'router_model' => $jobOrder->router_model,
+                    'modem_router_sn' => $jobOrder->modem_router_sn,
+                    'Modem_SN' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
+                    'modem_sn' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
+                    'lcpnap' => $jobOrder->lcpnap,
+                    'port' => $jobOrder->port,
+                    'vlan' => $jobOrder->vlan,
+                    'visit_by' => $jobOrder->visit_by,
+                    'visit_with' => $jobOrder->visit_with,
+                    'visit_with_other' => $jobOrder->visit_with_other,
+                    'ip_address' => $jobOrder->ip_address,
+                    'address_coordinates' => $jobOrder->address_coordinates,
+                    'onsite_remarks' => $jobOrder->onsite_remarks,
                     
                     'First_Name' => $application ? $application->first_name : null,
                     'Middle_Initial' => $application ? $application->middle_initial : null,
@@ -76,6 +94,7 @@ class JobOrderController extends Controller
                     'Secondary_Mobile_Number' => $application ? $application->secondary_mobile_number : null,
                     'Desired_Plan' => $application ? $application->desired_plan : null,
                     'Referred_By' => $application ? $application->referred_by : null,
+                    'Billing_Status' => $jobOrder->billing_status_id,
                 ];
             });
 
