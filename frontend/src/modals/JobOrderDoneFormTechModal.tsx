@@ -77,7 +77,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   };
 
   const currentUser = getCurrentUser();
-  const currentUserEmail = currentUser?.email || 'unknown@ampere.com';
+  const currentUserEmail = currentUser?.email || 'unknown@unknown.com';
 
   const [formData, setFormData] = useState<JobOrderDoneFormData>({
     dateInstalled: '',
@@ -210,12 +210,16 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
   useEffect(() => {
     const fetchPorts = async () => {
-      if (isOpen) {
+      if (isOpen && formData.lcpnap) {
         try {
+          console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
-          const response = await getAllPorts('', 1, 100, true, jobOrderId);
+          const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
+          console.log('Port API Response for', formData.lcpnap, ':', response);
+          
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
+            console.log('Loaded Ports for', formData.lcpnap, ':', response.data.length);
           } else {
             setPorts([]);
           }
@@ -223,10 +227,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           console.error('Error fetching Ports:', error);
           setPorts([]);
         }
+      } else if (isOpen && !formData.lcpnap) {
+        setPorts([]);
       }
     };
     fetchPorts();
-  }, [isOpen, jobOrderData]);
+  }, [isOpen, jobOrderData, formData.lcpnap]);
 
   useEffect(() => {
     const fetchVlans = async () => {
@@ -454,7 +460,13 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   }, [jobOrderData, isOpen]);
 
   const handleInputChange = (field: keyof JobOrderDoneFormData, value: string | File | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (field === 'lcpnap') {
+        newData.port = '';
+      }
+      return newData;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }

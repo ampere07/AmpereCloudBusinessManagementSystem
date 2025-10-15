@@ -11,6 +11,8 @@ import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
 import { getAllVLANs, VLAN } from '../services/vlanService';
 import { getAllGroups, Group } from '../services/groupService';
 import { getAllUsageTypes, UsageType } from '../services/usageTypeService';
+import { getAllInventoryItems, InventoryItem } from '../services/inventoryItemService';
+import { createJobOrderItems, JobOrderItem } from '../services/jobOrderItemService';
 import apiClient from '../config/api';
 
 interface JobOrderDoneFormModalProps {
@@ -19,8 +21,6 @@ interface JobOrderDoneFormModalProps {
   onSave: (formData: any) => void;
   jobOrderData?: any;
 }
-
-
 
 interface JobOrderDoneFormData {
   referredBy: string;
@@ -66,6 +66,11 @@ interface JobOrderDoneFormData {
   visit_with_other: string;
   statusRemarks: string;
   ip: string;
+}
+
+interface OrderItem {
+  itemId: string;
+  quantity: string;
 }
 
 const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
@@ -153,6 +158,78 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   const [vlans, setVlans] = useState<VLAN[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([{ itemId: '', quantity: '' }]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setOrderItems([{ itemId: '', quantity: '' }]);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchJobOrderItems = async () => {
+      if (isOpen && jobOrderData) {
+        const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
+        if (jobOrderId) {
+          try {
+            console.log('Fetching job order items for job order:', jobOrderId);
+            const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
+            const data = response.data as { success: boolean; data: any[] };
+            
+            if (data.success && Array.isArray(data.data)) {
+              const items = data.data;
+              console.log('Loaded job order items:', items);
+              
+              if (items.length > 0) {
+                const formattedItems = items.map((item: any) => ({
+                  itemId: item.item_name || '',
+                  quantity: item.quantity ? item.quantity.toString() : ''
+                }));
+                
+                formattedItems.push({ itemId: '', quantity: '' });
+                
+                setOrderItems(formattedItems);
+                console.log('Set order items to:', formattedItems);
+              } else {
+                setOrderItems([{ itemId: '', quantity: '' }]);
+              }
+            }
+          } catch (error) {
+            console.error('Error fetching job order items:', error);
+            setOrderItems([{ itemId: '', quantity: '' }]);
+          }
+        }
+      }
+    };
+    
+    fetchJobOrderItems();
+  }, [isOpen, jobOrderData]);
+
+  useEffect(() => {
+    const fetchInventoryItems = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading inventory items from database...');
+          const response = await getAllInventoryItems();
+          console.log('Inventory Items API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setInventoryItems(response.data);
+            console.log('Loaded Inventory Items:', response.data.length);
+          } else {
+            console.warn('Unexpected Inventory Items response structure:', response);
+            setInventoryItems([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Inventory Items:', error);
+          setInventoryItems([]);
+        }
+      }
+    };
+    
+    fetchInventoryItems();
+  }, [isOpen]);
 
   useEffect(() => {
     const fetchLcpnaps = async () => {
@@ -184,16 +261,16 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
   useEffect(() => {
     const fetchPorts = async () => {
-      if (isOpen) {
+      if (isOpen && formData.lcpnap) {
         try {
-          console.log('Loading Ports from database...');
+          console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
-          const response = await getAllPorts('', 1, 100, true, jobOrderId);
+          const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
           console.log('Port API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
-            console.log('Loaded Ports:', response.data.length);
+            console.log('Loaded Ports for', formData.lcpnap, ':', response.data.length);
           } else {
             console.warn('Unexpected Port response structure:', response);
             setPorts([]);
@@ -202,11 +279,13 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           console.error('Error fetching Ports:', error);
           setPorts([]);
         }
+      } else if (isOpen && !formData.lcpnap) {
+        setPorts([]);
       }
     };
     
     fetchPorts();
-  }, [isOpen, jobOrderData]);
+  }, [isOpen, jobOrderData, formData.lcpnap]);
 
   useEffect(() => {
     const fetchVlans = async () => {
@@ -450,7 +529,13 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   }, [jobOrderData, isOpen]);
 
   const handleInputChange = (field: keyof JobOrderDoneFormData, value: string | File | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (field === 'lcpnap') {
+        newData.port = '';
+      }
+      return newData;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -472,6 +557,23 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         [field]: newValue.toString()
       };
     });
+  };
+
+  const handleItemChange = (index: number, field: 'itemId' | 'quantity', value: string) => {
+    const newOrderItems = [...orderItems];
+    newOrderItems[index][field] = value;
+    setOrderItems(newOrderItems);
+    
+    if (field === 'itemId' && value && index === orderItems.length - 1) {
+      setOrderItems([...newOrderItems, { itemId: '', quantity: '' }]);
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (orderItems.length > 1) {
+      const newOrderItems = orderItems.filter((_, i) => i !== index);
+      setOrderItems(newOrderItems);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -518,13 +620,26 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
         }
         
+        const validItems = orderItems.filter(item => item.itemId && item.quantity);
+        if (validItems.length === 0) {
+          newErrors.items = 'At least one item with quantity is required';
+        } else {
+          for (let i = 0; i < validItems.length; i++) {
+            if (!validItems[i].itemId) {
+              newErrors[`item_${i}`] = 'Item is required';
+            }
+            if (!validItems[i].quantity || parseInt(validItems[i].quantity) <= 0) {
+              newErrors[`quantity_${i}`] = 'Valid quantity is required';
+            }
+          }
+        }
+        
         if (!formData.onsiteRemarks.trim()) newErrors.onsiteRemarks = 'Onsite Remarks is required';
         if (!formData.signedContractImage) newErrors.signedContractImage = 'Signed Contract Image is required';
         if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
         if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
         if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
         if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
-        if (!formData.itemName1.trim()) newErrors.itemName1 = 'Item Name 1 is required';
         if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
         if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
         if (!formData.visit_with_other.trim()) newErrors.visit_with_other = 'Visit With(Other) is required';
@@ -615,7 +730,6 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           jobOrderUpdateData.PORT = updatedFormData.port;
           jobOrderUpdateData.VLAN = updatedFormData.vlan;
           jobOrderUpdateData.Onsite_Remarks = updatedFormData.onsiteRemarks;
-          jobOrderUpdateData.Item_Name_1 = updatedFormData.itemName1;
           jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
           jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
           jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
@@ -640,6 +754,56 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       }
 
       console.log('Job order updated successfully:', jobOrderResponse);
+
+      if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
+        console.log('========== ITEMS BEFORE FILTERING ==========');
+        console.log('Total order items count:', orderItems.length);
+        orderItems.forEach((item, index) => {
+          console.log(`Item ${index + 1}:`, {
+            itemId: item.itemId,
+            quantity: item.quantity,
+            quantity_parsed: parseInt(item.quantity)
+          });
+        });
+        console.log('==========================================');
+
+        const validItems = orderItems.filter(item => {
+          const quantity = parseInt(item.quantity);
+          const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
+          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
+          return isValid;
+        });
+
+        console.log('Filtered valid items:', validItems);
+
+        if (validItems.length > 0) {
+          const jobOrderItems: JobOrderItem[] = validItems.map(item => {
+            return {
+              job_order_id: parseInt(jobOrderId.toString()),
+              item_name: item.itemId,
+              quantity: parseInt(item.quantity)
+            };
+          });
+
+          console.log('Sending job order items to API:', jobOrderItems);
+          
+          try {
+            const itemsResponse = await createJobOrderItems(jobOrderItems);
+            
+            if (!itemsResponse.success) {
+              throw new Error(itemsResponse.message || 'Failed to create job order items');
+            }
+            
+            console.log('Job order items created successfully:', itemsResponse);
+          } catch (itemsError: any) {
+            console.error('Error creating job order items:', itemsError);
+            const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
+            alert(`Job order saved but items were not saved: ${errorMsg}`);
+            setLoading(false);
+            return;
+          }
+        }
+      }
 
       if (applicationId) {
         const applicationUpdateData: any = {
@@ -871,9 +1035,9 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Connection Type<span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Antenna</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-red-600 border-red-700' : 'bg-gray-800 border-gray-700'} text-white`}>Fiber</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'} text-white`}>Local</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Antenna</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Fiber</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Local</button>
                 </div>
                 {errors.connectionType && (
                   <div className="flex items-center mt-1">
@@ -1250,20 +1414,63 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Item Name 1<span className="text-red-500">*</span></label>
-                    <div className="relative">
-                      <select value={formData.itemName1} onChange={(e) => handleInputChange('itemName1', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.itemName1 ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                        <option value=""></option>
-                        <option value="Router">Router</option>
-                        <option value="Modem">Modem</option>
-                        <option value="Cable">Cable</option>
-                      </select>
-                      <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
-                    </div>
-                    {errors.itemName1 && (
+                    <label className="block text-sm font-medium text-gray-300 mb-2">Items<span className="text-red-500">*</span></label>
+                    {orderItems.map((item, index) => (
+                      <div key={index} className="mb-3">
+                        <div className="flex items-start gap-2">
+                          <div className="flex-1">
+                            <div className="relative">
+                              <select 
+                                value={item.itemId} 
+                                onChange={(e) => handleItemChange(index, 'itemId', e.target.value)} 
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                              >
+                                <option value="">Select Item {index + 1}</option>
+                                {inventoryItems.map((invItem) => (
+                                  <option key={invItem.id} value={invItem.item_name}>
+                                    {invItem.item_name}
+                                  </option>
+                                ))}
+                              </select>
+                              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                            </div>
+                            {errors[`item_${index}`] && (
+                              <p className="text-orange-500 text-xs mt-1">{errors[`item_${index}`]}</p>
+                            )}
+                          </div>
+                          
+                          {item.itemId && (
+                            <div className="w-32">
+                              <input 
+                                type="number" 
+                                value={item.quantity} 
+                                onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} 
+                                placeholder="Qty"
+                                min="1"
+                                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                              />
+                              {errors[`quantity_${index}`] && (
+                                <p className="text-orange-500 text-xs mt-1">{errors[`quantity_${index}`]}</p>
+                              )}
+                            </div>
+                          )}
+                          
+                          {orderItems.length > 1 && item.itemId && (
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveItem(index)}
+                              className="p-2 text-red-500 hover:text-red-400"
+                            >
+                              <X size={20} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                    {errors.items && (
                       <div className="flex items-center mt-1">
                         <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
+                        <p className="text-orange-500 text-xs">{errors.items}</p>
                       </div>
                     )}
                   </div>
