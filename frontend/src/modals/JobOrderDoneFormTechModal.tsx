@@ -530,7 +530,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
-      // Helper function to check if value should be treated as empty
       const isEmptyValue = (value: any): boolean => {
         if (value === null || value === undefined || value === '') return true;
         if (typeof value === 'string') {
@@ -540,72 +539,112 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         return false;
       };
       
-      // Helper function to get value or empty string
       const getValue = (value: any, fieldName: string): string => {
         const result = isEmptyValue(value) ? '' : value;
         console.log(`getValue(${fieldName}): "${value}" -> "${result}"`);
         return result;
       };
       
-      console.log('========== LOADING FORM DATA FROM DATABASE ==========');
-      console.log('Date Installed:', jobOrderData.Date_Installed || jobOrderData.date_installed);
-      console.log('Usage Type:', jobOrderData.Usage_Type || jobOrderData.usage_type);
-      console.log('Choose Plan:', jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan);
-      console.log('Connection Type:', jobOrderData.Connection_Type || jobOrderData.connection_type);
-      console.log('Router Model:', jobOrderData.Router_Model || jobOrderData.router_model);
-      console.log('Modem SN:', jobOrderData.Modem_SN || jobOrderData.modem_sn);
-      console.log('Group Name:', jobOrderData.group_name || jobOrderData.Group_Name);
-      console.log('LCP-NAP:', jobOrderData.LCPNAP || jobOrderData.lcpnap);
-      console.log('PORT:', jobOrderData.PORT || jobOrderData.port);
-      console.log('VLAN:', jobOrderData.VLAN || jobOrderData.vlan);
-      console.log('Region:', jobOrderData.Region || jobOrderData.region);
-      console.log('City:', jobOrderData.City || jobOrderData.city);
-      console.log('Barangay:', jobOrderData.Barangay || jobOrderData.barangay);
-      console.log('Location:', jobOrderData.Location || jobOrderData.location);
-      console.log('Visit By:', jobOrderData.Visit_By || jobOrderData.visit_by);
-      console.log('Visit With:', jobOrderData.Visit_With || jobOrderData.visit_with);
-      console.log('Visit With Other:', jobOrderData.Visit_With_Other || jobOrderData.visit_with_other);
-      console.log('Onsite Status:', loadedOnsiteStatus);
-      console.log('Status Remarks:', jobOrderData.Status_Remarks || jobOrderData.status_remarks);
-      console.log('IP:', jobOrderData.IP || jobOrderData.ip);
-      console.log('Address Coordinates:', jobOrderData.Address_Coordinates || jobOrderData.address_coordinates);
-      console.log('Onsite Remarks:', jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks);
-      console.log('=====================================================');
-      
-      const newFormData = {
-        dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
-        usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
-        choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
-        connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
-        routerModel: getValue(jobOrderData.Router_Model || jobOrderData.router_model, 'routerModel'),
-        modemSN: getValue(jobOrderData.Modem_SN || jobOrderData.modem_sn, 'modemSN'),
-        groupName: getValue(jobOrderData.group_name || jobOrderData.Group_Name, 'groupName'),
-        lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
-        port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
-        vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
-        region: getValue(jobOrderData.Region || jobOrderData.region, 'region'),
-        city: getValue(jobOrderData.City || jobOrderData.city, 'city'),
-        barangay: getValue(jobOrderData.Barangay || jobOrderData.barangay, 'barangay'),
-        location: getValue(jobOrderData.Location || jobOrderData.location, 'location'),
-        onsiteStatus: loadedOnsiteStatus,
-        onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
-        itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
-        visit_by: getValue(jobOrderData.Visit_By || jobOrderData.visit_by, 'visit_by'),
-        visit_with: getValue(jobOrderData.Visit_With || jobOrderData.visit_with, 'visit_with'),
-        visit_with_other: getValue(jobOrderData.Visit_With_Other || jobOrderData.visit_with_other, 'visit_with_other'),
-        statusRemarks: getValue(jobOrderData.Status_Remarks || jobOrderData.status_remarks, 'statusRemarks'),
-        ip: getValue(jobOrderData.IP || jobOrderData.ip, 'ip'),
-        addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
+      const fetchApplicationData = async () => {
+        try {
+          const applicationId = jobOrderData.application_id || jobOrderData.Application_ID;
+          if (applicationId) {
+            console.log('Fetching application data for ID:', applicationId);
+            const appResponse = await apiClient.get<{ success: boolean; application: any }>(`/applications/${applicationId}`);
+            if (appResponse.data.success && appResponse.data.application) {
+              const appData = appResponse.data.application;
+              console.log('Loaded application data:', appData);
+              
+              const newFormData = {
+                dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+                usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
+                choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
+                connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
+                routerModel: getValue(jobOrderData.Router_Model || jobOrderData.router_model, 'routerModel'),
+                modemSN: getValue(jobOrderData.Modem_SN || jobOrderData.modem_sn, 'modemSN'),
+                groupName: getValue(jobOrderData.group_name || jobOrderData.Group_Name, 'groupName'),
+                lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
+                port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
+                vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
+                region: getValue(appData.region || jobOrderData.Region || jobOrderData.region, 'region'),
+                city: getValue(appData.city || jobOrderData.City || jobOrderData.city, 'city'),
+                barangay: getValue(appData.barangay || jobOrderData.Barangay || jobOrderData.barangay, 'barangay'),
+                location: getValue(appData.location || jobOrderData.Location || jobOrderData.location, 'location'),
+                onsiteStatus: loadedOnsiteStatus,
+                onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
+                itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
+                visit_by: getValue(jobOrderData.Visit_By || jobOrderData.visit_by, 'visit_by'),
+                visit_with: getValue(jobOrderData.Visit_With || jobOrderData.visit_with, 'visit_with'),
+                visit_with_other: getValue(jobOrderData.Visit_With_Other || jobOrderData.visit_with_other, 'visit_with_other'),
+                statusRemarks: getValue(jobOrderData.Status_Remarks || jobOrderData.status_remarks, 'statusRemarks'),
+                ip: getValue(jobOrderData.IP || jobOrderData.ip, 'ip'),
+                addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
+              };
+              
+              console.log('========== FORM DATA WITH APPLICATION LOCATION ==========');
+              console.log('Region:', newFormData.region);
+              console.log('City:', newFormData.city);
+              console.log('Barangay:', newFormData.barangay);
+              console.log('Location (from application):', newFormData.location);
+              console.log('========================================================');
+              
+              setFormData(prev => ({
+                ...prev,
+                ...newFormData
+              }));
+            }
+          } else {
+            console.warn('No application_id found, using jobOrderData for location');
+            loadDefaultFormData();
+          }
+        } catch (error) {
+          console.error('Error fetching application data:', error);
+          loadDefaultFormData();
+        }
       };
       
-      console.log('========== NEW FORM DATA TO BE SET ==========');
-      console.log(newFormData);
-      console.log('=============================================');
+      const loadDefaultFormData = () => {
+        console.log('========== LOADING FORM DATA FROM DATABASE ==========');
+        console.log('Date Installed:', jobOrderData.Date_Installed || jobOrderData.date_installed);
+        console.log('Region:', jobOrderData.Region || jobOrderData.region);
+        console.log('City:', jobOrderData.City || jobOrderData.city);
+        console.log('Barangay:', jobOrderData.Barangay || jobOrderData.barangay);
+        console.log('Location:', jobOrderData.Location || jobOrderData.location);
+        console.log('=====================================================');
+        
+        const newFormData = {
+          dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+          usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
+          choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
+          connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
+          routerModel: getValue(jobOrderData.Router_Model || jobOrderData.router_model, 'routerModel'),
+          modemSN: getValue(jobOrderData.Modem_SN || jobOrderData.modem_sn, 'modemSN'),
+          groupName: getValue(jobOrderData.group_name || jobOrderData.Group_Name, 'groupName'),
+          lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
+          port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
+          vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
+          region: getValue(jobOrderData.Region || jobOrderData.region, 'region'),
+          city: getValue(jobOrderData.City || jobOrderData.city, 'city'),
+          barangay: getValue(jobOrderData.Barangay || jobOrderData.barangay, 'barangay'),
+          location: getValue(jobOrderData.Location || jobOrderData.location, 'location'),
+          onsiteStatus: loadedOnsiteStatus,
+          onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
+          itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
+          visit_by: getValue(jobOrderData.Visit_By || jobOrderData.visit_by, 'visit_by'),
+          visit_with: getValue(jobOrderData.Visit_With || jobOrderData.visit_with, 'visit_with'),
+          visit_with_other: getValue(jobOrderData.Visit_With_Other || jobOrderData.visit_with_other, 'visit_with_other'),
+          statusRemarks: getValue(jobOrderData.Status_Remarks || jobOrderData.status_remarks, 'statusRemarks'),
+          ip: getValue(jobOrderData.IP || jobOrderData.ip, 'ip'),
+          addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
+        };
+        
+        setFormData(prev => ({
+          ...prev,
+          ...newFormData
+        }));
+      };
       
-      setFormData(prev => ({
-        ...prev,
-        ...newFormData
-      }));
+      fetchApplicationData();
     }
   }, [jobOrderData, isOpen]);
 
