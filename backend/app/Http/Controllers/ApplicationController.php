@@ -263,6 +263,7 @@ class ApplicationController extends Controller
                 'region' => 'nullable|string|max:255',
                 'city' => 'nullable|string|max:255',
                 'barangay' => 'nullable|string|max:255',
+                'location' => 'nullable|string|max:255',
                 'village' => 'nullable|string|max:255',
                 'installation_address' => 'nullable',
                 'landmark' => 'nullable',

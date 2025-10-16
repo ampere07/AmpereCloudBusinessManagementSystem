@@ -29,6 +29,7 @@ class Application extends Model
         'region',
         'city',
         'barangay',
+        'location',
         'village',
         'desired_plan',
         'promo',

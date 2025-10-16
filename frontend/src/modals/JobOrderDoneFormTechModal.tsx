@@ -11,8 +11,17 @@ import { getAllVLANs, VLAN } from '../services/vlanService';
 import { getAllGroups, Group } from '../services/groupService';
 import { getAllUsageTypes, UsageType } from '../services/usageTypeService';
 import { getAllInventoryItems, InventoryItem } from '../services/inventoryItemService';
-import { createJobOrderItems, JobOrderItem } from '../services/jobOrderItemService';
+import { createJobOrderItems, JobOrderItem, deleteJobOrderItems } from '../services/jobOrderItemService';
+import { getRegions, getCities, City } from '../services/cityService';
+import { barangayService, Barangay } from '../services/barangayService';
+import { locationDetailService, LocationDetail } from '../services/locationDetailService';
+import { updateApplication } from '../services/applicationService';
 import apiClient from '../config/api';
+
+interface Region {
+  id: number;
+  name: string;
+}
 
 interface JobOrderDoneFormTechModalProps {
   isOpen: boolean;
@@ -31,6 +40,10 @@ interface JobOrderDoneFormData {
   routerModel: string;
   modemSN: string;
   groupName: string;
+  region: string;
+  city: string;
+  barangay: string;
+  location: string;
   lcpnap: string;
   port: string;
   vlan: string;
@@ -87,6 +100,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     routerModel: '',
     modemSN: '',
     groupName: '',
+    region: '',
+    city: '',
+    barangay: '',
+    location: '',
     lcpnap: '',
     port: '',
     vlan: '',
@@ -128,6 +145,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   const [groups, setGroups] = useState<Group[]>([]);
   const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
   const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [allCities, setAllCities] = useState<City[]>([]);
+  const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{ itemId: '', quantity: '' }]);
 
   useEffect(() => {
@@ -143,34 +164,49 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
         if (jobOrderId) {
           try {
+            console.log('========== FETCHING JOB ORDER ITEMS ==========');
             console.log('Fetching job order items for job order:', jobOrderId);
             const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
             const data = response.data as { success: boolean; data: any[] };
             
+            console.log('Job Order Items Response:', data);
+            
             if (data.success && Array.isArray(data.data)) {
               const items = data.data;
-              console.log('Loaded job order items:', items);
+              console.log('Loaded job order items from API:', items);
               
               if (items.length > 0) {
-                // Map database items to form format
-                const formattedItems = items.map((item: any) => ({
-                  itemId: item.item_name || '',
-                  quantity: item.quantity ? item.quantity.toString() : ''
-                }));
+                const uniqueItems = new Map();
                 
-                // Add empty row at the end
+                items.forEach((item: any) => {
+                  const key = item.item_name;
+                  if (uniqueItems.has(key)) {
+                    const existing = uniqueItems.get(key);
+                    uniqueItems.set(key, {
+                      itemId: item.item_name || '',
+                      quantity: (parseInt(existing.quantity) + parseInt(item.quantity || 0)).toString()
+                    });
+                  } else {
+                    uniqueItems.set(key, {
+                      itemId: item.item_name || '',
+                      quantity: item.quantity ? item.quantity.toString() : ''
+                    });
+                  }
+                });
+                
+                const formattedItems = Array.from(uniqueItems.values());
                 formattedItems.push({ itemId: '', quantity: '' });
                 
+                console.log('Formatted unique items:', formattedItems);
                 setOrderItems(formattedItems);
                 console.log('Set order items to:', formattedItems);
               } else {
-                // No items in database, keep default empty row
                 setOrderItems([{ itemId: '', quantity: '' }]);
               }
             }
+            console.log('============================================');
           } catch (error) {
             console.error('Error fetching job order items:', error);
-            // Keep default empty row on error
             setOrderItems([{ itemId: '', quantity: '' }]);
           }
         }
@@ -323,6 +359,112 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
+    const fetchRegions = async () => {
+      if (isOpen) {
+        try {
+          console.log('========== FETCHING REGIONS ==========');
+          console.log('Loading regions from database...');
+          const fetchedRegions = await getRegions();
+          console.log('Regions API Response:', fetchedRegions);
+          console.log('Regions API Response Type:', typeof fetchedRegions);
+          console.log('Is Array:', Array.isArray(fetchedRegions));
+          
+          if (Array.isArray(fetchedRegions)) {
+            console.log('Regions Count:', fetchedRegions.length);
+            console.log('All Regions:', JSON.stringify(fetchedRegions, null, 2));
+            setRegions(fetchedRegions);
+            console.log('Successfully set regions state with', fetchedRegions.length, 'regions');
+          } else {
+            console.warn('Unexpected Regions response structure:', fetchedRegions);
+            setRegions([]);
+          }
+          console.log('======================================');
+        } catch (error) {
+          console.error('========== ERROR FETCHING REGIONS ==========');
+          console.error('Error fetching Regions:', error);
+          console.error('Error details:', JSON.stringify(error, null, 2));
+          console.error('===========================================');
+          setRegions([]);
+        }
+      }
+    };
+    
+    fetchRegions();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllCities = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all cities from database...');
+          const fetchedCities = await getCities();
+          console.log('All Cities API Response:', fetchedCities);
+          
+          if (Array.isArray(fetchedCities)) {
+            setAllCities(fetchedCities);
+            console.log('Loaded All Cities:', fetchedCities.length);
+          } else {
+            setAllCities([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Cities:', error);
+          setAllCities([]);
+        }
+      }
+    };
+    
+    fetchAllCities();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllBarangays = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all barangays from database...');
+          const response = await barangayService.getAll();
+          console.log('All Barangays API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllBarangays(response.data);
+            console.log('Loaded All Barangays:', response.data.length);
+          } else {
+            setAllBarangays([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Barangays:', error);
+          setAllBarangays([]);
+        }
+      }
+    };
+    
+    fetchAllBarangays();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllLocations = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all locations from database...');
+          const response = await locationDetailService.getAll();
+          console.log('All Locations API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllLocations(response.data);
+            console.log('Loaded All Locations:', response.data.length);
+          } else {
+            setAllLocations([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Locations:', error);
+          setAllLocations([]);
+        }
+      }
+    };
+    
+    fetchAllLocations();
+  }, [isOpen]);
+
+  useEffect(() => {
     const fetchTechnicians = async () => {
       if (isOpen) {
         try {
@@ -416,6 +558,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       console.log('LCP-NAP:', jobOrderData.LCPNAP || jobOrderData.lcpnap);
       console.log('PORT:', jobOrderData.PORT || jobOrderData.port);
       console.log('VLAN:', jobOrderData.VLAN || jobOrderData.vlan);
+      console.log('Region:', jobOrderData.Region || jobOrderData.region);
+      console.log('City:', jobOrderData.City || jobOrderData.city);
+      console.log('Barangay:', jobOrderData.Barangay || jobOrderData.barangay);
+      console.log('Location:', jobOrderData.Location || jobOrderData.location);
       console.log('Visit By:', jobOrderData.Visit_By || jobOrderData.visit_by);
       console.log('Visit With:', jobOrderData.Visit_With || jobOrderData.visit_with);
       console.log('Visit With Other:', jobOrderData.Visit_With_Other || jobOrderData.visit_with_other);
@@ -437,6 +583,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         lcpnap: getValue(jobOrderData.LCPNAP || jobOrderData.lcpnap, 'lcpnap'),
         port: getValue(jobOrderData.PORT || jobOrderData.port, 'port'),
         vlan: getValue(jobOrderData.VLAN || jobOrderData.vlan, 'vlan'),
+        region: getValue(jobOrderData.Region || jobOrderData.region, 'region'),
+        city: getValue(jobOrderData.City || jobOrderData.city, 'city'),
+        barangay: getValue(jobOrderData.Barangay || jobOrderData.barangay, 'barangay'),
+        location: getValue(jobOrderData.Location || jobOrderData.location, 'location'),
         onsiteStatus: loadedOnsiteStatus,
         onsiteRemarks: getValue(jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks, 'onsiteRemarks'),
         itemName1: getValue(jobOrderData.Item_Name_1 || jobOrderData.item_name_1, 'itemName1'),
@@ -464,6 +614,18 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       const newData = { ...prev, [field]: value };
       if (field === 'lcpnap') {
         newData.port = '';
+      }
+      if (field === 'region') {
+        newData.city = '';
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'city') {
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'barangay') {
+        newData.location = '';
       }
       return newData;
     });
@@ -502,6 +664,10 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     if (!formData.choosePlan.trim()) newErrors.choosePlan = 'Choose Plan is required';
     if (!formData.onsiteStatus.trim()) newErrors.onsiteStatus = 'Onsite Status is required';
     if (!formData.groupName.trim()) newErrors.groupName = 'Group is required';
+    if (!formData.region.trim()) newErrors.region = 'Region is required';
+    if (!formData.city.trim()) newErrors.city = 'City is required';
+    if (!formData.barangay.trim()) newErrors.barangay = 'Barangay is required';
+    if (!formData.location.trim()) newErrors.location = 'Location is required';
     
     if (formData.onsiteStatus === 'Done') {
       if (!formData.dateInstalled.trim()) newErrors.dateInstalled = 'Date Installed is required';
@@ -636,6 +802,71 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
       console.log('Job order updated successfully:', jobOrderResponse);
 
+      let applicationId = jobOrderData.application_id || jobOrderData.Application_ID || jobOrderData.account_id;
+      console.log('========== LOOKING FOR APPLICATION ID ==========');
+      console.log('jobOrderData.application_id:', jobOrderData.application_id);
+      console.log('jobOrderData.Application_ID:', jobOrderData.Application_ID);
+      console.log('jobOrderData.account_id:', jobOrderData.account_id);
+      console.log('Resolved applicationId:', applicationId);
+      
+      if (!applicationId) {
+        console.log('Application ID not in jobOrderData, fetching from database...');
+        try {
+          const jobOrderResponse = await apiClient.get<{ success: boolean; data: any }>(`/job-orders/${jobOrderId}`);
+          if (jobOrderResponse.data.success && jobOrderResponse.data.data) {
+            applicationId = jobOrderResponse.data.data.application_id;
+            console.log('Fetched application_id from database:', applicationId);
+          }
+        } catch (fetchError: any) {
+          console.error('Failed to fetch application_id:', fetchError);
+        }
+      }
+      
+      console.log('Final resolved applicationId:', applicationId);
+      console.log('All available keys:', Object.keys(jobOrderData));
+      console.log('===============================================');
+      
+      if (applicationId) {
+        try {
+          console.log('========== UPDATING APPLICATION ==========');
+          console.log('Application ID:', applicationId);
+          const applicationUpdateData = {
+            region: updatedFormData.region,
+            city: updatedFormData.city,
+            barangay: updatedFormData.barangay,
+            location: updatedFormData.location
+          };
+          
+          console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
+          console.log('Calling updateApplication API...');
+          
+          const applicationResponse = await updateApplication(applicationId.toString(), applicationUpdateData);
+          
+          console.log('Application API Response:', applicationResponse);
+          console.log('Application updated successfully!');
+          console.log('==========================================');
+          
+          alert(`Success! Application ID ${applicationId} location updated to: ${updatedFormData.region}, ${updatedFormData.city}, ${updatedFormData.barangay}, ${updatedFormData.location}`);
+        } catch (appError: any) {
+          console.error('========== APPLICATION UPDATE ERROR ==========');
+          console.error('Error updating application:', appError);
+          console.error('Error response:', appError.response?.data);
+          console.error('Error message:', appError.message);
+          console.error('Error status:', appError.response?.status);
+          console.error('Full error:', JSON.stringify(appError, null, 2));
+          console.error('==============================================');
+          
+          const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
+          alert(`Warning: Job order was saved but application location update failed!\n\nError: ${errorMsg}\n\nApplication ID: ${applicationId}\nPlease update the location manually in the applications table.`);
+        }
+      } else {
+        console.error('========== NO APPLICATION ID FOUND ==========');
+        console.error('Cannot update application - no application_id in job order data');
+        console.error('Available keys in jobOrderData:', Object.keys(jobOrderData));
+        console.error('============================================');
+        alert('Warning: Cannot update location in application - missing application ID');
+      }
+
       if (updatedFormData.onsiteStatus === 'Done') {
         console.log('========== ITEMS BEFORE FILTERING ==========');
         console.log('Total order items count:', orderItems.length);
@@ -666,6 +897,34 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         console.log('Total order items:', orderItems);
 
         if (validItems.length > 0) {
+          console.log('========== DELETING EXISTING ITEMS ==========');
+          try {
+            console.log('Fetching existing items for job order:', jobOrderId);
+            const existingItemsResponse = await apiClient.get<{ success: boolean; data: any[] }>(`/job-order-items?job_order_id=${jobOrderId}`);
+            
+            if (existingItemsResponse.data.success && existingItemsResponse.data.data.length > 0) {
+              const existingItems = existingItemsResponse.data.data;
+              console.log('Found', existingItems.length, 'existing items to delete');
+              
+              for (const item of existingItems) {
+                try {
+                  await apiClient.delete(`/job-order-items/${item.id}`);
+                  console.log('Deleted item ID:', item.id);
+                } catch (deleteErr) {
+                  console.warn('Failed to delete item ID:', item.id, deleteErr);
+                }
+              }
+              
+              console.log('All existing items deleted successfully');
+            } else {
+              console.log('No existing items to delete');
+            }
+          } catch (deleteError: any) {
+            console.error('Error deleting existing items:', deleteError);
+            console.warn('Continuing with item creation despite delete error');
+          }
+          console.log('============================================');
+
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
             return {
               job_order_id: parseInt(jobOrderId.toString()),
@@ -674,7 +933,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             };
           });
 
-          console.log('Sending job order items to API:');
+          console.log('Creating job order items:');
           console.log('- Job Order ID:', jobOrderId);
           console.log('- Items:', JSON.stringify(jobOrderItems, null, 2));
           
@@ -729,6 +988,45 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   if (!isOpen) return null;
 
   const fullName = `${jobOrderData?.First_Name || jobOrderData?.first_name || ''} ${jobOrderData?.Middle_Initial || jobOrderData?.middle_initial || ''} ${jobOrderData?.Last_Name || jobOrderData?.last_name || ''}`.trim();
+
+  const getFilteredCities = () => {
+    if (!formData.region) return [];
+    const selectedRegion = regions.find(reg => reg.name === formData.region);
+    if (!selectedRegion) return [];
+    return allCities.filter(city => city.region_id === selectedRegion.id);
+  };
+
+  const getFilteredBarangays = () => {
+    if (!formData.city) return [];
+    const selectedCity = allCities.find(city => city.name === formData.city);
+    if (!selectedCity) return [];
+    return allBarangays.filter(brgy => brgy.city_id === selectedCity.id);
+  };
+
+  const getFilteredLocations = () => {
+    if (!formData.barangay) return [];
+    const selectedBarangay = allBarangays.find(brgy => brgy.barangay === formData.barangay);
+    if (!selectedBarangay) return [];
+    return allLocations.filter(loc => loc.barangay_id === selectedBarangay.id);
+  };
+
+  const filteredCities = getFilteredCities();
+  const filteredBarangays = getFilteredBarangays();
+  const filteredLocations = getFilteredLocations();
+
+  console.log('========== RENDER STATE ==========');
+  console.log('Regions in state:', regions.length, regions);
+  console.log('All Cities in state:', allCities.length);
+  console.log('All Barangays in state:', allBarangays.length);
+  console.log('All Locations in state:', allLocations.length);
+  console.log('Current formData.region:', formData.region);
+  console.log('Current formData.city:', formData.city);
+  console.log('Current formData.barangay:', formData.barangay);
+  console.log('Current formData.location:', formData.location);
+  console.log('Filtered Cities:', filteredCities.length);
+  console.log('Filtered Barangays:', filteredBarangays.length);
+  console.log('Filtered Locations:', filteredLocations.length);
+  console.log('==================================');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
@@ -801,6 +1099,100 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
             {errors.groupName && <p className="text-red-500 text-xs mt-1">{errors.groupName}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Region<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select value={formData.region} onChange={(e) => handleInputChange('region', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                <option value="">Select Region</option>
+                {formData.region && !regions.some(reg => reg.name === formData.region) && (
+                  <option value={formData.region}>{formData.region}</option>
+                )}
+                {regions.map((region) => {
+                  console.log('Rendering region option:', region);
+                  return (
+                    <option key={region.id} value={region.name}>
+                      {region.name}
+                    </option>
+                  );
+                })}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">City<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select 
+                value={formData.city} 
+                onChange={(e) => handleInputChange('city', e.target.value)} 
+                disabled={!formData.region}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+                {formData.city && !filteredCities.some(city => city.name === formData.city) && (
+                  <option value={formData.city}>{formData.city}</option>
+                )}
+                {filteredCities.map((city) => (
+                  <option key={city.id} value={city.name}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Barangay<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select 
+                value={formData.barangay} 
+                onChange={(e) => handleInputChange('barangay', e.target.value)} 
+                disabled={!formData.city}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.city ? 'Select Barangay' : 'Select City First'}</option>
+                {formData.barangay && !filteredBarangays.some(brgy => brgy.barangay === formData.barangay) && (
+                  <option value={formData.barangay}>{formData.barangay}</option>
+                )}
+                {filteredBarangays.map((barangay) => (
+                  <option key={barangay.id} value={barangay.barangay}>
+                    {barangay.barangay}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Location<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select 
+                value={formData.location} 
+                onChange={(e) => handleInputChange('location', e.target.value)} 
+                disabled={!formData.barangay}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.location ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.barangay ? 'Select Location' : 'Select Barangay First'}</option>
+                {formData.location && !filteredLocations.some(loc => loc.location_name === formData.location) && (
+                  <option value={formData.location}>{formData.location}</option>
+                )}
+                {filteredLocations.map((location) => (
+                  <option key={location.id} value={location.location_name}>
+                    {location.location_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
           </div>
 
           {formData.onsiteStatus === 'Done' && (
