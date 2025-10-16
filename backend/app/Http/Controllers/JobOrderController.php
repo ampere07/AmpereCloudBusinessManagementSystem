@@ -48,6 +48,7 @@ class JobOrderController extends Controller
                 return [
                     'id' => $jobOrder->id,
                     'JobOrder_ID' => $jobOrder->id,
+                    'application_id' => $jobOrder->application_id,
                     'Timestamp' => $jobOrder->timestamp ? $jobOrder->timestamp->format('Y-m-d H:i:s') : null,
                     'Installation_Fee' => $jobOrder->installation_fee,
                     'Billing_Day' => $jobOrder->billing_day,
