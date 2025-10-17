@@ -22,11 +22,11 @@ export interface Port {
   updated_at?: string;
 }
 
-export const getAllPorts = async (search?: string, page: number = 1, limit: number = 100, excludeUsed: boolean = false, currentJobOrderId?: number): Promise<ApiResponse<Port[]>> => {
+export const getAllPorts = async (lcpnap?: string, page: number = 1, limit: number = 100, excludeUsed: boolean = false, currentJobOrderId?: number): Promise<ApiResponse<Port[]>> => {
   try {
     const params: any = { page, limit };
-    if (search) {
-      params.search = search;
+    if (lcpnap) {
+      params.lcpnap = lcpnap;
     }
     if (excludeUsed) {
       params.exclude_used = true;
