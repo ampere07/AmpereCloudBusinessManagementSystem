@@ -1,11 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown, Minus, Plus } from 'lucide-react';
 import { createJobOrder, JobOrderData } from '../services/jobOrderService';
+import { updateApplication } from '../services/applicationService';
 import { getContractTemplates, ContractTemplate } from '../services/lookupService';
 import { getAllGroups, Group } from '../services/groupService';
 import apiClient from '../config/api';
 import { UserData } from '../types/api';
 import { userService } from '../services/userService';
+import { getRegions, getCities, City } from '../services/cityService';
+import { barangayService, Barangay } from '../services/barangayService';
+import { locationDetailService, LocationDetail } from '../services/locationDetailService';
 
 interface JOAssignFormModalProps {
   isOpen: boolean;
@@ -29,6 +33,7 @@ interface JOFormData {
   barangay: string;
   city: string;
   region: string;
+  location: string;
   choosePlan: string;
   promo: string;
   remarks: string;
@@ -79,6 +84,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     barangay: '',
     city: '',
     region: '',
+    location: '',
     choosePlan: '',
     promo: '',
     remarks: '',
@@ -95,19 +101,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   interface Region {
     id: number;
-    region: string;
-  }
-
-  interface City {
-    id: number;
-    city: string;
-    region_id: number;
-  }
-
-  interface Barangay {
-    id: number;
-    barangay: string;
-    city_id: number;
+    name: string;
   }
 
   interface Plan {
@@ -138,11 +132,9 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   
   // Location state
   const [regions, setRegions] = useState<Region[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [barangays, setBarangays] = useState<Barangay[]>([]);
-  const [locationsLoading, setLocationsLoading] = useState(true);
-  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [allCities, setAllCities] = useState<City[]>([]);
+  const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   
   // Plans state
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -286,136 +278,106 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   // Fetch regions from database
   useEffect(() => {
-    const loadRegions = async () => {
+    const fetchRegions = async () => {
       if (isOpen) {
         try {
-          setLocationsLoading(true);
+          console.log('========== FETCHING REGIONS ==========');
           console.log('Loading regions from database...');
-          const response = await apiClient.get<ApiResponse<Region[]> | Region[]>('/region_list');
-          const data = response.data;
+          const fetchedRegions = await getRegions();
+          console.log('Regions API Response:', fetchedRegions);
           
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setRegions(data.data);
-            console.log('Loaded regions:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setRegions(data);
-            console.log('Loaded regions:', data.length);
+          if (Array.isArray(fetchedRegions)) {
+            console.log('Regions Count:', fetchedRegions.length);
+            setRegions(fetchedRegions);
+            console.log('Successfully set regions state');
           } else {
-            console.warn('No regions data found');
+            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
+          console.log('======================================');
         } catch (error) {
-          console.error('Error loading regions:', error);
+          console.error('========== ERROR FETCHING REGIONS ==========');
+          console.error('Error fetching Regions:', error);
+          console.error('===========================================');
           setRegions([]);
-        } finally {
-          setLocationsLoading(false);
         }
       }
     };
-
-    loadRegions();
+    
+    fetchRegions();
   }, [isOpen]);
 
-  // Load cities when region is selected
   useEffect(() => {
-    const loadCities = async () => {
-      if (selectedRegionId) {
+    const fetchAllCities = async () => {
+      if (isOpen) {
         try {
-          console.log('Loading cities for region ID:', selectedRegionId);
-          const response = await apiClient.get<ApiResponse<City[]> | City[]>(`/city_list/region/${selectedRegionId}`);
-          const data = response.data;
+          console.log('Loading all cities from database...');
+          const fetchedCities = await getCities();
+          console.log('All Cities API Response:', fetchedCities);
           
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setCities(data.data);
-            console.log('Loaded cities:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setCities(data);
-            console.log('Loaded cities:', data.length);
+          if (Array.isArray(fetchedCities)) {
+            setAllCities(fetchedCities);
+            console.log('Loaded All Cities:', fetchedCities.length);
           } else {
-            console.warn('No cities data found');
-            setCities([]);
-          }
-          
-          setBarangays([]);
-          setSelectedCityId(null);
-        } catch (error) {
-          console.error('Error loading cities:', error);
-          setCities([]);
-        }
-      } else {
-        setCities([]);
-        setBarangays([]);
-        setSelectedCityId(null);
-      }
-    };
-
-    loadCities();
-  }, [selectedRegionId]);
-
-  // Load barangays when city is selected
-  useEffect(() => {
-    const loadBarangays = async () => {
-      if (selectedCityId) {
-        try {
-          console.log('Loading barangays for city ID:', selectedCityId);
-          const response = await apiClient.get<ApiResponse<Barangay[]> | Barangay[]>(`/barangay_list/city/${selectedCityId}`);
-          const data = response.data;
-          
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setBarangays(data.data);
-            console.log('Loaded barangays:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setBarangays(data);
-            console.log('Loaded barangays:', data.length);
-          } else {
-            console.warn('No barangays data found');
-            setBarangays([]);
+            setAllCities([]);
           }
         } catch (error) {
-          console.error('Error loading barangays:', error);
-          setBarangays([]);
+          console.error('Error fetching Cities:', error);
+          setAllCities([]);
         }
-      } else {
-        setBarangays([]);
       }
     };
+    
+    fetchAllCities();
+  }, [isOpen]);
 
-    loadBarangays();
-  }, [selectedCityId]);
-
-  // Match region from application data
   useEffect(() => {
-    if (regions.length > 0 && formData.region && !selectedRegionId) {
-      console.log('Looking for region match:', formData.region, 'in regions:', regions.map(r => r.region));
-      const matchingRegion = regions.find(r => 
-        r.region.toLowerCase().trim() === formData.region.toLowerCase().trim()
-      );
-      console.log('Found matching region:', matchingRegion);
-      if (matchingRegion) {
-        console.log('Setting selectedRegionId to:', matchingRegion.id);
-        setSelectedRegionId(matchingRegion.id);
-      } else {
-        console.warn('No matching region found for:', formData.region);
+    const fetchAllBarangays = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all barangays from database...');
+          const response = await barangayService.getAll();
+          console.log('All Barangays API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllBarangays(response.data);
+            console.log('Loaded All Barangays:', response.data.length);
+          } else {
+            setAllBarangays([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Barangays:', error);
+          setAllBarangays([]);
+        }
       }
-    }
-  }, [regions, formData.region, selectedRegionId]);
+    };
+    
+    fetchAllBarangays();
+  }, [isOpen]);
 
-  // Match city from application data
   useEffect(() => {
-    if (cities.length > 0 && formData.city && !selectedCityId) {
-      console.log('Looking for city match:', formData.city, 'in cities:', cities.map(c => c.city));
-      const matchingCity = cities.find(c => 
-        c.city.toLowerCase().trim() === formData.city.toLowerCase().trim()
-      );
-      console.log('Found matching city:', matchingCity);
-      if (matchingCity) {
-        console.log('Setting selectedCityId to:', matchingCity.id);
-        setSelectedCityId(matchingCity.id);
-      } else {
-        console.warn('No matching city found for:', formData.city);
+    const fetchAllLocations = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all locations from database...');
+          const response = await locationDetailService.getAll();
+          console.log('All Locations API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllLocations(response.data);
+            console.log('Loaded All Locations:', response.data.length);
+          } else {
+            setAllLocations([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Locations:', error);
+          setAllLocations([]);
+        }
       }
-    }
-  }, [cities, formData.city, selectedCityId]);
+    };
+    
+    fetchAllLocations();
+  }, [isOpen]);
 
   useEffect(() => {
     console.log('JO Form Modal - useEffect triggered');
@@ -440,6 +402,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           barangay: applicationData.barangay || '',
           city: applicationData.city || '',
           region: applicationData.region || '',
+          location: applicationData.location || '',
           choosePlan: applicationData.desired_plan || '',
           promo: applicationData.promo || '',
           installationLandmark: applicationData.landmark || ''
@@ -463,14 +426,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       
       // Handle cascading dropdowns
       if (field === 'region') {
-        const selectedRegion = regions.find(r => r.region === value);
-        setSelectedRegionId(selectedRegion ? selectedRegion.id : null);
         newData.city = '';
         newData.barangay = '';
+        newData.location = '';
       } else if (field === 'city') {
-        const selectedCity = cities.find(c => c.city === value);
-        setSelectedCityId(selectedCity ? selectedCity.id : null);
         newData.barangay = '';
+        newData.location = '';
+      } else if (field === 'barangay') {
+        newData.location = '';
       }
       
       return newData;
@@ -573,6 +536,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
     if (!formData.barangay.trim()) {
       newErrors.barangay = 'Barangay is required';
+    }
+
+    if (!formData.location.trim()) {
+      newErrors.location = 'Location is required';
     }
 
     // Required plan
@@ -693,6 +660,35 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       }
       
       console.log('Job order saved successfully with data:', result.data);
+      
+      // Update the application with the promo value
+      console.log('========== UPDATING APPLICATION PROMO ==========');
+      console.log('Application ID:', applicationData.id);
+      console.log('Promo value:', updatedFormData.promo);
+      
+      try {
+        const applicationUpdateData: any = {
+          promo: updatedFormData.promo || null
+        };
+        
+        console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
+        
+        const applicationResponse = await updateApplication(applicationData.id.toString(), applicationUpdateData);
+        
+        console.log('Application API Response:', applicationResponse);
+        console.log('Application promo updated successfully!');
+        console.log('===============================================');
+      } catch (appError: any) {
+        console.error('========== APPLICATION UPDATE ERROR ==========');
+        console.error('Error updating application promo:', appError);
+        console.error('Error response:', appError.response?.data);
+        console.error('Error message:', appError.message);
+        console.error('==============================================');
+        
+        const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
+        alert(`Warning: Job order was saved but application promo update failed!\n\nError: ${errorMsg}\n\nPlease update the promo manually in the applications table.`);
+      }
+      
       alert(`Job Order created successfully!`);
       
       setErrors({});
@@ -733,6 +729,31 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   const handleCancel = () => {
     onClose();
   };
+
+  const getFilteredCities = () => {
+    if (!formData.region) return [];
+    const selectedRegion = regions.find(reg => reg.name === formData.region);
+    if (!selectedRegion) return [];
+    return allCities.filter(city => city.region_id === selectedRegion.id);
+  };
+
+  const getFilteredBarangays = () => {
+    if (!formData.city) return [];
+    const selectedCity = allCities.find(city => city.name === formData.city);
+    if (!selectedCity) return [];
+    return allBarangays.filter(brgy => brgy.city_id !== undefined && brgy.city_id === selectedCity.id);
+  };
+
+  const getFilteredLocations = () => {
+    if (!formData.barangay) return [];
+    const selectedBarangay = allBarangays.find(brgy => brgy.barangay === formData.barangay);
+    if (!selectedBarangay || !selectedBarangay.id) return [];
+    return allLocations.filter(loc => loc.barangay_id === selectedBarangay.id);
+  };
+
+  const filteredCities = getFilteredCities();
+  const filteredBarangays = getFilteredBarangays();
+  const filteredLocations = getFilteredLocations();
 
   if (!isOpen) return null;
 
@@ -932,24 +953,20 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.region}
                   onChange={(e) => handleInputChange('region', e.target.value)}
-                  disabled={locationsLoading}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Region</option>
-                  {formData.region && !regions.some(r => r.region === formData.region) && (
+                  {formData.region && !regions.some(reg => reg.name === formData.region) && (
                     <option value={formData.region}>{formData.region}</option>
                   )}
                   {regions.map((region) => (
-                    <option key={region.id} value={region.region}>
-                      {region.region}
+                    <option key={region.id} value={region.name}>
+                      {region.name}
                     </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
-              {locationsLoading && (
-                <p className="text-gray-400 text-xs mt-1">Loading regions...</p>
-              )}
               {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
             </div>
 
@@ -961,16 +978,16 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  disabled={!selectedRegionId}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
+                  disabled={!formData.region}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Select City</option>
-                  {formData.city && !cities.some(c => c.city === formData.city) && (
+                  <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+                  {formData.city && !filteredCities.some(city => city.name === formData.city) && (
                     <option value={formData.city}>{formData.city}</option>
                   )}
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.city}>
-                      {city.city}
+                  {filteredCities.map((city) => (
+                    <option key={city.id} value={city.name}>
+                      {city.name}
                     </option>
                   ))}
                 </select>
@@ -987,14 +1004,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <select
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  disabled={!selectedCityId}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50`}
+                  disabled={!formData.city}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Select Barangay</option>
-                  {formData.barangay && !barangays.some(b => b.barangay === formData.barangay) && (
+                  <option value="">{formData.city ? 'Select Barangay' : 'Select City First'}</option>
+                  {formData.barangay && !filteredBarangays.some(b => b.barangay === formData.barangay) && (
                     <option value={formData.barangay}>{formData.barangay}</option>
                   )}
-                  {barangays.map((barangay) => (
+                  {filteredBarangays.map((barangay) => (
                     <option key={barangay.id} value={barangay.barangay}>
                       {barangay.barangay}
                     </option>
@@ -1003,6 +1020,32 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Location<span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  disabled={!formData.barangay}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.location ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <option value="">{formData.barangay ? 'Select Location' : 'Select Barangay First'}</option>
+                  {formData.location && formData.location.trim() !== '' && !filteredLocations.some(loc => loc.location_name === formData.location) && (
+                    <option value={formData.location}>{formData.location}</option>
+                  )}
+                  {filteredLocations.map((location) => (
+                    <option key={location.id} value={location.location_name}>
+                      {location.location_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
+              </div>
+              {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
             </div>
           </div>
 
@@ -1018,14 +1061,20 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Plan</option>
-                  {formData.choosePlan && !plans.some(p => p.name === formData.choosePlan) && (
+                  {formData.choosePlan && !plans.some(plan => {
+                    const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                    return planWithPrice === formData.choosePlan || plan.name === formData.choosePlan;
+                  }) && (
                     <option value={formData.choosePlan}>{formData.choosePlan}</option>
                   )}
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.name}>
-                      {plan.name}{plan.price ? ` - ₱${parseFloat(plan.price.toString()).toFixed(2)}` : ''}
-                    </option>
-                  ))}
+                  {plans.map((plan) => {
+                    const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                    return (
+                      <option key={plan.id} value={planWithPrice}>
+                        {planWithPrice}
+                      </option>
+                    );
+                  })}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400" size={20} />
               </div>

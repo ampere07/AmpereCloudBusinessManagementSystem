@@ -22,6 +22,12 @@ export interface ApplicationVisitData {
   image2_url?: string | null;
   image3_url?: string | null;
   house_front_picture_url?: string | null;
+  region?: string | null;
+  city?: string | null;
+  barangay?: string | null;
+  location?: string | null;
+  choose_plan?: string | null;
+  promo?: string | null;
   created_at?: string;
   created_by_user_email?: string;
   updated_at?: string;

@@ -31,7 +31,7 @@ class ApplicationVisitController extends Controller
                     : '';
                 
                 $fullAddress = $application
-                    ? trim("{$application->installation_address}, {$application->village}, {$application->barangay}, {$application->city}, {$application->region}")
+                    ? trim("{$application->installation_address}, {$application->location}, {$application->barangay}, {$application->city}, {$application->region}")
                     : '';
                 
                 return [
@@ -60,7 +60,7 @@ class ApplicationVisitController extends Controller
                     'middle_initial' => $application ? $application->middle_initial : null,
                     'last_name' => $application ? $application->last_name : null,
                     'installation_address' => $application ? $application->installation_address : null,
-                    'village' => $application ? $application->village : null,
+                    'location' => $application ? $application->location : null,
                     'barangay' => $application ? $application->barangay : null,
                     'city' => $application ? $application->city : null,
                     'region' => $application ? $application->region : null,
@@ -244,12 +244,47 @@ class ApplicationVisitController extends Controller
                 'image2_url' => 'nullable|string|max:255',
                 'image3_url' => 'nullable|string|max:255',
                 'house_front_picture_url' => 'nullable|string|max:255',
-                'updated_by_user_email' => 'nullable|email|max:255'
+                'updated_by_user_email' => 'nullable|email|max:255',
+                'region' => 'nullable|string|max:255',
+                'city' => 'nullable|string|max:255',
+                'barangay' => 'nullable|string|max:255',
+                'location' => 'nullable|string|max:255',
+                'choose_plan' => 'nullable|string|max:255'
             ]);
             
-            $visit->update($validatedData);
+            $visitData = collect($validatedData)->except(['region', 'city', 'barangay', 'location', 'choose_plan'])->toArray();
+            $visit->update($visitData);
             
             Log::info('Application visit updated successfully', ['visit_id' => $visit->id]);
+            
+            if ($visit->application_id && collect($validatedData)->intersectByKeys(array_flip(['region', 'city', 'barangay', 'location', 'choose_plan']))->isNotEmpty()) {
+                $application = Application::findOrFail($visit->application_id);
+                
+                $applicationData = [];
+                if (isset($validatedData['region'])) {
+                    $applicationData['region'] = $validatedData['region'];
+                }
+                if (isset($validatedData['city'])) {
+                    $applicationData['city'] = $validatedData['city'];
+                }
+                if (isset($validatedData['barangay'])) {
+                    $applicationData['barangay'] = $validatedData['barangay'];
+                }
+                if (isset($validatedData['location'])) {
+                    $applicationData['location'] = $validatedData['location'];
+                }
+                if (isset($validatedData['choose_plan'])) {
+                    $applicationData['desired_plan'] = $validatedData['choose_plan'];
+                }
+                
+                if (!empty($applicationData)) {
+                    $application->update($applicationData);
+                    Log::info('Application table updated with location and plan data', [
+                        'application_id' => $application->id,
+                        'updated_fields' => array_keys($applicationData)
+                    ]);
+                }
+            }
             
             return response()->json([
                 'success' => true,

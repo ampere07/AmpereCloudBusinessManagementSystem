@@ -1,11 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, ChevronDown } from 'lucide-react';
 import { updateApplicationVisit } from '../services/applicationVisitService';
-import { getRegionsFromLocations, getCitiesByRegion, getBarangaysByCity, getCities } from '../services/cityService';
-import { getRegions as getRegionsLegacy } from '../services/regionService';
+import { getRegions, getCities, City } from '../services/cityService';
+import { barangayService, Barangay } from '../services/barangayService';
+import { locationDetailService, LocationDetail } from '../services/locationDetailService';
 import { statusRemarksService, StatusRemark } from '../services/statusRemarksService';
 import { userService } from '../services/userService';
-import { Location } from '../types/location';
+import { planService, Plan } from '../services/planService';
+
+interface Region {
+  id: number;
+  name: string;
+}
 
 interface ApplicationVisitStatusModalProps {
   isOpen: boolean;
@@ -40,6 +46,7 @@ interface StatusFormData {
   barangay: string;
   city: string;
   region: string;
+  location: string;
   choosePlan: string;
   remarks: string;
   assignedEmail: string;
@@ -85,6 +92,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         barangay: visitData.barangay,
         city: visitData.city, 
         region: visitData.region,
+        location: visitData.location,
         currentStatus: visitData.visit_status,
         assignedEmail: visitData.assigned_email
       });
@@ -103,6 +111,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       barangay: visitData?.barangay || '',
       city: visitData?.city || '',
       region: visitData?.region || '',
+      location: visitData?.location || '',
       choosePlan: visitData?.choose_plan || 'SwitchConnect - P799',
       remarks: visitData?.visit_remarks || '',
       assignedEmail: visitData?.assigned_email || '',
@@ -125,12 +134,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const [loading, setLoading] = useState(false);
   const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   
-  const [regions, setRegions] = useState<Location[]>([]);
-  const [cities, setCities] = useState<Location[]>([]);
-  const [barangays, setBarangays] = useState<Location[]>([]);
-  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [allCities, setAllCities] = useState<City[]>([]);
+  const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
 
   useEffect(() => {
     if (visitData) {
@@ -148,6 +157,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         barangay: visitData.barangay || prev.barangay,
         city: visitData.city || prev.city,
         region: visitData.region || prev.region,
+        location: visitData.location || prev.location,
         choosePlan: visitData.choose_plan || prev.choosePlan,
         remarks: visitData.visit_remarks || prev.remarks,
         assignedEmail: visitData.assigned_email || prev.assignedEmail
@@ -167,48 +177,105 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   }, [visitData]);
 
   useEffect(() => {
-    const loadRegions = async () => {
+    const fetchRegions = async () => {
       if (isOpen) {
         try {
-          console.log('Loading regions...');
+          console.log('========== FETCHING REGIONS ==========');
+          console.log('Loading regions from database...');
+          const fetchedRegions = await getRegions();
+          console.log('Regions API Response:', fetchedRegions);
           
-          let regionsData = await getRegionsFromLocations();
-          console.log('Location system regions:', regionsData);
-          
-          if (!Array.isArray(regionsData) || regionsData.length === 0) {
-            console.log('No data from location system, trying legacy service...');
-            const legacyRegions = await getRegionsLegacy();
-            console.log('Legacy regions service returned:', legacyRegions);
-            
-            if (Array.isArray(legacyRegions) && legacyRegions.length > 0) {
-              regionsData = legacyRegions.map(region => ({
-                id: region.id,
-                name: region.name,
-                type: 'region' as const,
-                isActive: true,
-                createdAt: region.created_at || '',
-                updatedAt: region.updated_at || ''
-              })) as Location[];
-              console.log('Converted legacy regions to Location format:', regionsData);
-            }
-          }
-          
-          if (Array.isArray(regionsData) && regionsData.length > 0) {
-            setRegions(regionsData);
-            console.log('Set regions state with:', regionsData.length, 'regions');
-            console.log('Sample region:', regionsData[0]);
+          if (Array.isArray(fetchedRegions)) {
+            console.log('Regions Count:', fetchedRegions.length);
+            setRegions(fetchedRegions);
+            console.log('Successfully set regions state');
           } else {
-            console.warn('No regions data from either service');
+            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
+          console.log('======================================');
         } catch (error) {
-          console.error('Error loading regions:', error);
+          console.error('========== ERROR FETCHING REGIONS ==========');
+          console.error('Error fetching Regions:', error);
+          console.error('===========================================');
           setRegions([]);
         }
       }
     };
+    
+    fetchRegions();
+  }, [isOpen]);
 
-    loadRegions();
+  useEffect(() => {
+    const fetchAllCities = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all cities from database...');
+          const fetchedCities = await getCities();
+          console.log('All Cities API Response:', fetchedCities);
+          
+          if (Array.isArray(fetchedCities)) {
+            setAllCities(fetchedCities);
+            console.log('Loaded All Cities:', fetchedCities.length);
+          } else {
+            setAllCities([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Cities:', error);
+          setAllCities([]);
+        }
+      }
+    };
+    
+    fetchAllCities();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllBarangays = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all barangays from database...');
+          const response = await barangayService.getAll();
+          console.log('All Barangays API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllBarangays(response.data);
+            console.log('Loaded All Barangays:', response.data.length);
+          } else {
+            setAllBarangays([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Barangays:', error);
+          setAllBarangays([]);
+        }
+      }
+    };
+    
+    fetchAllBarangays();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllLocations = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all locations from database...');
+          const response = await locationDetailService.getAll();
+          console.log('All Locations API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllLocations(response.data);
+            console.log('Loaded All Locations:', response.data.length);
+          } else {
+            setAllLocations([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Locations:', error);
+          setAllLocations([]);
+        }
+      }
+    };
+    
+    fetchAllLocations();
   }, [isOpen]);
 
   useEffect(() => {
@@ -256,105 +323,29 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   }, [isOpen]);
 
   useEffect(() => {
-    const loadCities = async () => {
-      if (selectedRegionId) {
+    const fetchPlans = async () => {
+      if (isOpen) {
         try {
-          console.log('Loading cities for region ID:', selectedRegionId);
+          console.log('Loading plans from database...');
+          const response = await planService.getAllPlans();
+          console.log('Plans API Response:', response);
           
-          let citiesData = await getCitiesByRegion(selectedRegionId);
-          console.log('Location system cities:', citiesData);
-          
-          if (!Array.isArray(citiesData) || citiesData.length === 0) {
-            console.log('No cities from location system, trying legacy cities service...');
-            const legacyCities = await getCities();
-            console.log('Legacy cities service returned:', legacyCities);
-            
-            if (Array.isArray(legacyCities) && legacyCities.length > 0) {
-              const filteredCities = legacyCities.filter(city => city.region_id === selectedRegionId);
-              citiesData = filteredCities.map(city => ({
-                id: city.id,
-                name: city.name,
-                type: 'city' as const,
-                parentId: city.region_id,
-                isActive: city.is_active ?? true,
-                createdAt: city.created_at || '',
-                updatedAt: city.updated_at || ''
-              }));
-              console.log('Filtered and converted legacy cities for region:', citiesData);
-            }
+          if (Array.isArray(response)) {
+            setPlans(response);
+            console.log('Loaded Plans:', response.length);
+          } else {
+            console.warn('Unexpected Plans response structure:', response);
+            setPlans([]);
           }
-          
-          setCities(citiesData || []);
-          console.log('Set cities state with:', citiesData?.length || 0, 'cities');
-          
-          setBarangays([]);
-          setSelectedCityId(null);
         } catch (error) {
-          console.error('Error loading cities:', error);
-          setCities([]);
+          console.error('Error fetching Plans:', error);
+          setPlans([]);
         }
-      } else {
-        setCities([]);
-        setBarangays([]);
-        setSelectedCityId(null);
       }
     };
-
-    loadCities();
-  }, [selectedRegionId]);
-
-  useEffect(() => {
-    const loadBarangays = async () => {
-      if (selectedCityId) {
-        try {
-          console.log('Loading barangays for city ID:', selectedCityId);
-          const barangaysData = await getBarangaysByCity(selectedCityId);
-          setBarangays(barangaysData);
-          console.log('Loaded barangays:', barangaysData);
-        } catch (error) {
-          console.error('Error loading barangays:', error);
-        }
-      } else {
-        setBarangays([]);
-      }
-    };
-
-    loadBarangays();
-  }, [selectedCityId]);
-
-  useEffect(() => {
-    if (regions.length > 0 && formData.region && !selectedRegionId) {
-      console.log('Looking for region match:', formData.region, 'in regions:', regions.map(r => r.name));
-      const matchingRegion = regions.find(r => 
-        r.name.toLowerCase().trim() === formData.region.toLowerCase().trim()
-      );
-      console.log('Found matching region:', matchingRegion);
-      if (matchingRegion) {
-        console.log('Setting selectedRegionId to:', matchingRegion.id);
-        setSelectedRegionId(matchingRegion.id);
-      } else {
-        console.warn('No matching region found for:', formData.region);
-        console.log('Available regions:', regions.map(r => `"${r.name}"`));
-      }
-    }
-  }, [regions, formData.region, selectedRegionId]);
-
-  useEffect(() => {
-    if (cities.length > 0 && formData.city && !selectedCityId) {
-      console.log('Looking for city match:', formData.city, 'in cities:', cities.map(c => c.name));
-      const matchingCity = cities.find(c => 
-        c.name.toLowerCase().trim() === formData.city.toLowerCase().trim()
-      );
-      console.log('Found matching city:', matchingCity);
-      if (matchingCity) {
-        console.log('Setting selectedCityId to:', matchingCity.id);
-        setSelectedCityId(matchingCity.id);
-      } else {
-        console.warn('No matching city found for:', formData.city);
-        console.log('Available cities:', cities.map(c => `"${c.name}"`));
-      }
-    }
-  }, [cities, formData.city, selectedCityId]);
+    
+    fetchPlans();
+  }, [isOpen]);
 
   useEffect(() => {
     if (isOpen && visitData) {
@@ -370,6 +361,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         barangay: visitData.barangay || '',
         city: visitData.city || '',
         region: visitData.region || '',
+        location: visitData.location || '',
         choosePlan: visitData.choose_plan || 'SwitchConnect - P799',
         remarks: visitData.visit_remarks || '',
         assignedEmail: visitData.assigned_email || '',
@@ -386,24 +378,26 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         visitRemarks: visitData.visit_remarks || '',
         statusRemarks: visitData.status_remarks || ''
       });
-      
-      setSelectedRegionId(null);
-      setSelectedCityId(null);
     }
   }, [isOpen, visitData]);
 
   const handleInputChange = (field: keyof StatusFormData, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    
-    if (field === 'region') {
-      const selectedRegion = regions.find(r => r.name === value);
-      setSelectedRegionId(selectedRegion ? selectedRegion.id : null);
-      setFormData(prev => ({ ...prev, city: '', barangay: '' }));
-    } else if (field === 'city') {
-      const selectedCity = cities.find(c => c.name === value);
-      setSelectedCityId(selectedCity ? selectedCity.id : null);
-      setFormData(prev => ({ ...prev, barangay: '' }));
-    }
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (field === 'region') {
+        newData.city = '';
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'city') {
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'barangay') {
+        newData.location = '';
+      }
+      return newData;
+    });
     
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -470,6 +464,11 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       return {
         assigned_email: formData.assignedEmail,
         visit_remarks: formData.remarks ? formData.remarks.trim() : null,
+        region: formData.region,
+        city: formData.city,
+        barangay: formData.barangay,
+        location: formData.location,
+        choose_plan: formData.choosePlan,
         updated_by_user_id: null
       };
     }
@@ -542,6 +541,31 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const getFullName = () => {
     return `${visitData.first_name || ''} ${visitData.middle_initial || ''} ${visitData.last_name || ''}`.trim();
   };
+
+  const getFilteredCities = () => {
+    if (!formData.region) return [];
+    const selectedRegion = regions.find(reg => reg.name === formData.region);
+    if (!selectedRegion) return [];
+    return allCities.filter(city => city.region_id === selectedRegion.id);
+  };
+
+  const getFilteredBarangays = () => {
+    if (!formData.city) return [];
+    const selectedCity = allCities.find(city => city.name === formData.city);
+    if (!selectedCity) return [];
+    return allBarangays.filter(brgy => brgy.city_id === selectedCity.id);
+  };
+
+  const getFilteredLocations = () => {
+    if (!formData.barangay) return [];
+    const selectedBarangay = allBarangays.find(brgy => brgy.barangay === formData.barangay);
+    if (!selectedBarangay) return [];
+    return allLocations.filter(loc => loc.barangay_id === selectedBarangay.id);
+  };
+
+  const filteredCities = getFilteredCities();
+  const filteredBarangays = getFilteredBarangays();
+  const filteredLocations = getFilteredLocations();
 
   if (!isOpen) return null;
 
@@ -847,54 +871,131 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Barangay
+                  Region
                 </label>
-                <input
-                  type="text"
-                  value={formData.barangay}
-                  onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.region}
+                    onChange={(e) => handleInputChange('region', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  >
+                    <option value="">Select Region</option>
+                    {formData.region && !regions.some(reg => reg.name === formData.region) && (
+                      <option value={formData.region}>{formData.region}</option>
+                    )}
+                    {regions.map((region) => (
+                      <option key={region.id} value={region.name}>
+                        {region.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   City
                 </label>
-                <input
-                  type="text"
-                  value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.city}
+                    onChange={(e) => handleInputChange('city', e.target.value)}
+                    disabled={!formData.region}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+                    {formData.city && !filteredCities.some(city => city.name === formData.city) && (
+                      <option value={formData.city}>{formData.city}</option>
+                    )}
+                    {filteredCities.map((city) => (
+                      <option key={city.id} value={city.name}>
+                        {city.name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Region
+                  Barangay
                 </label>
-                <input
-                  type="text"
-                  value={formData.region}
-                  onChange={(e) => handleInputChange('region', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                />
+                <div className="relative">
+                  <select
+                    value={formData.barangay}
+                    onChange={(e) => handleInputChange('barangay', e.target.value)}
+                    disabled={!formData.city}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{formData.city ? 'Select Barangay' : 'Select City First'}</option>
+                    {formData.barangay && !filteredBarangays.some(brgy => brgy.barangay === formData.barangay) && (
+                      <option value={formData.barangay}>{formData.barangay}</option>
+                    )}
+                    {filteredBarangays.map((barangay) => (
+                      <option key={barangay.id} value={barangay.barangay}>
+                        {barangay.barangay}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Location
+                </label>
+                <div className="relative">
+                  <select
+                    value={formData.location}
+                    onChange={(e) => handleInputChange('location', e.target.value)}
+                    disabled={!formData.barangay}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="">{formData.barangay ? 'Select Location' : 'Select Barangay First'}</option>
+                    {formData.location && !filteredLocations.some(loc => loc.location_name === formData.location) && (
+                      <option value={formData.location}>{formData.location}</option>
+                    )}
+                    {filteredLocations.map((location) => (
+                      <option key={location.id} value={location.location_name}>
+                        {location.location_name}
+                      </option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Choose Plan
                 </label>
-                <select
-                  value={formData.choosePlan}
-                  onChange={(e) => handleInputChange('choosePlan', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                >
-                  <option value="SwitchConnect - P799">SwitchConnect - P799</option>
-                  <option value="SwitchConnect - P999">SwitchConnect - P999</option>
-                  <option value="SwitchConnect - P1299">SwitchConnect - P1299</option>
-                  <option value="SwitchConnect - P1599">SwitchConnect - P1599</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={formData.choosePlan}
+                    onChange={(e) => handleInputChange('choosePlan', e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                  >
+                    <option value="">Select Plan</option>
+                    {formData.choosePlan && !plans.some(plan => {
+                      const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                      return planWithPrice === formData.choosePlan || plan.name === formData.choosePlan;
+                    }) && (
+                      <option value={formData.choosePlan}>{formData.choosePlan}</option>
+                    )}
+                    {plans.map((plan) => {
+                      const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                      return (
+                        <option key={plan.id} value={planWithPrice}>
+                          {planWithPrice}
+                        </option>
+                      );
+                    })}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
               </div>
 
               <div>
@@ -913,20 +1014,22 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Assigned Email<span className="text-red-500">*</span>
                 </label>
-                <select
-                  value={formData.assignedEmail}
-                  onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                >
-                  <option value="">Select Assigned Email</option>
-                  {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && formData.assignedEmail !== 'Office' && (
-                    <option value={formData.assignedEmail}>{formData.assignedEmail}</option>
-                  )}
-                  {technicians.map((technician, index) => (
-                    <option key={index} value={technician.email}>{technician.email}</option>
-                  ))}
-                  <option value="Office">Office</option>
-                </select>
+                <div className="relative">
+                  <select
+                    value={formData.assignedEmail}
+                    onChange={(e) => handleInputChange('assignedEmail', e.target.value)}
+                    className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
+                  >
+                    <option value="">Select Assigned Email</option>
+                    {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && (
+                      <option value={formData.assignedEmail}>{formData.assignedEmail}</option>
+                    )}
+                    {technicians.map((technician, index) => (
+                      <option key={index} value={technician.email}>{technician.email}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                </div>
                 {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
               </div>
             </div>

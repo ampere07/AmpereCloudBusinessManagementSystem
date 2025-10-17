@@ -817,6 +817,25 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         jobOrderUpdateData.address_coordinates = updatedFormData.addressCoordinates;
         jobOrderUpdateData.onsite_status = 'Done';
         jobOrderUpdateData.group_name = updatedFormData.groupName;
+        
+        // Generate username when onsite status is Done
+        console.log('========== GENERATING USERNAME ==========');
+        const lastName = (jobOrderData.Last_Name || jobOrderData.last_name || '').toLowerCase().replace(/\s+/g, '');
+        const mobileNumber = (jobOrderData.Mobile_Number || jobOrderData.mobile_number || '').replace(/[^0-9]/g, '');
+        
+        console.log('Last Name:', lastName);
+        console.log('Mobile Number:', mobileNumber);
+        
+        if (lastName && mobileNumber) {
+          const generatedUsername = `${lastName}${mobileNumber}`;
+          console.log('Generated Username:', generatedUsername);
+          jobOrderUpdateData.username = generatedUsername;
+        } else {
+          console.warn('Cannot generate username - missing last name or mobile number');
+          console.warn('Last Name available:', !!lastName);
+          console.warn('Mobile Number available:', !!mobileNumber);
+        }
+        console.log('=========================================');
       }
       
       if (updatedFormData.onsiteStatus === 'Failed' || updatedFormData.onsiteStatus === 'Reschedule') {
@@ -1093,14 +1112,20 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             <div className="relative">
               <select value={formData.choosePlan} onChange={(e) => handleInputChange('choosePlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                 <option value="">Select Plan</option>
-                {formData.choosePlan && !plans.some(plan => plan.name === formData.choosePlan) && (
+                {formData.choosePlan && !plans.some(plan => {
+                  const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                  return planWithPrice === formData.choosePlan || plan.name === formData.choosePlan;
+                }) && (
                   <option value={formData.choosePlan}>{formData.choosePlan}</option>
                 )}
-                {plans.map((plan) => (
-                  <option key={plan.id} value={plan.name}>
-                    {plan.name}{plan.price ? ` - P${plan.price}` : ''}
-                  </option>
-                ))}
+                {plans.map((plan) => {
+                  const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                  return (
+                    <option key={plan.id} value={planWithPrice}>
+                      {planWithPrice}
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>

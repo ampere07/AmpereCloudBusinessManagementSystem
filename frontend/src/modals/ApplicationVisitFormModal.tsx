@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown } from 'lucide-react';
 import { createApplicationVisit, ApplicationVisitData } from '../services/applicationVisitService';
+import { updateApplication } from '../services/applicationService';
 import { UserData } from '../types/api';
 import { userService } from '../services/userService';
+import { getRegions, getCities, City } from '../services/cityService';
+import { barangayService, Barangay } from '../services/barangayService';
+import { locationDetailService, LocationDetail } from '../services/locationDetailService';
+import { planService, Plan } from '../services/planService';
 import apiClient from '../config/api';
 
 interface ApplicationVisitFormModalProps {
@@ -24,6 +29,7 @@ interface VisitFormData {
   barangay: string;
   city: string;
   region: string;
+  location: string;
   choosePlan: string;
   promo: string;
   remarks: string;
@@ -93,6 +99,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       barangay: applicationData?.barangay || '',
       city: applicationData?.city || '',
       region: applicationData?.region || '',
+      location: applicationData?.location || '',
       choosePlan: applicationData?.desired_plan || 'SwitchConnect - P799',
       promo: applicationData?.promo || '',
       remarks: '',
@@ -113,26 +120,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   interface Region {
     id: number;
-    region: string;
-  }
-
-  interface City {
-    id: number;
-    city: string;
-    region_id: number;
-  }
-
-  interface Barangay {
-    id: number;
-    barangay: string;
-    city_id: number;
-  }
-
-  interface Plan {
-    id: number;
     name: string;
-    description?: string;
-    price?: number;
   }
 
   interface Promo {
@@ -148,40 +136,36 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   }
 
   const [regions, setRegions] = useState<Region[]>([]);
-  const [cities, setCities] = useState<City[]>([]);
-  const [barangays, setBarangays] = useState<Barangay[]>([]);
+  const [allCities, setAllCities] = useState<City[]>([]);
+  const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
-  const [selectedRegionId, setSelectedRegionId] = useState<number | null>(null);
-  const [selectedCityId, setSelectedCityId] = useState<number | null>(null);
 
   // Fetch plans from database
   useEffect(() => {
-    const loadPlans = async () => {
+    const fetchPlans = async () => {
       if (isOpen) {
         try {
           console.log('Loading plans from database...');
-          const response = await apiClient.get<ApiResponse<Plan[]> | Plan[]>('/plans');
-          const data = response.data;
+          const response = await planService.getAllPlans();
+          console.log('Plans API Response:', response);
           
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setPlans(data.data);
-            console.log('Loaded plans:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setPlans(data);
-            console.log('Loaded plans:', data.length);
+          if (Array.isArray(response)) {
+            setPlans(response);
+            console.log('Loaded Plans:', response.length);
           } else {
-            console.warn('No plans data found');
+            console.warn('Unexpected Plans response structure:', response);
             setPlans([]);
           }
         } catch (error) {
-          console.error('Error loading plans:', error);
+          console.error('Error fetching Plans:', error);
           setPlans([]);
         }
       }
     };
-
-    loadPlans();
+    
+    fetchPlans();
   }, [isOpen]);
 
   // Fetch promos from database
@@ -215,133 +199,106 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
   // Fetch regions from database
   useEffect(() => {
-    const loadRegions = async () => {
+    const fetchRegions = async () => {
       if (isOpen) {
         try {
+          console.log('========== FETCHING REGIONS ==========');
           console.log('Loading regions from database...');
-          const response = await apiClient.get<ApiResponse<Region[]> | Region[]>('/region_list');
-          const data = response.data;
+          const fetchedRegions = await getRegions();
+          console.log('Regions API Response:', fetchedRegions);
           
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setRegions(data.data);
-            console.log('Loaded regions:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setRegions(data);
-            console.log('Loaded regions:', data.length);
+          if (Array.isArray(fetchedRegions)) {
+            console.log('Regions Count:', fetchedRegions.length);
+            setRegions(fetchedRegions);
+            console.log('Successfully set regions state');
           } else {
-            console.warn('No regions data found');
+            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
+          console.log('======================================');
         } catch (error) {
-          console.error('Error loading regions:', error);
+          console.error('========== ERROR FETCHING REGIONS ==========');
+          console.error('Error fetching Regions:', error);
+          console.error('===========================================');
           setRegions([]);
         }
       }
     };
-
-    loadRegions();
+    
+    fetchRegions();
   }, [isOpen]);
 
-  // Load cities when region is selected
   useEffect(() => {
-    const loadCities = async () => {
-      if (selectedRegionId) {
+    const fetchAllCities = async () => {
+      if (isOpen) {
         try {
-          console.log('Loading cities for region ID:', selectedRegionId);
-          const response = await apiClient.get<ApiResponse<City[]> | City[]>(`/city_list/region/${selectedRegionId}`);
-          const data = response.data;
+          console.log('Loading all cities from database...');
+          const fetchedCities = await getCities();
+          console.log('All Cities API Response:', fetchedCities);
           
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setCities(data.data);
-            console.log('Loaded cities:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setCities(data);
-            console.log('Loaded cities:', data.length);
+          if (Array.isArray(fetchedCities)) {
+            setAllCities(fetchedCities);
+            console.log('Loaded All Cities:', fetchedCities.length);
           } else {
-            console.warn('No cities data found');
-            setCities([]);
-          }
-          
-          setBarangays([]);
-          setSelectedCityId(null);
-        } catch (error) {
-          console.error('Error loading cities:', error);
-          setCities([]);
-        }
-      } else {
-        setCities([]);
-        setBarangays([]);
-        setSelectedCityId(null);
-      }
-    };
-
-    loadCities();
-  }, [selectedRegionId]);
-
-  // Load barangays when city is selected
-  useEffect(() => {
-    const loadBarangays = async () => {
-      if (selectedCityId) {
-        try {
-          console.log('Loading barangays for city ID:', selectedCityId);
-          const response = await apiClient.get<ApiResponse<Barangay[]> | Barangay[]>(`/barangay_list/city/${selectedCityId}`);
-          const data = response.data;
-          
-          if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
-            setBarangays(data.data);
-            console.log('Loaded barangays:', data.data.length);
-          } else if (Array.isArray(data)) {
-            setBarangays(data);
-            console.log('Loaded barangays:', data.length);
-          } else {
-            console.warn('No barangays data found');
-            setBarangays([]);
+            setAllCities([]);
           }
         } catch (error) {
-          console.error('Error loading barangays:', error);
-          setBarangays([]);
+          console.error('Error fetching Cities:', error);
+          setAllCities([]);
         }
-      } else {
-        setBarangays([]);
       }
     };
+    
+    fetchAllCities();
+  }, [isOpen]);
 
-    loadBarangays();
-  }, [selectedCityId]);
-
-  // Match region from application data
   useEffect(() => {
-    if (regions.length > 0 && formData.region && !selectedRegionId) {
-      console.log('Looking for region match:', formData.region, 'in regions:', regions.map(r => r.region));
-      const matchingRegion = regions.find(r => 
-        r.region.toLowerCase().trim() === formData.region.toLowerCase().trim()
-      );
-      console.log('Found matching region:', matchingRegion);
-      if (matchingRegion) {
-        console.log('Setting selectedRegionId to:', matchingRegion.id);
-        setSelectedRegionId(matchingRegion.id);
-      } else {
-        console.warn('No matching region found for:', formData.region);
+    const fetchAllBarangays = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all barangays from database...');
+          const response = await barangayService.getAll();
+          console.log('All Barangays API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllBarangays(response.data);
+            console.log('Loaded All Barangays:', response.data.length);
+          } else {
+            setAllBarangays([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Barangays:', error);
+          setAllBarangays([]);
+        }
       }
-    }
-  }, [regions, formData.region, selectedRegionId]);
+    };
+    
+    fetchAllBarangays();
+  }, [isOpen]);
 
-  // Match city from application data
   useEffect(() => {
-    if (cities.length > 0 && formData.city && !selectedCityId) {
-      console.log('Looking for city match:', formData.city, 'in cities:', cities.map(c => c.city));
-      const matchingCity = cities.find(c => 
-        c.city.toLowerCase().trim() === formData.city.toLowerCase().trim()
-      );
-      console.log('Found matching city:', matchingCity);
-      if (matchingCity) {
-        console.log('Setting selectedCityId to:', matchingCity.id);
-        setSelectedCityId(matchingCity.id);
-      } else {
-        console.warn('No matching city found for:', formData.city);
+    const fetchAllLocations = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading all locations from database...');
+          const response = await locationDetailService.getAll();
+          console.log('All Locations API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setAllLocations(response.data);
+            console.log('Loaded All Locations:', response.data.length);
+          } else {
+            setAllLocations([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Locations:', error);
+          setAllLocations([]);
+        }
       }
-    }
-  }, [cities, formData.city, selectedCityId]);
+    };
+    
+    fetchAllLocations();
+  }, [isOpen]);
 
   // Fetch technicians
   useEffect(() => {
@@ -395,6 +352,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
           barangay: applicationData.barangay || prev.barangay,
           city: applicationData.city || prev.city,
           region: applicationData.region || prev.region,
+          location: applicationData.location || prev.location,
           choosePlan: applicationData.desired_plan || prev.choosePlan,
           promo: applicationData.promo || prev.promo
         };
@@ -413,14 +371,14 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       
       // Handle cascading dropdowns
       if (field === 'region') {
-        const selectedRegion = regions.find(r => r.region === value);
-        setSelectedRegionId(selectedRegion ? selectedRegion.id : null);
         newFormData.city = '';
         newFormData.barangay = '';
+        newFormData.location = '';
       } else if (field === 'city') {
-        const selectedCity = cities.find(c => c.city === value);
-        setSelectedCityId(selectedCity ? selectedCity.id : null);
         newFormData.barangay = '';
+        newFormData.location = '';
+      } else if (field === 'barangay') {
+        newFormData.location = '';
       }
       
       return newFormData;
@@ -430,6 +388,31 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  const getFilteredCities = () => {
+    if (!formData.region) return [];
+    const selectedRegion = regions.find(reg => reg.name === formData.region);
+    if (!selectedRegion) return [];
+    return allCities.filter(city => city.region_id === selectedRegion.id);
+  };
+
+  const getFilteredBarangays = () => {
+    if (!formData.city) return [];
+    const selectedCity = allCities.find(city => city.name === formData.city);
+    if (!selectedCity) return [];
+    return allBarangays.filter(brgy => brgy.city_id === selectedCity.id);
+  };
+
+  const getFilteredLocations = () => {
+    if (!formData.barangay) return [];
+    const selectedBarangay = allBarangays.find(brgy => brgy.barangay === formData.barangay);
+    if (!selectedBarangay) return [];
+    return allLocations.filter(loc => loc.barangay_id === selectedBarangay.id);
+  };
+
+  const filteredCities = getFilteredCities();
+  const filteredBarangays = getFilteredBarangays();
+  const filteredLocations = getFilteredLocations();
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -454,7 +437,13 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       parsedAppId: appId,
       assignedEmail: formData.assignedEmail,
       visitStatus: formData.status,
-      createdByEmail: currentUserEmail
+      createdByEmail: currentUserEmail,
+      region: formData.region,
+      city: formData.city,
+      barangay: formData.barangay,
+      location: formData.location,
+      choosePlan: formData.choosePlan,
+      promo: formData.promo
     });
     
     return {
@@ -465,6 +454,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       visit_status: formData.status,
       visit_remarks: formData.remarks || formData.visitNotes || null,
       application_status: 'Scheduled',
+      region: formData.region,
+      city: formData.city,
+      barangay: formData.barangay,
+      location: formData.location,
+      choose_plan: formData.choosePlan,
+      promo: formData.promo || null,
       created_by_user_email: currentUserEmail,
       updated_by_user_email: currentUserEmail
     };
@@ -492,9 +487,48 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     try {
       const applicationId = applicationData.id;
       
+      // Step 1: Update the applications table with region, city, barangay, location, desired_plan, and promo
+      console.log('========== UPDATING APPLICATION TABLE ==========');
+      const applicationUpdateData: any = {
+        first_name: formData.firstName,
+        middle_initial: formData.middleInitial || null,
+        last_name: formData.lastName,
+        mobile_number: formData.contactNumber,
+        secondary_mobile_number: formData.secondContactNumber || null,
+        email_address: formData.email,
+        installation_address: formData.address,
+        region: formData.region,
+        city: formData.city,
+        barangay: formData.barangay,
+        location: formData.location,
+        desired_plan: formData.choosePlan,
+        promo: formData.promo || null
+      };
+      
+      console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
+      
+      try {
+        const applicationResponse = await updateApplication(applicationId.toString(), applicationUpdateData);
+        console.log('Application updated successfully:', applicationResponse);
+      } catch (appError: any) {
+        console.error('========== APPLICATION UPDATE ERROR ==========');
+        console.error('Error updating application:', appError);
+        console.error('Error response:', appError.response?.data);
+        console.error('Error message:', appError.message);
+        console.error('==============================================');
+        
+        const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
+        alert(`Failed to update application data!\n\nError: ${errorMsg}\n\nPlease try again.`);
+        setLoading(false);
+        return;
+      }
+      console.log('===============================================');
+      
+      // Step 2: Create the application visit
+      console.log('========== CREATING APPLICATION VISIT ==========');
       const visitData = mapFormDataToVisitData(applicationId);
       
-      console.log('Final data being sent to API:', JSON.stringify(visitData, null, 2));
+      console.log('Final visit data being sent to API:', JSON.stringify(visitData, null, 2));
       
       const result = await createApplicationVisit(visitData);
       console.log('Application visit created successfully:', result);
@@ -504,7 +538,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       }
       
       console.log('Visit created successfully with ID:', result.data?.id);
-      alert(`Visit created successfully!`);
+      console.log('===============================================');
+      
+      alert(`Visit created successfully!\n\nApplication data has been updated with the new location and plan information.`);
       
       setErrors({});
       
@@ -698,11 +734,13 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Region</option>
-                  {formData.region && !regions.some(r => r.region === formData.region) && (
+                  {formData.region && !regions.some(reg => reg.name === formData.region) && (
                     <option value={formData.region}>{formData.region}</option>
                   )}
                   {regions.map((region) => (
-                    <option key={region.id} value={region.region}>{region.region}</option>
+                    <option key={region.id} value={region.name}>
+                      {region.name}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
@@ -713,25 +751,28 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
             {/* City */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                City
+                City<span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
                   value={formData.city}
                   onChange={(e) => handleInputChange('city', e.target.value)}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
-                  disabled={!selectedRegionId}
+                  disabled={!formData.region}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Select City</option>
-                  {formData.city && !cities.some(c => c.city === formData.city) && (
+                  <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+                  {formData.city && !filteredCities.some(city => city.name === formData.city) && (
                     <option value={formData.city}>{formData.city}</option>
                   )}
-                  {cities.map((city) => (
-                    <option key={city.id} value={city.city}>{city.city}</option>
+                  {filteredCities.map((city) => (
+                    <option key={city.id} value={city.name}>
+                      {city.name}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
               </div>
+              {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
             </div>
 
             {/* Barangay */}
@@ -743,20 +784,49 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                 <select
                   value={formData.barangay}
                   onChange={(e) => handleInputChange('barangay', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
-                  disabled={!selectedCityId}
+                  disabled={!formData.city}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
-                  <option value="">Select Barangay</option>
-                  {formData.barangay && !barangays.some(b => b.barangay === formData.barangay) && (
+                  <option value="">{formData.city ? 'Select Barangay' : 'Select City First'}</option>
+                  {formData.barangay && !filteredBarangays.some(brgy => brgy.barangay === formData.barangay) && (
                     <option value={formData.barangay}>{formData.barangay}</option>
                   )}
-                  {barangays.map((barangay) => (
-                    <option key={barangay.id} value={barangay.barangay}>{barangay.barangay}</option>
+                  {filteredBarangays.map((barangay) => (
+                    <option key={barangay.id} value={barangay.barangay}>
+                      {barangay.barangay}
+                    </option>
                   ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
               </div>
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
+            </div>
+
+            {/* Location */}
+            <div>
+              <label className="block text-sm font-medium text-gray-300 mb-2">
+                Location<span className="text-red-500">*</span>
+              </label>
+              <div className="relative">
+                <select
+                  value={formData.location}
+                  onChange={(e) => handleInputChange('location', e.target.value)}
+                  disabled={!formData.barangay}
+                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.location ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  <option value="">{formData.barangay ? 'Select Location' : 'Select Barangay First'}</option>
+                  {formData.location && formData.location.trim() !== '' && !filteredLocations.some(loc => loc.location_name === formData.location) && (
+                    <option value={formData.location}>{formData.location}</option>
+                  )}
+                  {filteredLocations.map((location) => (
+                    <option key={location.id} value={location.location_name}>
+                      {location.location_name}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+              </div>
+              {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
             </div>
 
             {/* Choose Plan */}
@@ -771,14 +841,20 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
                   <option value="">Select Plan</option>
-                  {formData.choosePlan && !plans.some(p => p.name === formData.choosePlan) && (
+                  {formData.choosePlan && !plans.some(plan => {
+                    const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                    return planWithPrice === formData.choosePlan || plan.name === formData.choosePlan;
+                  }) && (
                     <option value={formData.choosePlan}>{formData.choosePlan}</option>
                   )}
-                  {plans.map((plan) => (
-                    <option key={plan.id} value={plan.name}>
-                      {plan.name}{plan.price ? ` - ₱${parseFloat(plan.price.toString()).toFixed(2)}` : ''}
-                    </option>
-                  ))}
+                  {plans.map((plan) => {
+                    const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                    return (
+                      <option key={plan.id} value={planWithPrice}>
+                        {planWithPrice}
+                      </option>
+                    );
+                  })}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
               </div>

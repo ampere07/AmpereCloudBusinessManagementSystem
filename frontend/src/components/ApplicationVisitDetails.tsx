@@ -461,6 +461,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           barangay: applicationDetails?.barangay || '',
           city: applicationDetails?.city || '',
           region: applicationDetails?.region || '',
+          location: applicationDetails?.location || '',
           choose_plan: applicationDetails?.desired_plan || '',
           visit_remarks: currentVisitData.visit_remarks || '',
           status_remarks: currentVisitData.status_remarks || '',
