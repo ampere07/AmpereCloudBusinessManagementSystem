@@ -4,8 +4,25 @@ import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
 import { userService } from '../services/userService';
+import { planService, Plan } from '../services/planService';
+import { routerModelService, RouterModel } from '../services/routerModelService';
+import { getAllGroups, Group } from '../services/groupService';
 import { getAllLCPNAPs, LCPNAP } from '../services/lcpnapService';
 import { getAllPorts, Port } from '../services/portService';
+import { getAllVLANs, VLAN } from '../services/vlanService';
+import { getAllUsageTypes, UsageType } from '../services/usageTypeService';
+import { statusRemarksService, StatusRemark } from '../services/statusRemarksService';
+import { getRegions, getCities, City } from '../services/cityService';
+import { barangayService, Barangay } from '../services/barangayService';
+import { locationDetailService, LocationDetail } from '../services/locationDetailService';
+import { getAllInventoryItems, InventoryItem } from '../services/inventoryItemService';
+import { createJobOrderItems, JobOrderItem } from '../services/jobOrderItemService';
+import apiClient from '../config/api';
+
+interface Region {
+  id: number;
+  name: string;
+}
 
 interface JobOrderEditFormModalProps {
   isOpen: boolean;
@@ -28,13 +45,14 @@ interface JobOrderEditFormData {
   barangay: string;
   city: string;
   region: string;
+  location: string;
   addressCoordinates: string;
   choosePlan: string;
   status: string;
   connectionType: string;
   routerModel: string;
   modemSN: string;
-  provider: string;
+  groupName: string;
   lcpnap: string;
   port: string;
   vlan: string;
@@ -45,6 +63,7 @@ interface JobOrderEditFormData {
   setupImage: File | null;
   boxReadingImage: File | null;
   routerReadingImage: File | null;
+  portLabelImage: File | null;
   clientSignatureImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
@@ -56,6 +75,12 @@ interface JobOrderEditFormData {
   visit_with: string;
   visit_with_other: string;
   statusRemarks: string;
+  ip: string;
+}
+
+interface OrderItem {
+  itemId: string;
+  quantity: string;
 }
 
 const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
@@ -93,13 +118,14 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     barangay: '',
     city: '',
     region: '',
+    location: '',
     addressCoordinates: '',
     choosePlan: '',
     status: 'Confirmed',
     connectionType: '',
     routerModel: '',
     modemSN: '',
-    provider: '',
+    groupName: '',
     lcpnap: '',
     port: '',
     vlan: '',
@@ -110,6 +136,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     setupImage: null,
     boxReadingImage: null,
     routerReadingImage: null,
+    portLabelImage: null,
     clientSignatureImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
@@ -128,7 +155,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     visit_by: '',
     visit_with: '',
     visit_with_other: '',
-    statusRemarks: ''
+    statusRemarks: '',
+    ip: ''
   });
 
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -136,6 +164,251 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [lcpnaps, setLcpnaps] = useState<LCPNAP[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
+  const [regions, setRegions] = useState<Region[]>([]);
+  const [allCities, setAllCities] = useState<City[]>([]);
+  const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
+  const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [orderItems, setOrderItems] = useState<OrderItem[]>([{ itemId: '', quantity: '' }]);
+  const [plans, setPlans] = useState<Plan[]>([]);
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [routerModels, setRouterModels] = useState<RouterModel[]>([]);
+  const [vlans, setVlans] = useState<VLAN[]>([]);
+  const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
+  const [statusRemarksList, setStatusRemarksList] = useState<StatusRemark[]>([]);
+
+  useEffect(() => {
+    if (!isOpen) {
+      setOrderItems([{ itemId: '', quantity: '' }]);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchJobOrderItems = async () => {
+      if (isOpen && jobOrderData) {
+        const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
+        if (jobOrderId) {
+          try {
+            console.log('========== FETCHING JOB ORDER ITEMS ==========');
+            console.log('Fetching job order items for job order:', jobOrderId);
+            const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
+            const data = response.data as { success: boolean; data: any[] };
+            
+            console.log('Job Order Items Response:', data);
+            
+            if (data.success && Array.isArray(data.data)) {
+              const items = data.data;
+              console.log('Loaded job order items from API:', items);
+              
+              if (items.length > 0) {
+                const uniqueItems = new Map();
+                
+                items.forEach((item: any) => {
+                  const key = item.item_name;
+                  if (uniqueItems.has(key)) {
+                    const existing = uniqueItems.get(key);
+                    uniqueItems.set(key, {
+                      itemId: item.item_name || '',
+                      quantity: (parseInt(existing.quantity) + parseInt(item.quantity || 0)).toString()
+                    });
+                  } else {
+                    uniqueItems.set(key, {
+                      itemId: item.item_name || '',
+                      quantity: item.quantity ? item.quantity.toString() : ''
+                    });
+                  }
+                });
+                
+                const formattedItems = Array.from(uniqueItems.values());
+                formattedItems.push({ itemId: '', quantity: '' });
+                
+                console.log('Formatted unique items:', formattedItems);
+                setOrderItems(formattedItems);
+                console.log('Set order items to:', formattedItems);
+              } else {
+                setOrderItems([{ itemId: '', quantity: '' }]);
+              }
+            }
+            console.log('============================================');
+          } catch (error) {
+            console.error('Error fetching job order items:', error);
+            setOrderItems([{ itemId: '', quantity: '' }]);
+          }
+        }
+      }
+    };
+    
+    fetchJobOrderItems();
+  }, [isOpen, jobOrderData]);
+
+  useEffect(() => {
+    const fetchInventoryItems = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading inventory items from database...');
+          const response = await getAllInventoryItems();
+          console.log('Inventory Items API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setInventoryItems(response.data);
+            console.log('Loaded Inventory Items:', response.data.length);
+          } else {
+            console.warn('Unexpected Inventory Items response structure:', response);
+            setInventoryItems([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Inventory Items:', error);
+          setInventoryItems([]);
+        }
+      }
+    };
+    
+    fetchInventoryItems();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchPlans = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading plans from database...');
+          const response = await planService.getAllPlans();
+          console.log('Plans API Response:', response);
+          
+          if (Array.isArray(response)) {
+            setPlans(response);
+            console.log('Loaded Plans:', response.length);
+          } else {
+            console.warn('Unexpected Plans response structure:', response);
+            setPlans([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Plans:', error);
+          setPlans([]);
+        }
+      }
+    };
+    
+    fetchPlans();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading groups from database...');
+          const response = await getAllGroups();
+          console.log('Groups API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setGroups(response.data);
+            console.log('Loaded Groups:', response.data.length);
+          } else {
+            console.warn('Unexpected Groups response structure:', response);
+            setGroups([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Groups:', error);
+          setGroups([]);
+        }
+      }
+    };
+    
+    fetchGroups();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchRouterModels = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading router models from database...');
+          const fetchedRouterModels = await routerModelService.getAllRouterModels();
+          console.log('Router Models API Response:', fetchedRouterModels);
+          setRouterModels(fetchedRouterModels);
+          console.log('Loaded Router Models:', fetchedRouterModels.length);
+        } catch (error) {
+          console.error('Error fetching Router Models:', error);
+          setRouterModels([]);
+        }
+      }
+    };
+    
+    fetchRouterModels();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchVlans = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading VLANs from database...');
+          const response = await getAllVLANs();
+          console.log('VLAN API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setVlans(response.data);
+            console.log('Loaded VLANs:', response.data.length);
+          } else {
+            console.warn('Unexpected VLAN response structure:', response);
+            setVlans([]);
+          }
+        } catch (error) {
+          console.error('Error fetching VLANs:', error);
+          setVlans([]);
+        }
+      }
+    };
+    
+    fetchVlans();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchUsageTypes = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading usage types from database...');
+          const response = await getAllUsageTypes();
+          console.log('Usage Type API Response:', response);
+          
+          if (response.success && Array.isArray(response.data)) {
+            setUsageTypes(response.data);
+            console.log('Loaded Usage Types:', response.data.length);
+          } else {
+            console.warn('Unexpected Usage Type response structure:', response);
+            setUsageTypes([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Usage Types:', error);
+          setUsageTypes([]);
+        }
+      }
+    };
+    
+    fetchUsageTypes();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchStatusRemarks = async () => {
+      if (isOpen) {
+        try {
+          console.log('Loading status remarks from database...');
+          const response = await statusRemarksService.getAllStatusRemarks();
+          console.log('Status Remarks API Response:', response);
+          
+          if (Array.isArray(response)) {
+            setStatusRemarksList(response);
+            console.log('Loaded Status Remarks:', response.length);
+          } else {
+            console.warn('Unexpected Status Remarks response structure:', response);
+            setStatusRemarksList([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Status Remarks:', error);
+          setStatusRemarksList([]);
+        }
+      }
+    };
+    
+    fetchStatusRemarks();
+  }, [isOpen]);
 
   useEffect(() => {
     const fetchTechnicians = async () => {
@@ -164,6 +437,86 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     };
     
     fetchTechnicians();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchRegions = async () => {
+      if (isOpen) {
+        try {
+          const fetchedRegions = await getRegions();
+          if (Array.isArray(fetchedRegions)) {
+            setRegions(fetchedRegions);
+          } else {
+            setRegions([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Regions:', error);
+          setRegions([]);
+        }
+      }
+    };
+    
+    fetchRegions();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllCities = async () => {
+      if (isOpen) {
+        try {
+          const fetchedCities = await getCities();
+          if (Array.isArray(fetchedCities)) {
+            setAllCities(fetchedCities);
+          } else {
+            setAllCities([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Cities:', error);
+          setAllCities([]);
+        }
+      }
+    };
+    
+    fetchAllCities();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllBarangays = async () => {
+      if (isOpen) {
+        try {
+          const response = await barangayService.getAll();
+          if (response.success && Array.isArray(response.data)) {
+            setAllBarangays(response.data);
+          } else {
+            setAllBarangays([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Barangays:', error);
+          setAllBarangays([]);
+        }
+      }
+    };
+    
+    fetchAllBarangays();
+  }, [isOpen]);
+
+  useEffect(() => {
+    const fetchAllLocations = async () => {
+      if (isOpen) {
+        try {
+          const response = await locationDetailService.getAll();
+          if (response.success && Array.isArray(response.data)) {
+            setAllLocations(response.data);
+          } else {
+            setAllLocations([]);
+          }
+        } catch (error) {
+          console.error('Error fetching Locations:', error);
+          setAllLocations([]);
+        }
+      }
+    };
+    
+    fetchAllLocations();
   }, [isOpen]);
 
   useEffect(() => {
@@ -196,29 +549,29 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
   useEffect(() => {
     const fetchPorts = async () => {
-      if (isOpen) {
+      if (isOpen && formData.lcpnap) {
         try {
-          console.log('Loading Ports from database...');
+          console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
-          const response = await getAllPorts('', 1, 100, true, jobOrderId);
-          console.log('Port API Response:', response);
+          const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
+          console.log('Port API Response for', formData.lcpnap, ':', response);
           
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
-            console.log('Loaded Ports:', response.data.length);
+            console.log('Loaded Ports for', formData.lcpnap, ':', response.data.length);
           } else {
-            console.warn('Unexpected Port response structure:', response);
             setPorts([]);
           }
         } catch (error) {
           console.error('Error fetching Ports:', error);
           setPorts([]);
         }
+      } else if (isOpen && !formData.lcpnap) {
+        setPorts([]);
       }
     };
-    
     fetchPorts();
-  }, [isOpen, jobOrderData]);
+  }, [isOpen, jobOrderData, formData.lcpnap]);
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
@@ -227,54 +580,138 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
       const loadedStatus = jobOrderData.Status || jobOrderData.status || 'Confirmed';
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
-      setFormData(prev => ({
-        ...prev,
-        referredBy: jobOrderData.Referred_By || jobOrderData.referred_by || '',
-        dateInstalled: jobOrderData.Date_Installed || jobOrderData.date_installed || '',
-        usageType: jobOrderData.Usage_Type || jobOrderData.usage_type || '',
-        firstName: jobOrderData.First_Name || jobOrderData.first_name || '',
-        middleInitial: jobOrderData.Middle_Initial || jobOrderData.middle_initial || '',
-        lastName: jobOrderData.Last_Name || jobOrderData.last_name || '',
-        contactNumber: jobOrderData.Mobile_Number || jobOrderData.Contact_Number || jobOrderData.mobile_number || jobOrderData.contact_number || '',
-        secondContactNumber: jobOrderData.Secondary_Mobile_Number || jobOrderData.second_contact_number || '',
-        email: jobOrderData.Email_Address || jobOrderData.Applicant_Email_Address || jobOrderData.email_address || jobOrderData.email || '',
-        address: jobOrderData.Address || jobOrderData.Installation_Address || jobOrderData.address || jobOrderData.installation_address || '',
-        barangay: jobOrderData.Barangay || jobOrderData.barangay || '',
-        city: jobOrderData.City || jobOrderData.city || '',
-        region: jobOrderData.Region || jobOrderData.region || '',
-        addressCoordinates: jobOrderData.Address_Coordinates || jobOrderData.address_coordinates || '',
-        choosePlan: jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan || '',
-        status: loadedStatus,
-        connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
-        routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
-        modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
-        provider: jobOrderData.Provider || jobOrderData.provider || '',
-        lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
-        port: jobOrderData.PORT || jobOrderData.port || '',
-        vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
-        username: jobOrderData.Username || jobOrderData.username || '',
-        onsiteStatus: loadedOnsiteStatus,
-        onsiteRemarks: jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks || '',
-        contractLink: jobOrderData.Contract_Link || jobOrderData.contract_link || '',
-        contractTemplate: (jobOrderData.Contract_Template || jobOrderData.contract_template || '1').toString(),
-        assignedEmail: jobOrderData.Assigned_Email || jobOrderData.assigned_email || 'Office',
-        itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
-        visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
-        visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
-        visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
-        statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || ''
-      }));
+      const fetchApplicationData = async () => {
+        try {
+          const applicationId = jobOrderData.application_id || jobOrderData.Application_ID;
+          if (applicationId) {
+            console.log('Fetching application data for ID:', applicationId);
+            const appResponse = await apiClient.get<{ success: boolean; application: any }>(`/applications/${applicationId}`);
+            if (appResponse.data.success && appResponse.data.application) {
+              const appData = appResponse.data.application;
+              console.log('Loaded application data:', appData);
+              
+              setFormData(prev => ({
+                ...prev,
+                referredBy: jobOrderData.Referred_By || jobOrderData.referred_by || '',
+                dateInstalled: jobOrderData.Date_Installed || jobOrderData.date_installed || '',
+                usageType: jobOrderData.Usage_Type || jobOrderData.usage_type || '',
+                firstName: jobOrderData.First_Name || jobOrderData.first_name || '',
+                middleInitial: jobOrderData.Middle_Initial || jobOrderData.middle_initial || '',
+                lastName: jobOrderData.Last_Name || jobOrderData.last_name || '',
+                contactNumber: jobOrderData.Mobile_Number || jobOrderData.Contact_Number || jobOrderData.mobile_number || jobOrderData.contact_number || '',
+                secondContactNumber: jobOrderData.Secondary_Mobile_Number || jobOrderData.second_contact_number || '',
+                email: jobOrderData.Email_Address || jobOrderData.Applicant_Email_Address || jobOrderData.email_address || jobOrderData.email || '',
+                address: jobOrderData.Address || jobOrderData.Installation_Address || jobOrderData.address || jobOrderData.installation_address || '',
+                barangay: appData.barangay || jobOrderData.Barangay || jobOrderData.barangay || '',
+                city: appData.city || jobOrderData.City || jobOrderData.city || '',
+                region: appData.region || jobOrderData.Region || jobOrderData.region || '',
+                location: appData.location || jobOrderData.Location || jobOrderData.location || '',
+                addressCoordinates: jobOrderData.Address_Coordinates || jobOrderData.address_coordinates || '',
+                choosePlan: jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan || '',
+                status: loadedStatus,
+                connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
+                routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
+                modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
+                groupName: appData.group_name || jobOrderData.group_name || jobOrderData.Group_Name || jobOrderData.Group || jobOrderData.group || '',
+                lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
+                port: jobOrderData.PORT || jobOrderData.port || '',
+                vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
+                username: jobOrderData.Username || jobOrderData.username || '',
+                onsiteStatus: loadedOnsiteStatus,
+                onsiteRemarks: jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks || '',
+                contractLink: jobOrderData.Contract_Link || jobOrderData.contract_link || '',
+                contractTemplate: (jobOrderData.Contract_Template || jobOrderData.contract_template || '1').toString(),
+                assignedEmail: jobOrderData.Assigned_Email || jobOrderData.assigned_email || 'Office',
+                itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
+                visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
+                visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
+                visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
+                statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || '',
+                ip: jobOrderData.IP || jobOrderData.ip || ''
+              }));
+            }
+          } else {
+            console.warn('No application_id found, using jobOrderData for location');
+            loadDefaultFormData();
+          }
+        } catch (error) {
+          console.error('Error fetching application data:', error);
+          loadDefaultFormData();
+        }
+      };
+      
+      const loadDefaultFormData = () => {
+        setFormData(prev => ({
+          ...prev,
+          referredBy: jobOrderData.Referred_By || jobOrderData.referred_by || '',
+          dateInstalled: jobOrderData.Date_Installed || jobOrderData.date_installed || '',
+          usageType: jobOrderData.Usage_Type || jobOrderData.usage_type || '',
+          firstName: jobOrderData.First_Name || jobOrderData.first_name || '',
+          middleInitial: jobOrderData.Middle_Initial || jobOrderData.middle_initial || '',
+          lastName: jobOrderData.Last_Name || jobOrderData.last_name || '',
+          contactNumber: jobOrderData.Mobile_Number || jobOrderData.Contact_Number || jobOrderData.mobile_number || jobOrderData.contact_number || '',
+          secondContactNumber: jobOrderData.Secondary_Mobile_Number || jobOrderData.second_contact_number || '',
+          email: jobOrderData.Email_Address || jobOrderData.Applicant_Email_Address || jobOrderData.email_address || jobOrderData.email || '',
+          address: jobOrderData.Address || jobOrderData.Installation_Address || jobOrderData.address || jobOrderData.installation_address || '',
+          barangay: jobOrderData.Barangay || jobOrderData.barangay || '',
+          city: jobOrderData.City || jobOrderData.city || '',
+          region: jobOrderData.Region || jobOrderData.region || '',
+          location: jobOrderData.Location || jobOrderData.location || '',
+          addressCoordinates: jobOrderData.Address_Coordinates || jobOrderData.address_coordinates || '',
+          choosePlan: jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan || '',
+          status: loadedStatus,
+          connectionType: jobOrderData.Connection_Type || jobOrderData.connection_type || '',
+          routerModel: jobOrderData.Router_Model || jobOrderData.router_model || '',
+          modemSN: jobOrderData.Modem_SN || jobOrderData.modem_sn || '',
+          groupName: jobOrderData.Group || jobOrderData.group || '',
+          lcpnap: jobOrderData.LCPNAP || jobOrderData.lcpnap || '',
+          port: jobOrderData.PORT || jobOrderData.port || '',
+          vlan: jobOrderData.VLAN || jobOrderData.vlan || '',
+          username: jobOrderData.Username || jobOrderData.username || '',
+          onsiteStatus: loadedOnsiteStatus,
+          onsiteRemarks: jobOrderData.Onsite_Remarks || jobOrderData.onsite_remarks || '',
+          contractLink: jobOrderData.Contract_Link || jobOrderData.contract_link || '',
+          contractTemplate: (jobOrderData.Contract_Template || jobOrderData.contract_template || '1').toString(),
+          assignedEmail: jobOrderData.Assigned_Email || jobOrderData.assigned_email || 'Office',
+          itemName1: jobOrderData.Item_Name_1 || jobOrderData.item_name_1 || '',
+          visit_by: jobOrderData.Visit_By || jobOrderData.visit_by || '',
+          visit_with: jobOrderData.Visit_With || jobOrderData.visit_with || '',
+          visit_with_other: jobOrderData.Visit_With_Other || jobOrderData.visit_with_other || '',
+          statusRemarks: jobOrderData.Status_Remarks || jobOrderData.status_remarks || '',
+          ip: jobOrderData.IP || jobOrderData.ip || ''
+        }));
+      };
+      
+      fetchApplicationData();
     }
   }, [jobOrderData, isOpen]);
 
   const handleInputChange = (field: keyof JobOrderEditFormData, value: string | File | null) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (field === 'lcpnap') {
+        newData.port = '';
+      }
+      if (field === 'region') {
+        newData.city = '';
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'city') {
+        newData.barangay = '';
+        newData.location = '';
+      }
+      if (field === 'barangay') {
+        newData.location = '';
+      }
+      return newData;
+    });
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'clientSignatureImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -290,6 +727,23 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         [field]: newValue.toString()
       };
     });
+  };
+
+  const handleItemChange = (index: number, field: 'itemId' | 'quantity', value: string) => {
+    const newOrderItems = [...orderItems];
+    newOrderItems[index][field] = value;
+    setOrderItems(newOrderItems);
+    
+    if (field === 'itemId' && value && index === orderItems.length - 1) {
+      setOrderItems([...newOrderItems, { itemId: '', quantity: '' }]);
+    }
+  };
+
+  const handleRemoveItem = (index: number) => {
+    if (orderItems.length > 1) {
+      const newOrderItems = orderItems.filter((_, i) => i !== index);
+      setOrderItems(newOrderItems);
+    }
   };
 
   const validateForm = (): boolean => {
@@ -309,9 +763,10 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     if (!formData.barangay.trim()) newErrors.barangay = 'Barangay is required';
     if (!formData.city.trim()) newErrors.city = 'City is required';
     if (!formData.region.trim()) newErrors.region = 'Region is required';
+    if (!formData.location.trim()) newErrors.location = 'Location is required';
     if (!formData.choosePlan.trim()) newErrors.choosePlan = 'Choose Plan is required';
     if (!formData.status.trim()) newErrors.status = 'Status is required';
-    if (!formData.provider.trim()) newErrors.provider = 'Provider is required';
+    if (!formData.groupName.trim()) newErrors.groupName = 'Group is required';
     if (!formData.username.trim()) newErrors.username = 'Username is required';
 
     if (formData.status === 'Confirmed') {
@@ -324,16 +779,38 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         if (!formData.connectionType.trim()) newErrors.connectionType = 'Connection Type is required';
         if (!formData.routerModel.trim()) newErrors.routerModel = 'Router Model is required';
         if (!formData.modemSN.trim()) newErrors.modemSN = 'Modem SN is required';
-        if (!formData.lcpnap.trim()) newErrors.lcpnap = 'LCP-NAP is required';
-        if (!formData.port.trim()) newErrors.port = 'PORT is required';
-        if (!formData.vlan.trim()) newErrors.vlan = 'VLAN is required';
+        
+        if (formData.connectionType === 'Antenna') {
+          if (!formData.ip.trim()) newErrors.ip = 'IP is required';
+          if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
+        } else if (formData.connectionType === 'Fiber') {
+          if (!formData.lcpnap.trim()) newErrors.lcpnap = 'LCP-NAP is required';
+          if (!formData.port.trim()) newErrors.port = 'PORT is required';
+          if (!formData.vlan.trim()) newErrors.vlan = 'VLAN is required';
+        } else if (formData.connectionType === 'Local') {
+          if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
+        }
         if (!formData.onsiteRemarks.trim()) newErrors.onsiteRemarks = 'Onsite Remarks is required';
+        
+        const validItems = orderItems.filter(item => item.itemId && item.quantity);
+        if (validItems.length === 0) {
+          newErrors.items = 'At least one item with quantity is required';
+        } else {
+          for (let i = 0; i < validItems.length; i++) {
+            if (!validItems[i].itemId) {
+              newErrors[`item_${i}`] = 'Item is required';
+            }
+            if (!validItems[i].quantity || parseInt(validItems[i].quantity) <= 0) {
+              newErrors[`quantity_${i}`] = 'Valid quantity is required';
+            }
+          }
+        }
+        
         if (!formData.signedContractImage) newErrors.signedContractImage = 'Signed Contract Image is required';
         if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
         if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
         if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
         if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
-        if (!formData.itemName1.trim()) newErrors.itemName1 = 'Item Name 1 is required';
         if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
         if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
         if (!formData.visit_with_other.trim()) newErrors.visit_with_other = 'Visit With(Other) is required';
@@ -401,7 +878,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         Region: updatedFormData.region,
         Choose_Plan: updatedFormData.choosePlan,
         Status: updatedFormData.status,
-        Provider: updatedFormData.provider,
+        Group: updatedFormData.groupName,
         Username: updatedFormData.username,
         Onsite_Status: updatedFormData.onsiteStatus,
         Modified_By: updatedFormData.modifiedBy,
@@ -419,6 +896,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           jobOrderUpdateData.Connection_Type = updatedFormData.connectionType;
           jobOrderUpdateData.Router_Model = updatedFormData.routerModel;
           jobOrderUpdateData.Modem_SN = updatedFormData.modemSN;
+          jobOrderUpdateData.IP = updatedFormData.ip;
           jobOrderUpdateData.LCPNAP = updatedFormData.lcpnap;
           jobOrderUpdateData.PORT = updatedFormData.port;
           jobOrderUpdateData.VLAN = updatedFormData.vlan;
@@ -449,6 +927,84 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
       console.log('Job order updated successfully:', jobOrderResponse);
 
+      if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
+        console.log('========== ITEMS BEFORE FILTERING ==========');
+        console.log('Total order items count:', orderItems.length);
+        orderItems.forEach((item, index) => {
+          console.log(`Item ${index + 1}:`, {
+            itemId: item.itemId,
+            quantity: item.quantity,
+            quantity_parsed: parseInt(item.quantity)
+          });
+        });
+        console.log('==========================================');
+
+        const validItems = orderItems.filter(item => {
+          const quantity = parseInt(item.quantity);
+          const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
+          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
+          return isValid;
+        });
+
+        console.log('Filtered valid items:', validItems);
+
+        if (validItems.length > 0) {
+          console.log('========== DELETING EXISTING ITEMS ==========');
+          try {
+            console.log('Fetching existing items for job order:', jobOrderId);
+            const existingItemsResponse = await apiClient.get<{ success: boolean; data: any[] }>(`/job-order-items?job_order_id=${jobOrderId}`);
+            
+            if (existingItemsResponse.data.success && existingItemsResponse.data.data.length > 0) {
+              const existingItems = existingItemsResponse.data.data;
+              console.log('Found', existingItems.length, 'existing items to delete');
+              
+              for (const item of existingItems) {
+                try {
+                  await apiClient.delete(`/job-order-items/${item.id}`);
+                  console.log('Deleted item ID:', item.id);
+                } catch (deleteErr) {
+                  console.warn('Failed to delete item ID:', item.id, deleteErr);
+                }
+              }
+              
+              console.log('All existing items deleted successfully');
+            } else {
+              console.log('No existing items to delete');
+            }
+          } catch (deleteError: any) {
+            console.error('Error deleting existing items:', deleteError);
+            console.warn('Continuing with item creation despite delete error');
+          }
+          console.log('============================================');
+
+          const jobOrderItems: JobOrderItem[] = validItems.map(item => {
+            return {
+              job_order_id: parseInt(jobOrderId.toString()),
+              item_name: item.itemId,
+              quantity: parseInt(item.quantity)
+            };
+          });
+
+          console.log('Sending job order items to API:', jobOrderItems);
+          
+          try {
+            const itemsResponse = await createJobOrderItems(jobOrderItems);
+            
+            if (!itemsResponse.success) {
+              throw new Error(itemsResponse.message || 'Failed to create job order items');
+            }
+            
+            console.log('Job order items created successfully:', itemsResponse);
+          } catch (itemsError: any) {
+            console.error('Error creating job order items:', itemsError);
+            const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
+            alert(`Job order saved but items were not saved: ${errorMsg}`);
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
       if (applicationId) {
         const applicationUpdateData: any = {
           first_name: updatedFormData.firstName,
@@ -461,6 +1017,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           barangay: updatedFormData.barangay,
           city: updatedFormData.city,
           region: updatedFormData.region,
+          location: updatedFormData.location,
           desired_plan: updatedFormData.choosePlan,
           referred_by: updatedFormData.referredBy,
           status: updatedFormData.status
@@ -489,6 +1046,31 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   };
 
   if (!isOpen) return null;
+
+  const getFilteredCities = () => {
+    if (!formData.region) return [];
+    const selectedRegion = regions.find(reg => reg.name === formData.region);
+    if (!selectedRegion) return [];
+    return allCities.filter(city => city.region_id === selectedRegion.id);
+  };
+
+  const getFilteredBarangays = () => {
+    if (!formData.city) return [];
+    const selectedCity = allCities.find(city => city.name === formData.city);
+    if (!selectedCity) return [];
+    return allBarangays.filter(brgy => brgy.city_id === selectedCity.id);
+  };
+
+  const getFilteredLocations = () => {
+    if (!formData.barangay) return [];
+    const selectedBarangay = allBarangays.find(brgy => brgy.barangay === formData.barangay);
+    if (!selectedBarangay) return [];
+    return allLocations.filter(loc => loc.barangay_id === selectedBarangay.id);
+  };
+
+  const filteredCities = getFilteredCities();
+  const filteredBarangays = getFilteredBarangays();
+  const filteredLocations = getFilteredLocations();
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
@@ -539,9 +1121,14 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                 <div className="relative">
                   <select value={formData.usageType} onChange={(e) => handleInputChange('usageType', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.usageType ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value=""></option>
-                    <option value="Residential">Residential</option>
-                    <option value="Commercial">Commercial</option>
-                    <option value="Corporate">Corporate</option>
+                    {formData.usageType && !usageTypes.some(ut => ut.usage_name === formData.usageType) && (
+                      <option value={formData.usageType}>{formData.usageType}</option>
+                    )}
+                    {usageTypes.map((usageType) => (
+                      <option key={usageType.id} value={usageType.usage_name}>
+                        {usageType.usage_name}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
@@ -596,13 +1183,66 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           </div>
 
           <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Region<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select value={formData.region} onChange={(e) => handleInputChange('region', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                <option value="">Select Region</option>
+                {formData.region && !regions.some(reg => reg.name === formData.region) && (
+                  <option value={formData.region}>{formData.region}</option>
+                )}
+                {regions.map((region) => (
+                  <option key={region.id} value={region.name}>
+                    {region.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">City<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select 
+                value={formData.city} 
+                onChange={(e) => handleInputChange('city', e.target.value)} 
+                disabled={!formData.region}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.region ? 'Select City' : 'Select Region First'}</option>
+                {formData.city && !filteredCities.some(city => city.name === formData.city) && (
+                  <option value={formData.city}>{formData.city}</option>
+                )}
+                {filteredCities.map((city) => (
+                  <option key={city.id} value={city.name}>
+                    {city.name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
+          </div>
+
+          <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">Barangay<span className="text-red-500">*</span></label>
             <div className="relative">
-              <select value={formData.barangay} onChange={(e) => handleInputChange('barangay', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                <option value="">Select Barangay</option>
-                <option value="Pantok">Pantok</option>
-                <option value="San Isidro">San Isidro</option>
-                <option value="Almanza Dos">Almanza Dos</option>
+              <select 
+                value={formData.barangay} 
+                onChange={(e) => handleInputChange('barangay', e.target.value)} 
+                disabled={!formData.city}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.barangay ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.city ? 'Select Barangay' : 'Select City First'}</option>
+                {formData.barangay && !filteredBarangays.some(brgy => brgy.barangay === formData.barangay) && (
+                  <option value={formData.barangay}>{formData.barangay}</option>
+                )}
+                {filteredBarangays.map((barangay) => (
+                  <option key={barangay.id} value={barangay.barangay}>
+                    {barangay.barangay}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
@@ -610,15 +1250,27 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">City<span className="text-red-500">*</span></label>
-            <input type="text" value={formData.city} onChange={(e) => handleInputChange('city', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.city ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`} />
-            {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Region<span className="text-red-500">*</span></label>
-            <input type="text" value={formData.region} onChange={(e) => handleInputChange('region', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.region ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`} />
-            {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
+            <label className="block text-sm font-medium text-gray-300 mb-2">Location<span className="text-red-500">*</span></label>
+            <div className="relative">
+              <select 
+                value={formData.location} 
+                onChange={(e) => handleInputChange('location', e.target.value)} 
+                disabled={!formData.barangay}
+                className={`w-full px-3 py-2 bg-gray-800 border ${errors.location ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none disabled:opacity-50 disabled:cursor-not-allowed`}
+              >
+                <option value="">{formData.barangay ? 'Select Location' : 'Select Barangay First'}</option>
+                {formData.location && !filteredLocations.some(loc => loc.location_name === formData.location) && (
+                  <option value={formData.location}>{formData.location}</option>
+                )}
+                {filteredLocations.map((location) => (
+                  <option key={location.id} value={location.location_name}>
+                    {location.location_name}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+            </div>
+            {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
           </div>
 
           {formData.status === 'Confirmed' && formData.onsiteStatus === 'Done' && (
@@ -642,12 +1294,20 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             <div className="relative">
               <select value={formData.choosePlan} onChange={(e) => handleInputChange('choosePlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.choosePlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                 <option value="">Select Plan</option>
-                {formData.choosePlan && !['SwitchNet - P999', 'SwitchNet - P1299', 'SwitchNet - P1599'].includes(formData.choosePlan) && (
-                  <option value={formData.choosePlan}>{formData.choosePlan} (Current)</option>
+                {formData.choosePlan && !plans.some(plan => {
+                  const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                  return planWithPrice === formData.choosePlan || plan.name === formData.choosePlan;
+                }) && (
+                  <option value={formData.choosePlan}>{formData.choosePlan}</option>
                 )}
-                <option value="SwitchNet - P999">SwitchNet - P999</option>
-                <option value="SwitchNet - P1299">SwitchNet - P1299</option>
-                <option value="SwitchNet - P1599">SwitchNet - P1599</option>
+                {plans.map((plan) => {
+                  const planWithPrice = plan.price ? `${plan.name} - P${plan.price}` : plan.name;
+                  return (
+                    <option key={plan.id} value={planWithPrice}>
+                      {planWithPrice}
+                    </option>
+                  );
+                })}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
@@ -672,9 +1332,9 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">Connection Type<span className="text-red-500">*</span></label>
                 <div className="grid grid-cols-3 gap-2">
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'}`}>Antenna</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-red-600 border-red-700' : 'bg-gray-800 border-gray-700'}`}>Fiber</button>
-                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-gray-700 border-gray-600' : 'bg-gray-800 border-gray-700'}`}>Local</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Antenna')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Antenna' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Antenna</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Fiber')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Fiber' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Fiber</button>
+                  <button type="button" onClick={() => handleInputChange('connectionType', 'Local')} className={`py-2 px-4 rounded border ${formData.connectionType === 'Local' ? 'bg-orange-600 border-orange-700' : 'bg-gray-800 border-gray-700'} text-white transition-colors duration-200`}>Local</button>
                 </div>
                 {errors.connectionType && (
                   <div className="flex items-center mt-1">
@@ -689,8 +1349,12 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                 <div className="relative">
                   <select value={formData.routerModel} onChange={(e) => handleInputChange('routerModel', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.routerModel ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value=""></option>
-                    <option value="Model A">Model A</option>
-                    <option value="Model B">Model B</option>
+                    {formData.routerModel && !routerModels.some(rm => rm.model === formData.routerModel) && (
+                      <option value={formData.routerModel}>{formData.routerModel}</option>
+                    )}
+                    {routerModels.map((routerModel, index) => (
+                      <option key={index} value={routerModel.model}>{routerModel.model}</option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
@@ -712,23 +1376,62 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                   </div>
                 )}
               </div>
+
+              {formData.connectionType === 'Antenna' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">IP<span className="text-red-500">*</span></label>
+                  <input type="text" value={formData.ip} onChange={(e) => handleInputChange('ip', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.ip ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`} />
+                  {errors.ip && (
+                    <div className="flex items-center mt-1">
+                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+                      <p className="text-orange-500 text-xs">This entry is required</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {(formData.connectionType === 'Antenna' || formData.connectionType === 'Local') && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">Port Label Image<span className="text-red-500">*</span></label>
+                  <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
+                    <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('portLabelImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                    {formData.portLabelImage ? (
+                      <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
+                    ) : (
+                      <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
+                    )}
+                  </div>
+                  {errors.portLabelImage && (
+                    <div className="flex items-center mt-1">
+                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+                      <p className="text-orange-500 text-xs">This entry is required</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </>
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Provider<span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Group<span className="text-red-500">*</span></label>
             <div className="relative">
-              <select value={formData.provider} onChange={(e) => handleInputChange('provider', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.provider ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                <option value="">Select Provider</option>
-                <option value="SWITCH">SWITCH</option>
-                <option value="Provider 2">Provider 2</option>
+              <select value={formData.groupName} onChange={(e) => handleInputChange('groupName', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                <option value="">Select Group</option>
+                {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
+                  <option value={formData.groupName}>{formData.groupName} (Current)</option>
+                )}
+                {groups.map((group) => (
+                  <option key={group.id} value={group.group_name}>
+                    {group.group_name}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
-            {errors.provider && <p className="text-red-500 text-xs mt-1">{errors.provider}</p>}
+            {errors.groupName && <p className="text-red-500 text-xs mt-1">{errors.groupName}</p>}
           </div>
 
-          {formData.status === 'Confirmed' && formData.onsiteStatus === 'Done' && (
+          {formData.status === 'Confirmed' && formData.onsiteStatus === 'Done' && formData.connectionType === 'Fiber' && (
             <>
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">LCP-NAP<span className="text-red-500">*</span></label>
@@ -786,9 +1489,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                 <label className="block text-sm font-medium text-gray-300 mb-2">VLAN<span className="text-red-500">*</span></label>
                 <div className="relative">
                   <select value={formData.vlan} onChange={(e) => handleInputChange('vlan', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.vlan ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value=""></option>
-                    <option value="VLAN10">VLAN10</option>
-                    <option value="VLAN20">VLAN20</option>
+                    <option value="">Select VLAN</option>
+                    {formData.vlan && !vlans.some(v => v.value.toString() === formData.vlan) && (
+                      <option value={formData.vlan}>{formData.vlan}</option>
+                    )}
+                    {vlans.map((vlan) => (
+                      <option key={vlan.vlan_id} value={vlan.value}>
+                        {vlan.value}
+                      </option>
+                    ))}
                   </select>
                   <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                 </div>
@@ -1039,10 +1748,13 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             <label className="block text-sm font-medium text-gray-300 mb-2">Assigned Email<span className="text-red-500">*</span></label>
             <div className="relative">
               <select value={formData.assignedEmail} onChange={(e) => handleInputChange('assignedEmail', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.assignedEmail ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                <option value="Office">Office</option>
-                <option value="Technical">Technical</option>
-                <option value="Billing">Billing</option>
-                <option value="Support">Support</option>
+                <option value="">Select Assigned Email</option>
+                {formData.assignedEmail && !technicians.some(t => t.email === formData.assignedEmail) && (
+                  <option value={formData.assignedEmail}>{formData.assignedEmail}</option>
+                )}
+                {technicians.map((technician, index) => (
+                  <option key={index} value={technician.email}>{technician.email}</option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>
@@ -1051,20 +1763,63 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
           {formData.status === 'Confirmed' && formData.onsiteStatus === 'Done' && (
             <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">Item Name 1<span className="text-red-500">*</span></label>
-              <div className="relative">
-                <select value={formData.itemName1} onChange={(e) => handleInputChange('itemName1', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.itemName1 ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                  <option value=""></option>
-                  <option value="Router">Router</option>
-                  <option value="Modem">Modem</option>
-                  <option value="Cable">Cable</option>
-                </select>
-                <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
-              </div>
-              {errors.itemName1 && (
+              <label className="block text-sm font-medium text-gray-300 mb-2">Items<span className="text-red-500">*</span></label>
+              {orderItems.map((item, index) => (
+                <div key={index} className="mb-3">
+                  <div className="flex items-start gap-2">
+                    <div className="flex-1">
+                      <div className="relative">
+                        <select 
+                          value={item.itemId} 
+                          onChange={(e) => handleItemChange(index, 'itemId', e.target.value)} 
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 appearance-none"
+                        >
+                          <option value="">Select Item {index + 1}</option>
+                          {inventoryItems.map((invItem) => (
+                            <option key={invItem.id} value={invItem.item_name}>
+                              {invItem.item_name}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
+                      </div>
+                      {errors[`item_${index}`] && (
+                        <p className="text-orange-500 text-xs mt-1">{errors[`item_${index}`]}</p>
+                      )}
+                    </div>
+                    
+                    {item.itemId && (
+                      <div className="w-32">
+                        <input 
+                          type="number" 
+                          value={item.quantity} 
+                          onChange={(e) => handleItemChange(index, 'quantity', e.target.value)} 
+                          placeholder="Qty"
+                          min="1"
+                          className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+                        />
+                        {errors[`quantity_${index}`] && (
+                          <p className="text-orange-500 text-xs mt-1">{errors[`quantity_${index}`]}</p>
+                        )}
+                      </div>
+                    )}
+                    
+                    {orderItems.length > 1 && item.itemId && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveItem(index)}
+                        className="p-2 text-red-500 hover:text-red-400"
+                      >
+                        <X size={20} />
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {errors.items && (
                 <div className="flex items-center mt-1">
                   <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                  <p className="text-orange-500 text-xs">This entry is required</p>
+                  <p className="text-orange-500 text-xs">{errors.items}</p>
                 </div>
               )}
             </div>
@@ -1075,11 +1830,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               <label className="block text-sm font-medium text-gray-300 mb-2">Status Remarks<span className="text-red-500">*</span></label>
               <div className="relative">
                 <select value={formData.statusRemarks} onChange={(e) => handleInputChange('statusRemarks', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.statusRemarks ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                  <option value=""></option>
-                  <option value="Customer Request">Customer Request</option>
-                  <option value="Bad Weather">Bad Weather</option>
-                  <option value="Technician Unavailable">Technician Unavailable</option>
-                  <option value="Equipment Issue">Equipment Issue</option>
+                  <option value="">Select Status Remarks</option>
+                  {formData.statusRemarks && !statusRemarksList.some(sr => sr.status_remarks === formData.statusRemarks) && (
+                    <option value={formData.statusRemarks}>{formData.statusRemarks}</option>
+                  )}
+                  {statusRemarksList.map((statusRemark) => (
+                    <option key={statusRemark.id} value={statusRemark.status_remarks}>
+                      {statusRemark.status_remarks}
+                    </option>
+                  ))}
                 </select>
                 <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
               </div>
