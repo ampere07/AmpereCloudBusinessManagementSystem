@@ -27,6 +27,7 @@ import ServiceOrder from './ServiceOrder';
 import ApplicationVisit from './ApplicationVisit';
 import LocationList from './LocationList';
 import PlanList from './PlanList';
+import PromoList from './PromoList';
 import RouterModelList from './RouterModelList';
 import LcpList from './LcpList';
 import NapList from './NapList';
@@ -140,6 +141,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <LocationList />;
       case 'plan-list':
         return <PlanList />;
+      case 'promo-list':
+        return <PromoList />;
       case 'router-models':
         return <RouterModelList />;
       case 'lcp':

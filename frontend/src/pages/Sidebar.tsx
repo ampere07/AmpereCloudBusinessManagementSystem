@@ -66,6 +66,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       children: [
         { id: 'location-list', label: 'Location List', icon: MapPin, allowedRoles: ['administrator'] },
         { id: 'plan-list', label: 'Plan List', icon: List, allowedRoles: ['administrator'] },
+        { id: 'promo-list', label: 'Promo List', icon: Tag, allowedRoles: ['administrator'] },
         { id: 'router-models', label: 'Router Models', icon: Router, allowedRoles: ['administrator'] },
         { id: 'lcp', label: 'LCP', icon: Network, allowedRoles: ['administrator', 'technician'] },
         { id: 'nap', label: 'NAP', icon: Network, allowedRoles: ['administrator', 'technician'] },
