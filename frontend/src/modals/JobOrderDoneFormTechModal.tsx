@@ -250,13 +250,20 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         try {
           console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
+          console.log('Fetching ports with params:', {
+            lcpnap: formData.lcpnap,
+            excludeUsed: true,
+            currentJobOrderId: jobOrderId
+          });
           const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
-          console.log('Port API Response for', formData.lcpnap, ':', response);
+          console.log('Port API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
-            console.log('Loaded Ports for', formData.lcpnap, ':', response.data.length);
+            console.log('Loaded Available Ports for', formData.lcpnap, ':', response.data.length);
+            console.log('Port Labels:', response.data.map(p => p.Label));
           } else {
+            console.warn('Unexpected Port response structure:', response);
             setPorts([]);
           }
         } catch (error) {

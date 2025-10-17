@@ -22,34 +22,36 @@ class PortApiController extends Controller
             $search = $request->get('search', '');
             $excludeUsed = $request->get('exclude_used', false);
             $currentJobOrderId = $request->get('current_job_order_id', null);
+            $lcpnap = $request->get('lcpnap', '');
             
             $query = Port::query();
             
             if (!empty($search)) {
-                $query->where('label', 'like', '%' . $search . '%')
-                      ->orWhere('port_id', 'like', '%' . $search . '%');
+                $query->where('PORT_ID', 'like', '%' . $search . '%');
             }
             
-            if ($excludeUsed) {
+            if ($excludeUsed && !empty($lcpnap)) {
                 $usedPortsQuery = \DB::table('job_orders')
-                    ->whereNotNull('port')
-                    ->where('port', '!=', '');
+                    ->whereNotNull('PORT')
+                    ->whereNotNull('LCPNAP')
+                    ->where('PORT', '!=', '')
+                    ->where('LCPNAP', '=', $lcpnap);
                 
                 if ($currentJobOrderId) {
                     $usedPortsQuery->where('id', '!=', $currentJobOrderId);
                 }
                 
-                $usedPorts = $usedPortsQuery->pluck('port')->toArray();
+                $usedPorts = $usedPortsQuery->pluck('PORT')->toArray();
                 
                 if (!empty($usedPorts)) {
-                    $query->whereNotIn('label', $usedPorts);
+                    $query->whereNotIn('Label', $usedPorts);
                 }
             }
             
             $totalItems = $query->count();
             $totalPages = ceil($totalItems / $limit);
             
-            $portItems = $query->orderBy('label')
+            $portItems = $query->orderBy('Label')
                              ->skip(($page - 1) * $limit)
                              ->take($limit)
                              ->get();
@@ -64,6 +66,11 @@ class PortApiController extends Controller
                     'items_per_page' => $limit,
                     'has_next' => $page < $totalPages,
                     'has_prev' => $page > 1
+                ],
+                'filters' => [
+                    'lcpnap' => $lcpnap,
+                    'exclude_used' => $excludeUsed,
+                    'current_job_order_id' => $currentJobOrderId
                 ]
             ]);
             
@@ -96,7 +103,7 @@ class PortApiController extends Controller
             $label = $request->input('label');
             $portId = $request->input('port_id');
             
-            $existing = Port::where('port_id', $portId)->first();
+            $existing = Port::where('PORT_ID', $portId)->first();
             if ($existing) {
                 return response()->json([
                     'success' => false,
@@ -105,8 +112,8 @@ class PortApiController extends Controller
             }
             
             $port = new Port();
-            $port->port_id = $portId;
-            $port->label = $label;
+            $port->PORT_ID = $portId;
+            $port->Label = $label;
             $port->save();
             
             return response()->json([
@@ -176,7 +183,7 @@ class PortApiController extends Controller
             $label = $request->input('label');
             $portId = $request->input('port_id');
             
-            $duplicate = Port::where('port_id', $portId)->where('id', '!=', $id)->first();
+            $duplicate = Port::where('PORT_ID', $portId)->where('id', '!=', $id)->first();
             if ($duplicate) {
                 return response()->json([
                     'success' => false,
@@ -184,8 +191,8 @@ class PortApiController extends Controller
                 ], 422);
             }
             
-            $port->port_id = $portId;
-            $port->label = $label;
+            $port->PORT_ID = $portId;
+            $port->Label = $label;
             $port->save();
             
             return response()->json([
