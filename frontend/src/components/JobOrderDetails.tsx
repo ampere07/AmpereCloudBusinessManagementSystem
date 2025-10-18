@@ -96,8 +96,8 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
 
   const getClientFullAddress = (): string => {
     const addressParts = [
-      jobOrder.Address,
-      jobOrder.Village,
+      jobOrder.Installation_Address || jobOrder.Address,
+      jobOrder.Location,
       jobOrder.Barangay,
       jobOrder.City,
       jobOrder.Region
@@ -453,15 +453,15 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
                 )}
               </div>
             </div>
+
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Location:</div>
+              <div className="text-white flex-1">{jobOrder.Location || 'Not specified'}</div>
+            </div>
             
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Barangay:</div>
               <div className="text-white flex-1">{jobOrder.Barangay || 'Not specified'}</div>
-            </div>
-            
-            <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Village:</div>
-              <div className="text-white flex-1">{jobOrder.Village || 'Not specified'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
