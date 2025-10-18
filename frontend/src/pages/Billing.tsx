@@ -14,6 +14,74 @@ interface LocationItem {
 
 type DisplayMode = 'card' | 'table';
 
+// All available columns for the table - extended list to match BillingListView
+const allColumns = [
+  { key: 'status', label: 'Status', width: 'min-w-28' },
+  { key: 'billingStatus', label: 'Billing Status', width: 'min-w-28' },
+  { key: 'accountNo', label: 'Account No.', width: 'min-w-32' },
+  { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-28' },
+  { key: 'customerName', label: 'Full Name', width: 'min-w-40' },
+  { key: 'address', label: 'Address', width: 'min-w-56' },
+  { key: 'contactNumber', label: 'Contact Number', width: 'min-w-36' },
+  { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
+  { key: 'plan', label: 'Plan', width: 'min-w-40' },
+  { key: 'balance', label: 'Account Balance', width: 'min-w-32' },
+  { key: 'username', label: 'Username', width: 'min-w-32' },
+  { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
+  { key: 'routerModel', label: 'Router Model', width: 'min-w-32' },
+  { key: 'routerModemSN', label: 'Router/Modem SN', width: 'min-w-36' },
+  { key: 'lcpnap', label: 'LCPNAP', width: 'min-w-32' },
+  { key: 'port', label: 'PORT', width: 'min-w-28' },
+  { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
+  { key: 'billingDay', label: 'Billing Day', width: 'min-w-28' },
+  { key: 'totalPaid', label: 'Total Paid', width: 'min-w-28' },
+  { key: 'provider', label: 'Provider', width: 'min-w-24' },
+  { key: 'lcp', label: 'LCP', width: 'min-w-28' },
+  { key: 'nap', label: 'NAP', width: 'min-w-28' },
+  { key: 'modifiedBy', label: 'Modified By', width: 'min-w-32' },
+  { key: 'modifiedDate', label: 'Modified Date', width: 'min-w-36' },
+  { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
+  { key: 'city', label: 'City', width: 'min-w-28' },
+  { key: 'region', label: 'Region', width: 'min-w-28' },
+  { key: 'lcpnapport', label: 'LCPNAPPORT', width: 'min-w-36' },
+  { key: 'usageType', label: 'Usage Type', width: 'min-w-32' },
+  { key: 'referredBy', label: 'Referred By', width: 'min-w-36' },
+  { key: 'secondContactNumber', label: 'Second Contact Number', width: 'min-w-40' },
+  { key: 'referrersAccountNumber', label: 'Referrer\'s Account Number', width: 'min-w-44' },
+  { key: 'relatedInvoices', label: 'Related Invoices', width: 'min-w-36' },
+  { key: 'relatedStatementOfAccount', label: 'Related Statement of Account', width: 'min-w-52' },
+  { key: 'relatedDiscounts', label: 'Related Discounts', width: 'min-w-36' },
+  { key: 'relatedStaggeredInstallation', label: 'Related Staggered Installation', width: 'min-w-52' },
+  { key: 'relatedStaggeredPayments', label: 'Related Staggered Payments', width: 'min-w-52' },
+  { key: 'relatedOverdues', label: 'Related Overdues', width: 'min-w-36' },
+  { key: 'relatedDCNotices', label: 'Related DC Notices', width: 'min-w-40' },
+  { key: 'relatedServiceOrders', label: 'Related Service Orders', width: 'min-w-44' },
+  { key: 'relatedDisconnectedLogs', label: 'Related Disconnected Logs', width: 'min-w-48' },
+  { key: 'relatedReconnectionLogs', label: 'Related Reconnection Logs', width: 'min-w-48' },
+  { key: 'relatedChangeDueLogs', label: 'Related Change Due Logs', width: 'min-w-48' },
+  { key: 'relatedTransactions', label: 'Related Transactions', width: 'min-w-40' },
+  { key: 'relatedDetailsUpdateLogs', label: 'Related Details Update Logs', width: 'min-w-48' },
+  { key: 'computedAddress', label: '_ComputedAddress', width: 'min-w-40' },
+  { key: 'computedStatus', label: '_ComputedStatus', width: 'min-w-36' },
+  { key: 'relatedAdvancedPayments', label: 'Related Advanced Payments', width: 'min-w-48' },
+  { key: 'relatedPaymentPortalLogs', label: 'Related Payment Portal Logs', width: 'min-w-48' },
+  { key: 'relatedInventoryLogs', label: 'Related Inventory Logs', width: 'min-w-44' },
+  { key: 'computedAccountNo', label: '_ComputedAccountNo', width: 'min-w-44' },
+  { key: 'relatedOnlineStatus', label: 'Related Online Status', width: 'min-w-44' },
+  { key: 'group', label: 'Group', width: 'min-w-28' },
+  { key: 'mikrotikId', label: 'Mikrotik ID', width: 'min-w-32' },
+  { key: 'sessionIP', label: 'Session IP', width: 'min-w-32' },
+  { key: 'relatedBorrowedLogs', label: 'Related Borrowed Logs', width: 'min-w-44' },
+  { key: 'relatedPlanChangeLogs', label: 'Related Plan Change Logs', width: 'min-w-48' },
+  { key: 'relatedServiceChargeLogs', label: 'Related Service Charge Logs', width: 'min-w-48' },
+  { key: 'relatedAdjustedAccountLogs', label: 'Related Adjusted Account Logs', width: 'min-w-52' },
+  { key: 'referralContactNo', label: 'Referral Contact No.', width: 'min-w-40' },
+  { key: 'logs', label: 'Logs', width: 'min-w-24' },
+  { key: 'relatedSecurityDeposits', label: 'Related Security Deposits', width: 'min-w-48' },
+  { key: 'relatedApprovedTransactions', label: 'Related Approved Transaction', width: 'min-w-52' },
+  { key: 'relatedAttachments', label: 'Related Attachments', width: 'min-w-40' }
+];
+
 const Billing: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -25,82 +93,20 @@ const Billing: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('card');
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
   const dropdownRef = useRef<HTMLDivElement>(null);
-  
-  // All available columns for the table - extended list to match BillingListView
-  const allColumns = [
-    { key: 'status', label: 'Status', width: 'min-w-28' },
-    { key: 'billingStatus', label: 'Billing Status', width: 'min-w-28' },
-    { key: 'accountNo', label: 'Account No.', width: 'min-w-32' },
-    { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-28' },
-    { key: 'customerName', label: 'Full Name', width: 'min-w-40' },
-    { key: 'address', label: 'Address', width: 'min-w-56' },
-    { key: 'contactNumber', label: 'Contact Number', width: 'min-w-36' },
-    { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
-    { key: 'plan', label: 'Plan', width: 'min-w-40' },
-    { key: 'balance', label: 'Account Balance', width: 'min-w-32' },
-    { key: 'username', label: 'Username', width: 'min-w-32' },
-    { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
-    { key: 'routerModel', label: 'Router Model', width: 'min-w-32' },
-    { key: 'routerModemSN', label: 'Router/Modem SN', width: 'min-w-36' },
-    { key: 'lcpnap', label: 'LCPNAP', width: 'min-w-32' },
-    { key: 'port', label: 'PORT', width: 'min-w-28' },
-    { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
-    { key: 'billingDay', label: 'Billing Day', width: 'min-w-28' },
-    { key: 'totalPaid', label: 'Total Paid', width: 'min-w-28' },
-    { key: 'provider', label: 'Provider', width: 'min-w-24' },
-    { key: 'lcp', label: 'LCP', width: 'min-w-28' },
-    { key: 'nap', label: 'NAP', width: 'min-w-28' },
-    { key: 'modifiedBy', label: 'Modified By', width: 'min-w-32' },
-    { key: 'modifiedDate', label: 'Modified Date', width: 'min-w-36' },
-    { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
-    { key: 'city', label: 'City', width: 'min-w-28' },
-    { key: 'region', label: 'Region', width: 'min-w-28' },
-    { key: 'lcpnapport', label: 'LCPNAPPORT', width: 'min-w-36' },
-    { key: 'usageType', label: 'Usage Type', width: 'min-w-32' },
-    { key: 'referredBy', label: 'Referred By', width: 'min-w-36' },
-    { key: 'secondContactNumber', label: 'Second Contact Number', width: 'min-w-40' },
-    { key: 'referrersAccountNumber', label: 'Referrer\'s Account Number', width: 'min-w-44' },
-    { key: 'relatedInvoices', label: 'Related Invoices', width: 'min-w-36' },
-    { key: 'relatedStatementOfAccount', label: 'Related Statement of Account', width: 'min-w-52' },
-    { key: 'relatedDiscounts', label: 'Related Discounts', width: 'min-w-36' },
-    { key: 'relatedStaggeredInstallation', label: 'Related Staggered Installation', width: 'min-w-52' },
-    { key: 'relatedStaggeredPayments', label: 'Related Staggered Payments', width: 'min-w-52' },
-    { key: 'relatedOverdues', label: 'Related Overdues', width: 'min-w-36' },
-    { key: 'relatedDCNotices', label: 'Related DC Notices', width: 'min-w-40' },
-    { key: 'relatedServiceOrders', label: 'Related Service Orders', width: 'min-w-44' },
-    { key: 'relatedDisconnectedLogs', label: 'Related Disconnected Logs', width: 'min-w-48' },
-    { key: 'relatedReconnectionLogs', label: 'Related Reconnection Logs', width: 'min-w-48' },
-    { key: 'relatedChangeDueLogs', label: 'Related Change Due Logs', width: 'min-w-48' },
-    { key: 'relatedTransactions', label: 'Related Transactions', width: 'min-w-40' },
-    { key: 'relatedDetailsUpdateLogs', label: 'Related Details Update Logs', width: 'min-w-48' },
-    { key: 'computedAddress', label: '_ComputedAddress', width: 'min-w-40' },
-    { key: 'computedStatus', label: '_ComputedStatus', width: 'min-w-36' },
-    { key: 'relatedAdvancedPayments', label: 'Related Advanced Payments', width: 'min-w-48' },
-    { key: 'relatedPaymentPortalLogs', label: 'Related Payment Portal Logs', width: 'min-w-48' },
-    { key: 'relatedInventoryLogs', label: 'Related Inventory Logs', width: 'min-w-44' },
-    { key: 'computedAccountNo', label: '_ComputedAccountNo', width: 'min-w-44' },
-    { key: 'relatedOnlineStatus', label: 'Related Online Status', width: 'min-w-44' },
-    { key: 'group', label: 'Group', width: 'min-w-28' },
-    { key: 'mikrotikId', label: 'Mikrotik ID', width: 'min-w-32' },
-    { key: 'sessionIP', label: 'Session IP', width: 'min-w-32' },
-    { key: 'relatedBorrowedLogs', label: 'Related Borrowed Logs', width: 'min-w-44' },
-    { key: 'relatedPlanChangeLogs', label: 'Related Plan Change Logs', width: 'min-w-48' },
-    { key: 'relatedServiceChargeLogs', label: 'Related Service Charge Logs', width: 'min-w-48' },
-    { key: 'relatedAdjustedAccountLogs', label: 'Related Adjusted Account Logs', width: 'min-w-52' },
-    { key: 'referralContactNo', label: 'Referral Contact No.', width: 'min-w-40' },
-    { key: 'logs', label: 'Logs', width: 'min-w-24' },
-    { key: 'relatedSecurityDeposits', label: 'Related Security Deposits', width: 'min-w-48' },
-    { key: 'relatedApprovedTransactions', label: 'Related Approved Transaction', width: 'min-w-52' },
-    { key: 'relatedAttachments', label: 'Related Attachments', width: 'min-w-40' }
-  ];
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
 
   // Fetch location data
-  // Handle click outside to close dropdown
+  // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setDropdownOpen(false);
+      }
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setFilterDropdownOpen(false);
       }
     };
     
@@ -109,7 +115,7 @@ const Billing: React.FC = () => {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [dropdownRef]);
+  }, [dropdownRef, filterDropdownRef]);
 
   useEffect(() => {
     const fetchLocationData = async () => {
@@ -358,6 +364,26 @@ const Billing: React.FC = () => {
     }
   };
 
+  const handleToggleColumn = (columnKey: string) => {
+    setVisibleColumns(prev => {
+      if (prev.includes(columnKey)) {
+        return prev.filter(key => key !== columnKey);
+      } else {
+        return [...prev, columnKey];
+      }
+    });
+  };
+
+  const handleSelectAllColumns = () => {
+    setVisibleColumns(allColumns.map(col => col.key));
+  };
+
+  const handleDeselectAllColumns = () => {
+    setVisibleColumns([]);
+  };
+
+  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
@@ -410,6 +436,54 @@ const Billing: React.FC = () => {
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
               <div className="flex space-x-2">
+                {displayMode === 'table' && (
+                  <div className="relative" ref={filterDropdownRef}>
+                    <button
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                      onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                    >
+                      <ListFilter className="h-5 w-5" />
+                    </button>
+                    {filterDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded shadow-lg z-50 max-h-96 flex flex-col">
+                        <div className="p-3 border-b border-gray-700 flex items-center justify-between">
+                          <span className="text-white text-sm font-medium">Column Visibility</span>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={handleSelectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-gray-600">|</span>
+                            <button
+                              onClick={handleDeselectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1">
+                          {allColumns.map((column) => (
+                            <label
+                              key={column.key}
+                              className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer text-sm text-white"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.includes(column.key)}
+                                onChange={() => handleToggleColumn(column.key)}
+                                className="mr-3 h-4 w-4 rounded border-gray-600 bg-gray-700 text-orange-600 focus:ring-orange-500 focus:ring-offset-gray-800"
+                              />
+                              <span>{column.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 <div className="relative z-50" ref={dropdownRef}>
                   <button
                     className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
@@ -513,10 +587,10 @@ const Billing: React.FC = () => {
                   <table className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
-                        {allColumns.map((column, index) => (
+                        {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < allColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
                           >
                             {column.label}
                           </th>
@@ -531,10 +605,10 @@ const Billing: React.FC = () => {
                             className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedBilling?.id === record.id ? 'bg-gray-800' : ''}`}
                             onClick={() => handleRecordClick(record)}
                           >
-                            {allColumns.map((column, index) => (
+                            {filteredColumns.map((column, index) => (
                               <td 
                                 key={column.key}
-                                className={`py-4 px-3 text-white whitespace-nowrap ${index < allColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
                               >
                                 {renderCellValue(record, column.key)}
                               </td>
@@ -543,7 +617,7 @@ const Billing: React.FC = () => {
                         ))
                       ) : (
                         <tr>
-                          <td colSpan={allColumns.length} className="px-4 py-12 text-center text-gray-400 border-b border-gray-800">
+                          <td colSpan={filteredColumns.length} className="px-4 py-12 text-center text-gray-400 border-b border-gray-800">
                             No billing records found matching your filters
                           </td>
                         </tr>

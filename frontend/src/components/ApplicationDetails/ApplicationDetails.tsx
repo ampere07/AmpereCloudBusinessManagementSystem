@@ -187,7 +187,13 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       detailedApplication?.last_name
     ].filter(Boolean).join(' ') || application.customerName || '',
     
-    fullAddress: detailedApplication?.installation_address || application.address || '',
+    fullAddress: [
+      detailedApplication?.installation_address || application.address,
+      detailedApplication?.location || application.location,
+      detailedApplication?.barangay || application.barangay,
+      detailedApplication?.city || application.city,
+      detailedApplication?.region || application.region
+    ].filter(Boolean).join(', '),
     
     timestamp: detailedApplication?.create_date && detailedApplication?.create_time 
       ? `${detailedApplication.create_date} ${detailedApplication.create_time}` 
@@ -344,10 +350,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 <div className="text-white flex-1">
                   {[
                     detailedApplication?.installation_address || application.address,
-                    detailedApplication?.village,
-                    detailedApplication?.barangay,
-                    detailedApplication?.city,
-                    detailedApplication?.region
+                    detailedApplication?.location || application.location,
+                    detailedApplication?.barangay || application.barangay,
+                    detailedApplication?.city || application.city,
+                    detailedApplication?.region || application.region
                   ].filter(Boolean).join(', ') || 'No address'}
                 </div>
               </div>

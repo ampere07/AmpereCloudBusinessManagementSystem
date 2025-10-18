@@ -233,7 +233,7 @@ const ApplicationManagement: React.FC = () => {
               className="bg-orange-600 text-white px-3 py-1 rounded text-sm flex items-center space-x-1"
               aria-label="Applications"
             >
-              <span>Applications</span>
+              <span>Form</span>
             </button>
           </div>
         </div>
