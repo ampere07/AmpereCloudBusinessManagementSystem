@@ -16,7 +16,7 @@ class ServiceOrderApiController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = DB::table('service_order');
+            $query = DB::table('service_orders');
             
             // Filter by assigned email if provided
             if ($request->has('assigned_email')) {
@@ -32,7 +32,7 @@ class ServiceOrderApiController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $serviceOrders,
-                'table' => 'service_order',
+                'table' => 'service_orders',
                 'count' => $serviceOrders->count()
             ]);
         } catch (\Exception $e) {
@@ -42,7 +42,7 @@ class ServiceOrderApiController extends Controller
                 'success' => false,
                 'message' => 'Failed to fetch service orders: ' . $e->getMessage(),
                 'error' => $e->getMessage(),
-                'table' => 'service_order'
+                'table' => 'service_orders'
             ], 500);
         }
     }
@@ -68,10 +68,10 @@ class ServiceOrderApiController extends Controller
             $data['updated_at'] = now();
             
             // Insert into database
-            $id = DB::table('service_order')->insertGetId($data);
+            $id = DB::table('service_orders')->insertGetId($data);
             
             // Get the created record
-            $serviceOrder = DB::table('service_order')->where('ID', $id)->first();
+            $serviceOrder = DB::table('service_orders')->where('id', $id)->first();
             
             return response()->json([
                 'success' => true,
@@ -95,7 +95,7 @@ class ServiceOrderApiController extends Controller
     public function show($id): JsonResponse
     {
         try {
-            $serviceOrder = DB::table('service_order')->where('ID', $id)->first();
+            $serviceOrder = DB::table('service_orders')->where('id', $id)->first();
             
             if (!$serviceOrder) {
                 return response()->json([
@@ -124,7 +124,7 @@ class ServiceOrderApiController extends Controller
     {
         try {
             // Verify service order exists
-            $serviceOrder = DB::table('service_order')->where('ID', $id)->first();
+            $serviceOrder = DB::table('service_orders')->where('id', $id)->first();
             
             if (!$serviceOrder) {
                 return response()->json([
@@ -137,10 +137,10 @@ class ServiceOrderApiController extends Controller
             $data = $request->all();
             $data['updated_at'] = now();
             
-            DB::table('service_order')->where('ID', $id)->update($data);
+            DB::table('service_orders')->where('id', $id)->update($data);
             
             // Get updated record
-            $updatedServiceOrder = DB::table('service_order')->where('ID', $id)->first();
+            $updatedServiceOrder = DB::table('service_orders')->where('id', $id)->first();
             
             return response()->json([
                 'success' => true,
@@ -163,7 +163,7 @@ class ServiceOrderApiController extends Controller
     {
         try {
             // Verify service order exists
-            $serviceOrder = DB::table('service_order')->where('ID', $id)->first();
+            $serviceOrder = DB::table('service_orders')->where('ID', $id)->first();
             
             if (!$serviceOrder) {
                 return response()->json([
@@ -173,7 +173,7 @@ class ServiceOrderApiController extends Controller
             }
             
             // Delete the record
-            DB::table('service_order')->where('ID', $id)->delete();
+            DB::table('service_orders')->where('id', $id)->delete();
             
             return response()->json([
                 'success' => true,
