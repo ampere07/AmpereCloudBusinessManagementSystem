@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { FileText, Search, ChevronDown } from 'lucide-react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { FileText, Search, Circle, X, ListFilter } from 'lucide-react';
 import ServiceOrderDetails from '../components/ServiceOrderDetails';
 import { getServiceOrders, ServiceOrderData } from '../services/serviceOrderService';
 import { getCities, City } from '../services/cityService';
@@ -49,6 +49,47 @@ interface LocationItem {
   count: number;
 }
 
+type DisplayMode = 'card' | 'table';
+
+// All available columns from service_orders table
+const allColumns = [
+  { key: 'ticketId', label: 'Ticket ID', width: 'min-w-32' },
+  { key: 'timestamp', label: 'Timestamp', width: 'min-w-40' },
+  { key: 'accountNumber', label: 'Account Number', width: 'min-w-36' },
+  { key: 'fullName', label: 'Full Name', width: 'min-w-40' },
+  { key: 'contactAddress', label: 'Contact Address', width: 'min-w-48' },
+  { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-32' },
+  { key: 'contactNumber', label: 'Contact Number', width: 'min-w-36' },
+  { key: 'fullAddress', label: 'Full Address', width: 'min-w-56' },
+  { key: 'houseFrontPicture', label: 'House Front Picture', width: 'min-w-40' },
+  { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
+  { key: 'plan', label: 'Plan', width: 'min-w-32' },
+  { key: 'provider', label: 'Provider', width: 'min-w-28' },
+  { key: 'username', label: 'Username', width: 'min-w-32' },
+  { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
+  { key: 'routerModemSN', label: 'Router/Modem SN', width: 'min-w-36' },
+  { key: 'lcp', label: 'LCP', width: 'min-w-28' },
+  { key: 'nap', label: 'NAP', width: 'min-w-28' },
+  { key: 'port', label: 'PORT', width: 'min-w-28' },
+  { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
+  { key: 'concern', label: 'Concern', width: 'min-w-36' },
+  { key: 'concernRemarks', label: 'Concern Remarks', width: 'min-w-48' },
+  { key: 'visitStatus', label: 'Visit Status', width: 'min-w-32' },
+  { key: 'visitBy', label: 'Visit By', width: 'min-w-32' },
+  { key: 'visitWith', label: 'Visit With', width: 'min-w-32' },
+  { key: 'visitWithOther', label: 'Visit With Other', width: 'min-w-36' },
+  { key: 'visitRemarks', label: 'Visit Remarks', width: 'min-w-48' },
+  { key: 'modifiedBy', label: 'Modified By', width: 'min-w-32' },
+  { key: 'modifiedDate', label: 'Modified Date', width: 'min-w-40' },
+  { key: 'userEmail', label: 'User Email', width: 'min-w-48' },
+  { key: 'requestedBy', label: 'Requested By', width: 'min-w-36' },
+  { key: 'assignedEmail', label: 'Assigned Email', width: 'min-w-48' },
+  { key: 'supportRemarks', label: 'Support Remarks', width: 'min-w-48' },
+  { key: 'serviceCharge', label: 'Service Charge', width: 'min-w-32' },
+  { key: 'repairCategory', label: 'Repair Category', width: 'min-w-36' },
+  { key: 'supportStatus', label: 'Support Status', width: 'min-w-32' }
+];
+
 const ServiceOrder: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -58,23 +99,13 @@ const ServiceOrder: React.FC = () => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string>('');
-  
-  // Get column headers for display (always show these even when no data)
-  const tableColumns = [
-    { id: 'timestamp', label: 'Timestamp', width: 'whitespace-nowrap' },
-    { id: 'fullName', label: 'Full Name', width: 'whitespace-nowrap' },
-    { id: 'contactNumber', label: 'Contact Number', width: 'whitespace-nowrap' },
-    { id: 'address', label: 'Full Address', width: 'whitespace-nowrap min-w-[180px]' },
-    { id: 'concern', label: 'Concern', width: 'whitespace-nowrap' },
-    { id: 'concernRemarks', label: 'Concern Remarks', width: '' },
-    { id: 'requestedBy', label: 'Requested by', width: 'whitespace-nowrap' },
-    { id: 'supportStatus', label: 'Support Status', width: 'whitespace-nowrap' },
-    { id: 'assignedEmail', label: 'Assigned Email', width: 'whitespace-nowrap' },
-    { id: 'repairCategory', label: 'Repair Category', width: 'whitespace-nowrap' },
-    { id: 'visitStatus', label: 'Visit Status', width: 'whitespace-nowrap' },
-    { id: 'modifiedBy', label: 'Modified By', width: 'whitespace-nowrap' },
-    { id: 'modifiedDate', label: 'Modified Date', width: 'whitespace-nowrap' }
-  ];
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('card');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
 
   // Format date function
   const formatDate = (dateStr?: string): string => {
@@ -86,7 +117,23 @@ const ServiceOrder: React.FC = () => {
     }
   };
 
-  const [userEmail, setUserEmail] = useState<string>('');
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownRef, filterDropdownRef]);
   
   useEffect(() => {
     const authData = localStorage.getItem('authData');
@@ -137,7 +184,7 @@ const ServiceOrder: React.FC = () => {
           
           // Map the API response to our interface
           const processedOrders: ServiceOrder[] = response.data.map((order: ServiceOrderData) => ({
-            id: order.ID || '',
+            id: order.id || '',
             ticketId: order.Ticket_ID || '',
             timestamp: formatDate(order.Timestamp),
             accountNumber: order.Account_Number || '',
@@ -178,20 +225,16 @@ const ServiceOrder: React.FC = () => {
           setServiceOrders(processedOrders);
           console.log('Service orders data processed successfully');
         } else {
-          // If no service orders are returned, set an empty array
           console.warn('No service orders returned from API or invalid response format', response);
           setServiceOrders([]);
           
-          // Log table information for debugging
           if (response.table) {
             console.info(`Table name specified in response: ${response.table}`);
           }
           
-          // Only set error if there's a message
           if (response.message) {
-            // If error is a database error, format it better
             if (response.message.includes('SQLSTATE') || response.message.includes('table')) {
-              const formattedMessage = `Database error: ${response.message}\nPossible issue: Service orders might be using 'service_orders' table instead of 'service_orders'`;
+              const formattedMessage = `Database error: ${response.message}`;
               setError(formattedMessage);
               console.error(formattedMessage);
             } else {
@@ -212,70 +255,70 @@ const ServiceOrder: React.FC = () => {
   }, []);
   
   // Generate location items from cities and service orders data
-  const locationItems: LocationItem[] = [
-    {
-      id: 'all',
-      name: 'All',
-      count: serviceOrders.length
-    }
-  ];
-  
-  // Add cities from database, or use existing data if cities not loaded
-  if (cities.length > 0) {
-    cities.forEach(city => {
-      // Count service orders in this city
-      const cityCount = serviceOrders.filter(so => 
-        so.fullAddress.toLowerCase().includes(city.name.toLowerCase())
-      ).length;
-      
-      // Add city to location items
-      locationItems.push({
-        id: city.name.toLowerCase(),
-        name: city.name,
-        count: cityCount
-      });
-    });
-  } else {
-    // Extract locations from service orders if cities not available
-    const locationSet = new Set<string>();
-    
-    serviceOrders.forEach(so => {
-      // Extract city from address if possible
-      const addressParts = so.fullAddress.split(',');
-      if (addressParts.length >= 2) {
-        const cityPart = addressParts[addressParts.length - 2].trim().toLowerCase();
-        if (cityPart && cityPart !== '') {
-          locationSet.add(cityPart);
-        }
+  const locationItems: LocationItem[] = useMemo(() => {
+    const items: LocationItem[] = [
+      {
+        id: 'all',
+        name: 'All',
+        count: serviceOrders.length
       }
-    });
+    ];
     
-    // Add unique locations to the list
-    Array.from(locationSet).forEach(location => {
-      const cityCount = serviceOrders.filter(so => 
-        so.fullAddress.toLowerCase().includes(location)
-      ).length;
-      
-      locationItems.push({
-        id: location,
-        name: location.charAt(0).toUpperCase() + location.slice(1), // Capitalize
-        count: cityCount
+    if (cities.length > 0) {
+      cities.forEach(city => {
+        const cityCount = serviceOrders.filter(so => 
+          so.fullAddress.toLowerCase().includes(city.name.toLowerCase())
+        ).length;
+        
+        items.push({
+          id: city.name.toLowerCase(),
+          name: city.name,
+          count: cityCount
+        });
       });
-    });
-  }
+    } else {
+      const locationSet = new Set<string>();
+      
+      serviceOrders.forEach(so => {
+        const addressParts = so.fullAddress.split(',');
+        if (addressParts.length >= 2) {
+          const cityPart = addressParts[addressParts.length - 2].trim().toLowerCase();
+          if (cityPart && cityPart !== '') {
+            locationSet.add(cityPart);
+          }
+        }
+      });
+      
+      Array.from(locationSet).forEach(location => {
+        const cityCount = serviceOrders.filter(so => 
+          so.fullAddress.toLowerCase().includes(location)
+        ).length;
+        
+        items.push({
+          id: location,
+          name: location.charAt(0).toUpperCase() + location.slice(1),
+          count: cityCount
+        });
+      });
+    }
+    
+    return items;
+  }, [cities, serviceOrders]);
   
   // Filter service orders based on location and search query
-  const filteredServiceOrders = serviceOrders.filter(serviceOrder => {
-    const matchesLocation = selectedLocation === 'all' || 
-                           serviceOrder.fullAddress.toLowerCase().includes(selectedLocation.toLowerCase());
-    
-    const matchesSearch = searchQuery === '' || 
-                         serviceOrder.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         serviceOrder.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (serviceOrder.concern && serviceOrder.concern.toLowerCase().includes(searchQuery.toLowerCase()));
-    
-    return matchesLocation && matchesSearch;
-  });
+  const filteredServiceOrders = useMemo(() => {
+    return serviceOrders.filter(serviceOrder => {
+      const matchesLocation = selectedLocation === 'all' || 
+                             serviceOrder.fullAddress.toLowerCase().includes(selectedLocation.toLowerCase());
+      
+      const matchesSearch = searchQuery === '' || 
+                           serviceOrder.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           serviceOrder.fullAddress.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                           (serviceOrder.concern && serviceOrder.concern.toLowerCase().includes(searchQuery.toLowerCase()));
+      
+      return matchesLocation && matchesSearch;
+    });
+  }, [serviceOrders, selectedLocation, searchQuery]);
   
   // Status text color component
   const StatusText = ({ status, type }: { status?: string, type: 'support' | 'visit' }) => {
@@ -331,6 +374,173 @@ const ServiceOrder: React.FC = () => {
   const handleRowClick = (serviceOrder: ServiceOrder) => {
     setSelectedServiceOrder(serviceOrder);
   };
+
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      const authData = localStorage.getItem('authData');
+      let assignedEmail: string | undefined;
+      
+      if (authData) {
+        try {
+          const userData = JSON.parse(authData);
+          if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+            assignedEmail = userData.email;
+          }
+        } catch (error) {
+          console.error('Error parsing auth data:', error);
+        }
+      }
+      
+      const response = await getServiceOrders(assignedEmail);
+      
+      if (response.success && Array.isArray(response.data)) {
+        const processedOrders: ServiceOrder[] = response.data.map((order: ServiceOrderData) => ({
+          id: order.id || '',
+          ticketId: order.Ticket_ID || '',
+          timestamp: formatDate(order.Timestamp),
+          accountNumber: order.Account_Number || '',
+          fullName: order.Full_Name || '',
+          contactAddress: order.Contact_Address || '',
+          dateInstalled: order.Date_Installed || '',
+          contactNumber: order.Contact_Number || '',
+          fullAddress: order.Full_Address || '',
+          houseFrontPicture: order.House_Front_Picture || '',
+          emailAddress: order.Email_Address || '',
+          plan: order.Plan || '',
+          provider: order.Provider || '',
+          username: order.Username || '',
+          connectionType: order.Connection_Type || '',
+          routerModemSN: order.Router_Modem_SN || '',
+          lcp: order.LCP || '',
+          nap: order.NAP || '',
+          port: order.PORT || '',
+          vlan: order.VLAN || '',
+          concern: order.Concern || '',
+          concernRemarks: order.Concern_Remarks || '',
+          visitStatus: order.Visit_Status || '',
+          visitBy: order.Visit_By || '',
+          visitWith: order.Visit_With || '',
+          visitWithOther: order.Visit_With_Other || '',
+          visitRemarks: order.Visit_Remarks || '',
+          modifiedBy: order.Modified_By || '',
+          modifiedDate: formatDate(order.Modified_Date),
+          userEmail: order.User_Email || '',
+          requestedBy: order.Requested_By || '',
+          assignedEmail: order.Assigned_Email || '',
+          supportRemarks: order.Support_Remarks || '',
+          serviceCharge: order.Service_Charge || '₱0.00',
+          repairCategory: order.Repair_Category || '',
+          supportStatus: order.Support_Status || ''
+        }));
+        
+        setServiceOrders(processedOrders);
+        setError(null);
+      }
+    } catch (err: any) {
+      console.error('Failed to refresh service orders:', err);
+      setError('Failed to refresh service orders. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleColumn = (columnKey: string) => {
+    setVisibleColumns(prev => {
+      if (prev.includes(columnKey)) {
+        return prev.filter(key => key !== columnKey);
+      } else {
+        return [...prev, columnKey];
+      }
+    });
+  };
+
+  const handleSelectAllColumns = () => {
+    setVisibleColumns(allColumns.map(col => col.key));
+  };
+
+  const handleDeselectAllColumns = () => {
+    setVisibleColumns([]);
+  };
+
+  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+
+  const renderCellValue = (serviceOrder: ServiceOrder, columnKey: string) => {
+    switch (columnKey) {
+      case 'ticketId':
+        return <span className="text-red-400">{serviceOrder.ticketId}</span>;
+      case 'timestamp':
+        return serviceOrder.timestamp;
+      case 'accountNumber':
+        return serviceOrder.accountNumber || '-';
+      case 'fullName':
+        return serviceOrder.fullName;
+      case 'contactAddress':
+        return serviceOrder.contactAddress || '-';
+      case 'dateInstalled':
+        return serviceOrder.dateInstalled || '-';
+      case 'contactNumber':
+        return serviceOrder.contactNumber;
+      case 'fullAddress':
+        return <span title={serviceOrder.fullAddress}>{serviceOrder.fullAddress}</span>;
+      case 'houseFrontPicture':
+        return serviceOrder.houseFrontPicture ? 'Yes' : 'No';
+      case 'emailAddress':
+        return serviceOrder.emailAddress || '-';
+      case 'plan':
+        return serviceOrder.plan || '-';
+      case 'provider':
+        return serviceOrder.provider || '-';
+      case 'username':
+        return serviceOrder.username || '-';
+      case 'connectionType':
+        return serviceOrder.connectionType || '-';
+      case 'routerModemSN':
+        return serviceOrder.routerModemSN || '-';
+      case 'lcp':
+        return serviceOrder.lcp || '-';
+      case 'nap':
+        return serviceOrder.nap || '-';
+      case 'port':
+        return serviceOrder.port || '-';
+      case 'vlan':
+        return serviceOrder.vlan || '-';
+      case 'concern':
+        return serviceOrder.concern;
+      case 'concernRemarks':
+        return serviceOrder.concernRemarks || '-';
+      case 'visitStatus':
+        return <StatusText status={serviceOrder.visitStatus} type="visit" />;
+      case 'visitBy':
+        return serviceOrder.visitBy || '-';
+      case 'visitWith':
+        return serviceOrder.visitWith || '-';
+      case 'visitWithOther':
+        return serviceOrder.visitWithOther || '-';
+      case 'visitRemarks':
+        return serviceOrder.visitRemarks || '-';
+      case 'modifiedBy':
+        return serviceOrder.modifiedBy || '-';
+      case 'modifiedDate':
+        return serviceOrder.modifiedDate;
+      case 'userEmail':
+        return serviceOrder.userEmail || '-';
+      case 'requestedBy':
+        return serviceOrder.requestedBy || '-';
+      case 'assignedEmail':
+        return serviceOrder.assignedEmail || '-';
+      case 'supportRemarks':
+        return serviceOrder.supportRemarks || '-';
+      case 'serviceCharge':
+        return serviceOrder.serviceCharge;
+      case 'repairCategory':
+        return serviceOrder.repairCategory || '-';
+      case 'supportStatus':
+        return <StatusText status={serviceOrder.supportStatus} type="support" />;
+      default:
+        return '-';
+    }
+  };
   
   if (loading) {
     return (
@@ -349,58 +559,12 @@ const ServiceOrder: React.FC = () => {
         <div className="bg-gray-800 border border-gray-700 rounded-md p-6 max-w-lg">
           <h3 className="text-red-500 text-lg font-medium mb-2">Error</h3>
           <p className="text-gray-300 mb-4">{error}</p>
-          <div className="flex flex-col space-y-4">
-            <button 
-              onClick={() => window.location.reload()}
-              className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
-            >
-              Retry
-            </button>
-            
-            {/* Always show the table structure even when there's an error */}
-            <div className="mt-4 overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-700 text-sm">
-                <thead className="bg-gray-800 sticky top-0">
-                  <tr>
-                    {tableColumns.map(column => (
-                      <th 
-                        key={column.id}
-                        scope="col" 
-                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
-                      >
-                        <div className="flex items-center">
-                          {column.label}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-800">
-                  <tr>
-                    <td colSpan={tableColumns.length} className="px-4 py-12 text-center text-red-400">
-                      Error loading service orders. Please try again.
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-            
-            <div className="mt-4 p-4 bg-gray-900 rounded overflow-auto max-h-48">
-              <pre className="text-xs text-gray-400 whitespace-pre-wrap">
-                {error.includes("SQLSTATE") ? (
-                  <>
-                    <span className="text-red-400">Database Error:</span>
-                    <br />
-                    {error.includes("Table") ? "Table name mismatch - check the database schema" : error}
-                    <br /><br />
-                    <span className="text-yellow-400">Suggestion:</span>
-                    <br />
-                    Verify that the table 'service_order' (singular) or 'service_orders' (plural) exists in your database.
-                  </>
-                ) : error}
-              </pre>
-            </div>
-          </div>
+          <button 
+            onClick={() => window.location.reload()}
+            className="bg-orange-600 hover:bg-orange-700 text-white py-2 px-4 rounded"
+          >
+            Retry
+          </button>
         </div>
       </div>
     );
@@ -408,50 +572,45 @@ const ServiceOrder: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container - Hidden for technician role */}
       {userRole.toLowerCase() !== 'technician' && (
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b border-gray-700 flex-shrink-0">
-          <div className="flex items-center mb-1">
-            <h2 className="text-lg font-semibold text-white">Service Orders</h2>
+        <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
+          <div className="p-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex items-center mb-1">
+              <h2 className="text-lg font-semibold text-white">Service Orders</h2>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto">
+            {locationItems.map((location) => (
+              <button
+                key={location.id}
+                onClick={() => setSelectedLocation(location.id)}
+                className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
+                  selectedLocation === location.id
+                    ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                    : 'text-gray-300'
+                }`}
+              >
+                <div className="flex items-center">
+                  <FileText className="h-4 w-4 mr-2" />
+                  <span className="capitalize">{location.name}</span>
+                </div>
+                {location.count > 0 && (
+                  <span className={`px-2 py-1 rounded-full text-xs ${
+                    selectedLocation === location.id
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-700 text-gray-300'
+                  }`}>
+                    {location.count}
+                  </span>
+                )}
+              </button>
+            ))}
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {locationItems.map((location) => (
-            <button
-              key={location.id}
-              onClick={() => {
-                setSelectedLocation(location.id);
-              }}
-              className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
-                selectedLocation === location.id
-                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
-                  : 'text-gray-300'
-              }`}
-            >
-              <div className="flex items-center">
-                <FileText className="h-4 w-4 mr-2" />
-                <span className="capitalize">{location.name}</span>
-              </div>
-              {location.count > 0 && (
-                <span className={`px-2 py-1 rounded-full text-xs ${
-                  selectedLocation === location.id
-                    ? 'bg-orange-600 text-white'
-                    : 'bg-gray-700 text-gray-300'
-                }`}>
-                  {location.count}
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-      </div>
       )}
 
-      {/* Service Orders List - Shrinks when detail view is shown */}
-      <div className={`bg-gray-900 overflow-hidden flex-1`}>
+      <div className="flex-1 bg-gray-900 overflow-hidden">
         <div className="flex flex-col h-full">
-          {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
@@ -464,104 +623,204 @@ const ServiceOrder: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <button className="bg-gray-800 text-white px-4 py-2 rounded border border-gray-700 flex items-center">
-                <span className="mr-2">Filter</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
+              <div className="flex space-x-2">
+                {displayMode === 'table' && (
+                  <div className="relative" ref={filterDropdownRef}>
+                    <button
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                      onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                    >
+                      <ListFilter className="h-5 w-5" />
+                    </button>
+                    {filterDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded shadow-lg z-50 max-h-96 flex flex-col">
+                        <div className="p-3 border-b border-gray-700 flex items-center justify-between">
+                          <span className="text-white text-sm font-medium">Column Visibility</span>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={handleSelectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-gray-600">|</span>
+                            <button
+                              onClick={handleDeselectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1">
+                          {allColumns.map((column) => (
+                            <label
+                              key={column.key}
+                              className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer text-sm text-white"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.includes(column.key)}
+                                onChange={() => handleToggleColumn(column.key)}
+                                className="mr-3 h-4 w-4 rounded border-gray-600 bg-gray-700 text-orange-600 focus:ring-orange-500 focus:ring-offset-gray-800"
+                              />
+                              <span>{column.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="relative z-50" ref={dropdownRef}>
+                  <button
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
+                    <span>{displayMode === 'card' ? 'Card View' : 'Table View'}</span>
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {dropdownOpen && (
+                    <div className="fixed right-auto mt-1 w-36 bg-gray-800 border border-gray-700 rounded shadow-lg">
+                      <button
+                        onClick={() => {
+                          setDisplayMode('card');
+                          setDropdownOpen(false);
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'card' ? 'text-orange-500' : 'text-white'}`}
+                      >
+                        Card View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDisplayMode('table');
+                          setDropdownOpen(false);
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'table' ? 'text-orange-500' : 'text-white'}`}
+                      >
+                        Table View
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={handleRefresh}
+                  disabled={loading}
+                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                >
+                  {loading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
             </div>
           </div>
           
-          {/* Table Container */}
           <div className="flex-1 overflow-hidden">
-            <div className="h-full overflow-x-auto overflow-y-auto pb-4">
-              <table className="min-w-full divide-y divide-gray-700 text-sm">
-                <thead className="bg-gray-800 sticky top-0">
-                  <tr>
-                    {tableColumns.map(column => (
-                      <th 
-                        key={column.id}
-                        scope="col" 
-                        className={`px-4 py-2 text-left text-xs font-medium text-gray-400 uppercase tracking-wider ${column.width}`}
-                      >
-                        <div className="flex items-center">
-                          {column.label}
-                        </div>
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="bg-gray-900 divide-y divide-gray-800">
-                  {filteredServiceOrders.length > 0 ? (
-                    filteredServiceOrders.map((serviceOrder) => (
-                      <tr 
-                        key={serviceOrder.id} 
-                        className={`hover:bg-gray-800 cursor-pointer ${selectedServiceOrder?.id === serviceOrder.id ? 'bg-gray-800' : ''}`}
+            <div className="h-full overflow-y-auto">
+              {loading ? (
+                <div className="px-4 py-12 text-center text-gray-400">
+                  <div className="animate-pulse flex flex-col items-center">
+                    <div className="h-4 w-1/3 bg-gray-700 rounded mb-4"></div>
+                    <div className="h-4 w-1/2 bg-gray-700 rounded"></div>
+                  </div>
+                  <p className="mt-4">Loading service orders...</p>
+                </div>
+              ) : error ? (
+                <div className="px-4 py-12 text-center text-red-400">
+                  <p>{error}</p>
+                  <button 
+                    onClick={handleRefresh}
+                    className="mt-4 bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded">
+                    Retry
+                  </button>
+                </div>
+              ) : displayMode === 'card' ? (
+                filteredServiceOrders.length > 0 ? (
+                  <div className="space-y-0">
+                    {filteredServiceOrders.map((serviceOrder) => (
+                      <div
+                        key={serviceOrder.id}
                         onClick={() => handleRowClick(serviceOrder)}
+                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedServiceOrder?.id === serviceOrder.id ? 'bg-gray-800' : ''}`}
                       >
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.timestamp}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.fullName}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.contactNumber}
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
-                          {serviceOrder.fullAddress}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.concern}
-                        </td>
-                        <td className="px-4 py-3 text-gray-300 max-w-xs truncate text-xs">
-                          {serviceOrder.concernRemarks}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.requestedBy}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs">
-                          <StatusText status={serviceOrder.supportStatus} type="support" />
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.assignedEmail}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.repairCategory}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-xs">
-                          <StatusText status={serviceOrder.visitStatus} type="visit" />
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.modifiedBy}
-                        </td>
-                        <td className="px-4 py-3 whitespace-nowrap text-gray-300 text-xs">
-                          {serviceOrder.modifiedDate}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={tableColumns.length} className="px-4 py-12 text-center">
-                        <div className="flex flex-col items-center space-y-4">
-                          <div className="text-gray-400">
-                            {serviceOrders.length > 0
-                              ? 'No service orders found matching your filters'
-                              : 'No service orders found in the service_orders table'}
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-red-400 font-medium text-sm mb-1">
+                              {serviceOrder.ticketId} | {serviceOrder.fullName} | {serviceOrder.fullAddress}
+                            </div>
+                            <div className="text-white text-sm">
+                              {serviceOrder.concern} | <StatusText status={serviceOrder.supportStatus} type="support" />
+                            </div>
                           </div>
                         </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    No service orders found matching your filters
+                  </div>
+                )
+              ) : (
+                <div className="overflow-x-auto overflow-y-hidden">
+                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                    <thead>
+                      <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
+                        {filteredColumns.map((column, index) => (
+                          <th
+                            key={column.key}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                          >
+                            {column.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredServiceOrders.length > 0 ? (
+                        filteredServiceOrders.map((serviceOrder) => (
+                          <tr 
+                            key={serviceOrder.id} 
+                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedServiceOrder?.id === serviceOrder.id ? 'bg-gray-800' : ''}`}
+                            onClick={() => handleRowClick(serviceOrder)}
+                          >
+                            {filteredColumns.map((column, index) => (
+                              <td 
+                                key={column.key}
+                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                              >
+                                {renderCellValue(serviceOrder, column.key)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={filteredColumns.length} className="px-4 py-12 text-center text-gray-400 border-b border-gray-800">
+                            No service orders found matching your filters
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      {/* Service Order Detail View - Only visible when a service order is selected */}
       {selectedServiceOrder && (
-        <div className="w-full max-w-2xl overflow-hidden">
+        <div className="w-full max-w-2xl bg-gray-900 border-l border-gray-700 flex-shrink-0 relative">
+          <div className="absolute top-4 right-4 z-10">
+            <button
+              onClick={() => setSelectedServiceOrder(null)}
+              className="text-gray-400 hover:text-white transition-colors bg-gray-800 rounded p-1"
+            >
+              <X size={20} />
+            </button>
+          </div>
           <ServiceOrderDetails 
             serviceOrder={selectedServiceOrder} 
             onClose={() => setSelectedServiceOrder(null)}

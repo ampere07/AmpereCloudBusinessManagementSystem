@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { FileText, Search } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { FileText, Search, ListFilter, ChevronDown } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
 import { getApplications } from '../services/applicationService';
 import { getCities, City } from '../services/cityService';
@@ -39,6 +39,33 @@ interface LocationItem {
   count: number;
 }
 
+type DisplayMode = 'card' | 'table';
+
+// All available columns from applications table
+const allColumns = [
+  { key: 'timestamp', label: 'Timestamp', width: 'min-w-40' },
+  { key: 'customerName', label: 'Customer Name', width: 'min-w-48' },
+  { key: 'firstName', label: 'First Name', width: 'min-w-32' },
+  { key: 'middleInitial', label: 'Middle Initial', width: 'min-w-28' },
+  { key: 'lastName', label: 'Last Name', width: 'min-w-32' },
+  { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
+  { key: 'mobileNumber', label: 'Mobile Number', width: 'min-w-36' },
+  { key: 'secondaryMobileNumber', label: 'Secondary Mobile Number', width: 'min-w-40' },
+  { key: 'installationAddress', label: 'Installation Address', width: 'min-w-56' },
+  { key: 'landmark', label: 'Landmark', width: 'min-w-32' },
+  { key: 'region', label: 'Region', width: 'min-w-28' },
+  { key: 'city', label: 'City', width: 'min-w-28' },
+  { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
+  { key: 'village', label: 'Village', width: 'min-w-28' },
+  { key: 'location', label: 'Location', width: 'min-w-40' },
+  { key: 'desiredPlan', label: 'Desired Plan', width: 'min-w-36' },
+  { key: 'promo', label: 'Promo', width: 'min-w-28' },
+  { key: 'referredBy', label: 'Referred By', width: 'min-w-32' },
+  { key: 'status', label: 'Status', width: 'min-w-28' },
+  { key: 'createDate', label: 'Create Date', width: 'min-w-32' },
+  { key: 'createTime', label: 'Create Time', width: 'min-w-28' }
+];
+
 const ApplicationManagement: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -49,6 +76,30 @@ const ApplicationManagement: React.FC = () => {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [locationDataLoaded, setLocationDataLoaded] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [displayMode, setDisplayMode] = useState<DisplayMode>('card');
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const filterDropdownRef = useRef<HTMLDivElement>(null);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(false);
+      }
+      if (filterDropdownRef.current && !filterDropdownRef.current.contains(event.target as Node)) {
+        setFilterDropdownOpen(false);
+      }
+    };
+    
+    document.addEventListener('mousedown', handleClickOutside);
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownRef, filterDropdownRef]);
 
   // Fetch cities and regions data
   useEffect(() => {
@@ -222,6 +273,91 @@ const ApplicationManagement: React.FC = () => {
     setSelectedApplication(application);
   };
 
+  const handleToggleColumn = (columnKey: string) => {
+    setVisibleColumns(prev => {
+      if (prev.includes(columnKey)) {
+        return prev.filter(key => key !== columnKey);
+      } else {
+        return [...prev, columnKey];
+      }
+    });
+  };
+
+  const handleSelectAllColumns = () => {
+    setVisibleColumns(allColumns.map(col => col.key));
+  };
+
+  const handleDeselectAllColumns = () => {
+    setVisibleColumns([]);
+  };
+
+  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+
+  const renderCellValue = (application: Application, columnKey: string) => {
+    switch (columnKey) {
+      case 'timestamp':
+        return application.create_date && application.create_time 
+          ? `${application.create_date} ${application.create_time}` 
+          : application.timestamp || '-';
+      case 'customerName':
+        return application.customerName;
+      case 'firstName':
+        return application.first_name || '-';
+      case 'middleInitial':
+        return application.middle_initial || '-';
+      case 'lastName':
+        return application.last_name || '-';
+      case 'emailAddress':
+        return application.email_address || '-';
+      case 'mobileNumber':
+        return application.mobile_number || '-';
+      case 'secondaryMobileNumber':
+        return application.secondary_mobile_number || '-';
+      case 'installationAddress':
+        return application.installation_address || application.address || '-';
+      case 'landmark':
+        return application.landmark || '-';
+      case 'region':
+        return application.region || '-';
+      case 'city':
+        return application.city || '-';
+      case 'barangay':
+        return application.barangay || '-';
+      case 'village':
+        return application.village || '-';
+      case 'location':
+        return application.location || '-';
+      case 'desiredPlan':
+        return application.desired_plan || '-';
+      case 'promo':
+        return application.promo || '-';
+      case 'referredBy':
+        return application.referred_by || '-';
+      case 'status':
+        return (
+          <span className={`text-xs px-2 py-1 ${
+            application.status?.toLowerCase() === 'schedule' ? 'text-green-400' :
+            application.status?.toLowerCase() === 'no facility' ? 'text-red-400' :
+            application.status?.toLowerCase() === 'cancelled' ? 'text-red-500' :
+            application.status?.toLowerCase() === 'no slot' ? 'text-yellow-400' :
+            application.status?.toLowerCase() === 'duplicate' ? 'text-yellow-500' :
+            application.status?.toLowerCase() === 'in progress' ? 'text-blue-400' :
+            application.status?.toLowerCase() === 'completed' ? 'text-green-400' :
+            application.status?.toLowerCase() === 'pending' ? 'text-orange-400' :
+            'text-gray-400'
+          }`}>
+            {application.status || '-'}
+          </span>
+        );
+      case 'createDate':
+        return application.create_date || '-';
+      case 'createTime':
+        return application.create_time || '-';
+      default:
+        return '-';
+    }
+  };
+
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
       {/* Location Sidebar Container */}
@@ -233,7 +369,7 @@ const ApplicationManagement: React.FC = () => {
               className="bg-orange-600 text-white px-3 py-1 rounded text-sm flex items-center space-x-1"
               aria-label="Applications"
             >
-              <span>Applications</span>
+              <span>Form</span>
             </button>
           </div>
         </div>
@@ -282,13 +418,94 @@ const ApplicationManagement: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <button
-                onClick={() => fetchApplications()}
-                disabled={isLoading}
-                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
-              >
-                {isLoading ? 'Loading...' : 'Refresh'}
-              </button>
+              <div className="flex space-x-2">
+                {displayMode === 'table' && (
+                  <div className="relative" ref={filterDropdownRef}>
+                    <button
+                      className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                      onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                    >
+                      <ListFilter className="h-5 w-5" />
+                    </button>
+                    {filterDropdownOpen && (
+                      <div className="absolute top-full right-0 mt-2 w-80 bg-gray-800 border border-gray-700 rounded shadow-lg z-50 max-h-96 flex flex-col">
+                        <div className="p-3 border-b border-gray-700 flex items-center justify-between">
+                          <span className="text-white text-sm font-medium">Column Visibility</span>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={handleSelectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Select All
+                            </button>
+                            <span className="text-gray-600">|</span>
+                            <button
+                              onClick={handleDeselectAllColumns}
+                              className="text-xs text-orange-500 hover:text-orange-400"
+                            >
+                              Deselect All
+                            </button>
+                          </div>
+                        </div>
+                        <div className="overflow-y-auto flex-1">
+                          {allColumns.map((column) => (
+                            <label
+                              key={column.key}
+                              className="flex items-center px-4 py-2 hover:bg-gray-700 cursor-pointer text-sm text-white"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={visibleColumns.includes(column.key)}
+                                onChange={() => handleToggleColumn(column.key)}
+                                className="mr-3 h-4 w-4 rounded border-gray-600 bg-gray-700 text-orange-600 focus:ring-orange-500 focus:ring-offset-gray-800"
+                              />
+                              <span>{column.label}</span>
+                            </label>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <div className="relative z-50" ref={dropdownRef}>
+                  <button
+                    className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors flex items-center"
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                  >
+                    <span>{displayMode === 'card' ? 'Card View' : 'Table View'}</span>
+                    <ChevronDown className="w-4 h-4 ml-1" />
+                  </button>
+                  {dropdownOpen && (
+                    <div className="absolute top-full right-0 mt-1 w-36 bg-gray-800 border border-gray-700 rounded shadow-lg">
+                      <button
+                        onClick={() => {
+                          setDisplayMode('card');
+                          setDropdownOpen(false);
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'card' ? 'text-orange-500' : 'text-white'}`}
+                      >
+                        Card View
+                      </button>
+                      <button
+                        onClick={() => {
+                          setDisplayMode('table');
+                          setDropdownOpen(false);
+                        }}
+                        className={`block w-full text-left px-4 py-2 text-sm transition-colors hover:bg-gray-700 ${displayMode === 'table' ? 'text-orange-500' : 'text-white'}`}
+                      >
+                        Table View
+                      </button>
+                    </div>
+                  )}
+                </div>
+                <button
+                  onClick={() => fetchApplications()}
+                  disabled={isLoading}
+                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                >
+                  {isLoading ? 'Loading...' : 'Refresh'}
+                </button>
+              </div>
             </div>
           </div>
           
@@ -312,57 +529,102 @@ const ApplicationManagement: React.FC = () => {
                     Retry
                   </button>
                 </div>
-              ) : filteredApplications.length > 0 ? (
-                <div className="space-y-0">
-                  {filteredApplications.map((application) => (
-                    <div
-                      key={application.id}
-                      onClick={() => handleRowClick(application)}
-                      className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1 min-w-0">
-                          <div className="text-white font-medium text-sm mb-1 uppercase">
-                            {application.customerName}
-                          </div>
-                          <div className="text-gray-400 text-xs">
-                            {application.create_date && application.create_time 
-                              ? `${application.create_date} ${application.create_time}` 
-                              : application.timestamp || 'Not specified'}
-                            {' | '}
-                            {[
-                              application.installation_address || application.address,
-                              application.village,
-                              application.barangay,
-                              application.city,
-                              application.region
-                            ].filter(Boolean).join(', ')}
-                          </div>
-                        </div>
-                        <div className="flex flex-col items-end space-y-1 ml-4 flex-shrink-0">
-                          {application.status && (
-                            <div className={`text-xs px-2 py-1 ${
-                              application.status.toLowerCase() === 'schedule' ? 'text-green-400' :
-                              application.status.toLowerCase() === 'no facility' ? 'text-red-400' :
-                              application.status.toLowerCase() === 'cancelled' ? 'text-red-500' :
-                              application.status.toLowerCase() === 'no slot' ? 'text-yellow-400' :
-                              application.status.toLowerCase() === 'duplicate' ? 'text-yellow-500' :
-                              application.status.toLowerCase() === 'in progress' ? 'text-blue-400' :
-                              application.status.toLowerCase() === 'completed' ? 'text-green-400' :
-                              application.status.toLowerCase() === 'pending' ? 'text-orange-400' :
-                              'text-gray-400'
-                            }`}>
-                              {application.status}
+              ) : displayMode === 'card' ? (
+                filteredApplications.length > 0 ? (
+                  <div className="space-y-0">
+                    {filteredApplications.map((application) => (
+                      <div
+                        key={application.id}
+                        onClick={() => handleRowClick(application)}
+                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-white font-medium text-sm mb-1 uppercase">
+                              {application.customerName}
                             </div>
-                          )}
+                            <div className="text-gray-400 text-xs">
+                              {application.create_date && application.create_time 
+                                ? `${application.create_date} ${application.create_time}` 
+                                : application.timestamp || 'Not specified'}
+                              {' | '}
+                              {[
+                                application.installation_address || application.address,
+                                application.village,
+                                application.barangay,
+                                application.city,
+                                application.region
+                              ].filter(Boolean).join(', ')}
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end space-y-1 ml-4 flex-shrink-0">
+                            {application.status && (
+                              <div className={`text-xs px-2 py-1 ${
+                                application.status.toLowerCase() === 'schedule' ? 'text-green-400' :
+                                application.status.toLowerCase() === 'no facility' ? 'text-red-400' :
+                                application.status.toLowerCase() === 'cancelled' ? 'text-red-500' :
+                                application.status.toLowerCase() === 'no slot' ? 'text-yellow-400' :
+                                application.status.toLowerCase() === 'duplicate' ? 'text-yellow-500' :
+                                application.status.toLowerCase() === 'in progress' ? 'text-blue-400' :
+                                application.status.toLowerCase() === 'completed' ? 'text-green-400' :
+                                application.status.toLowerCase() === 'pending' ? 'text-orange-400' :
+                                'text-gray-400'
+                              }`}>
+                                {application.status}
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-gray-400">
+                    No applications found matching your filters
+                  </div>
+                )
               ) : (
-                <div className="text-center py-12 text-gray-400">
-                  No applications found matching your filters
+                <div className="overflow-x-auto overflow-y-hidden">
+                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                    <thead>
+                      <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
+                        {filteredColumns.map((column, index) => (
+                          <th
+                            key={column.key}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                          >
+                            {column.label}
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredApplications.length > 0 ? (
+                        filteredApplications.map((application) => (
+                          <tr 
+                            key={application.id} 
+                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedApplication?.id === application.id ? 'bg-gray-800' : ''}`}
+                            onClick={() => handleRowClick(application)}
+                          >
+                            {filteredColumns.map((column, index) => (
+                              <td 
+                                key={column.key}
+                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                              >
+                                {renderCellValue(application, column.key)}
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      ) : (
+                        <tr>
+                          <td colSpan={filteredColumns.length} className="px-4 py-12 text-center text-gray-400 border-b border-gray-800">
+                            No applications found matching your filters
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               )}
             </div>

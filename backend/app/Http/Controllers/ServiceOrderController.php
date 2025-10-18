@@ -128,7 +128,7 @@ class ServiceOrderController extends Controller
             $serviceOrder = ServiceOrder::findOrFail($id);
 
             $validator = Validator::make($request->all(), [
-                'Ticket_ID' => 'string|max:255|unique:service_orders,Ticket_ID,' . $id . ',ID',
+                'Ticket_ID' => 'string|max:255|unique:service_orders,Ticket_ID,' . $id . ',id',
                 'Full_Name' => 'string|max:255',
                 'Contact_Number' => 'string|max:255',
                 'Full_Address' => 'string',

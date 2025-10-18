@@ -11,7 +11,7 @@ interface ApiResponse<T> {
 }
 
 export interface ServiceOrderData {
-  ID: string;
+  id: string;
   Ticket_ID?: string;
   Timestamp?: string;
   Account_Number?: string;
