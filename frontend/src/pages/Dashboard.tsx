@@ -44,6 +44,7 @@ import SOAGeneration from './SOAGeneration';
 import UsageTypeList from './UsageTypeList';
 import Ports from './Ports';
 import StatusRemarksList from './StatusRemarksList';
+import Settings from './Settings';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -169,6 +170,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <Logs />;
       case 'soa-generation':
         return <SOAGeneration />;
+      case 'settings':
+        return <Settings />;
       case 'dashboard':
       default:
         return <DashboardContent />;
