@@ -44,6 +44,8 @@ import SOAGeneration from './SOAGeneration';
 import UsageTypeList from './UsageTypeList';
 import Ports from './Ports';
 import StatusRemarksList from './StatusRemarksList';
+import Settings from './Settings';
+import LcpNapLocation from './LcpNapLocation';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -151,6 +153,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <NapList />;
       case 'lcp-nap-list':
         return <LcpNapList />;
+      case 'lcp-nap-location':
+        return <LcpNapLocation />;
       case 'usage-type':
         return <UsageTypeList />;
       case 'ports':
@@ -169,6 +173,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <Logs />;
       case 'soa-generation':
         return <SOAGeneration />;
+      case 'settings':
+        return <Settings />;
       case 'dashboard':
       default:
         return <DashboardContent />;
