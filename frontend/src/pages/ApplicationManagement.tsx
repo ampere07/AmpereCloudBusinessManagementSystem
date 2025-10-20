@@ -28,7 +28,6 @@ interface Application {
   desired_plan?: string;
   promo?: string;
   referred_by?: string;
-  village?: string;
   create_date?: string;
   create_time?: string;
 }
@@ -56,7 +55,6 @@ const allColumns = [
   { key: 'region', label: 'Region', width: 'min-w-28' },
   { key: 'city', label: 'City', width: 'min-w-28' },
   { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
-  { key: 'village', label: 'Village', width: 'min-w-28' },
   { key: 'location', label: 'Location', width: 'min-w-40' },
   { key: 'desiredPlan', label: 'Desired Plan', width: 'min-w-36' },
   { key: 'promo', label: 'Promo', width: 'min-w-28' },
@@ -165,7 +163,6 @@ const ApplicationManagement: React.FC = () => {
             desired_plan: app.desired_plan,
             promo: app.promo,
             referred_by: app.referred_by,
-            village: app.village,
             create_date: app.create_date,
             create_time: app.create_time
           };
@@ -323,8 +320,6 @@ const ApplicationManagement: React.FC = () => {
         return application.city || '-';
       case 'barangay':
         return application.barangay || '-';
-      case 'village':
-        return application.village || '-';
       case 'location':
         return application.location || '-';
       case 'desiredPlan':
@@ -550,7 +545,7 @@ const ApplicationManagement: React.FC = () => {
                               {' | '}
                               {[
                                 application.installation_address || application.address,
-                                application.village,
+                                application.location,
                                 application.barangay,
                                 application.city,
                                 application.region

@@ -37,7 +37,6 @@ const allColumns = [
   { key: 'region', label: 'Region', width: 'min-w-28' },
   { key: 'city', label: 'City', width: 'min-w-28' },
   { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
-  { key: 'village', label: 'Village', width: 'min-w-28' },
   { key: 'location', label: 'Location', width: 'min-w-32' },
   { key: 'choosePlan', label: 'Choose Plan', width: 'min-w-36' },
   { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
@@ -244,7 +243,7 @@ const JobOrderPage: React.FC = () => {
   const getClientFullAddress = (jobOrder: JobOrder): string => {
     const addressParts = [
       jobOrder.Address,
-      jobOrder.Village,
+      jobOrder.Location,
       jobOrder.Barangay,
       jobOrder.City,
       jobOrder.Region
@@ -408,8 +407,6 @@ const JobOrderPage: React.FC = () => {
         return jobOrder.City || '-';
       case 'barangay':
         return jobOrder.Barangay || '-';
-      case 'village':
-        return jobOrder.Village || '-';
       case 'location':
         return jobOrder.Location || '-';
       case 'choosePlan':
