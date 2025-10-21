@@ -394,160 +394,162 @@ const LocationList: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b border-gray-700 flex-shrink-0">
+    <div className="bg-gray-950 h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Sidebar - Desktop / Bottom Navbar - Mobile */}
+      <div className="md:w-64 bg-gray-900 md:border-r border-t md:border-t-0 border-gray-700 flex-shrink-0 flex flex-col order-2 md:order-1">
+        <div className="p-4 border-b border-gray-700 flex-shrink-0 hidden md:block">
           <div className="flex items-center mb-1">
             <h2 className="text-lg font-semibold text-white">Locations</h2>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {/* All */}
-          <button
-            onClick={() => setSidebarFilter({ type: 'all' })}
-            className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
-              sidebarFilter.type === 'all'
-                ? 'bg-orange-500 bg-opacity-20 text-orange-400'
-                : 'text-gray-300'
-            }`}
-          >
-            <div className="flex items-center">
-              <MapPin className="h-4 w-4 mr-2" />
-              <span>All</span>
-            </div>
-            {allLocations.length > 0 && (
-              <span className={`px-2 py-1 rounded-full text-xs ${
+        <div className="flex-1 overflow-y-auto md:block overflow-x-auto">
+          <div className="flex md:flex-col md:space-y-0 space-x-2 md:space-x-0 p-2 md:p-0">
+            {/* All */}
+            <button
+              onClick={() => setSidebarFilter({ type: 'all' })}
+              className={`md:w-full flex-shrink-0 flex flex-col md:flex-row items-center md:justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 rounded-md md:rounded-none ${
                 sidebarFilter.type === 'all'
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-700 text-gray-300'
-              }`}>
-                {allLocations.length}
-              </span>
-            )}
-          </button>
+                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                  : 'text-gray-300'
+              }`}
+            >
+              <div className="flex flex-col md:flex-row items-center">
+                <MapPin className="h-4 w-4 md:mr-2 mb-1 md:mb-0" />
+                <span className="text-xs md:text-sm whitespace-nowrap">All</span>
+              </div>
+              {allLocations.length > 0 && (
+                <span className={`px-2 py-1 rounded-full text-xs mt-1 md:mt-0 ${
+                  sidebarFilter.type === 'all'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-gray-700 text-gray-300'
+                }`}>
+                  {allLocations.length}
+                </span>
+              )}
+            </button>
 
-          {/* Regions */}
-          {regions.map(region => {
-            const regionCities = cities.filter(city => city.region_id === region.id);
-            const isExpanded = expandedRegions.has(region.id);
-            const regionCount = getCountForRegion(region.id);
-            const isSelected = sidebarFilter.type === 'region' && sidebarFilter.id === region.id;
+            {/* Regions */}
+            {regions.map(region => {
+              const regionCities = cities.filter(city => city.region_id === region.id);
+              const isExpanded = expandedRegions.has(region.id);
+              const regionCount = getCountForRegion(region.id);
+              const isSelected = sidebarFilter.type === 'region' && sidebarFilter.id === region.id;
 
-            return (
-              <div key={`region-${region.id}`}>
-                <div className="flex items-center">
-                  <button
-                    onClick={() => toggleRegion(region.id)}
-                    className="p-2 hover:bg-gray-800 transition-colors"
-                  >
-                    {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-4 w-4 text-gray-400" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() => setSidebarFilter({ type: 'region', id: region.id })}
-                    className={`flex-1 flex items-center justify-between py-3 pr-4 text-sm transition-colors hover:bg-gray-800 ${
-                      isSelected
-                        ? 'bg-orange-500 bg-opacity-20 text-orange-400'
-                        : 'text-gray-300'
-                    }`}
-                  >
-                    <span>{region.name}</span>
-                    {regionCount > 0 && (
-                      <span className={`px-2 py-1 rounded-full text-xs ${
+              return (
+                <div key={`region-${region.id}`} className="flex-shrink-0">
+                  <div className="flex flex-col md:flex-row items-center">
+                    <button
+                      onClick={() => toggleRegion(region.id)}
+                      className="p-2 hover:bg-gray-800 transition-colors hidden md:block"
+                    >
+                      {isExpanded ? (
+                        <ChevronDown className="h-4 w-4 text-gray-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-gray-400" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setSidebarFilter({ type: 'region', id: region.id })}
+                      className={`flex-1 md:flex-1 flex flex-col md:flex-row items-center md:justify-between py-3 px-4 md:pr-4 md:pl-0 text-sm transition-colors hover:bg-gray-800 rounded-md md:rounded-none ${
                         isSelected
-                          ? 'bg-orange-600 text-white'
-                          : 'bg-gray-700 text-gray-300'
-                      }`}>
-                        {regionCount}
-                      </span>
-                    )}
-                  </button>
-                </div>
+                          ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                          : 'text-gray-300'
+                      }`}
+                    >
+                      <span className="text-xs md:text-sm whitespace-nowrap">{region.name}</span>
+                      {regionCount > 0 && (
+                        <span className={`px-2 py-1 rounded-full text-xs mt-1 md:mt-0 ${
+                          isSelected
+                            ? 'bg-orange-600 text-white'
+                            : 'bg-gray-700 text-gray-300'
+                        }`}>
+                          {regionCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
 
-                {/* Cities under Region */}
-                {isExpanded && regionCities.map(city => {
-                  const cityBarangays = boroughs.filter(borough => borough.city_id === city.id);
-                  const isCityExpanded = expandedCities.has(city.id);
-                  const cityCount = getCountForCity(city.id);
-                  const isCitySelected = sidebarFilter.type === 'city' && sidebarFilter.id === city.id;
+                  {/* Cities under Region */}
+                  {isExpanded && regionCities.map(city => {
+                    const cityBarangays = boroughs.filter(borough => borough.city_id === city.id);
+                    const isCityExpanded = expandedCities.has(city.id);
+                    const cityCount = getCountForCity(city.id);
+                    const isCitySelected = sidebarFilter.type === 'city' && sidebarFilter.id === city.id;
 
-                  return (
-                    <div key={`city-${city.id}`} className="ml-6">
-                      <div className="flex items-center">
-                        <button
-                          onClick={() => toggleCity(city.id)}
-                          className="p-2 hover:bg-gray-800 transition-colors"
-                        >
-                          {isCityExpanded ? (
-                            <ChevronDown className="h-3 w-3 text-gray-400" />
-                          ) : (
-                            <ChevronRight className="h-3 w-3 text-gray-400" />
-                          )}
-                        </button>
-                        <button
-                          onClick={() => setSidebarFilter({ type: 'city', id: city.id })}
-                          className={`flex-1 flex items-center justify-between py-2 pr-4 text-sm transition-colors hover:bg-gray-800 ${
-                            isCitySelected
-                              ? 'bg-orange-500 bg-opacity-20 text-orange-400'
-                              : 'text-gray-300'
-                          }`}
-                        >
-                          <span className="text-xs">{city.name}</span>
-                          {cityCount > 0 && (
-                            <span className={`px-2 py-0.5 rounded-full text-xs ${
-                              isCitySelected
-                                ? 'bg-orange-600 text-white'
-                                : 'bg-gray-700 text-gray-300'
-                            }`}>
-                              {cityCount}
-                            </span>
-                          )}
-                        </button>
-                      </div>
-
-                      {/* Barangays under City */}
-                      {isCityExpanded && cityBarangays.map(barangay => {
-                        const barangayCount = getCountForBarangay(barangay.id);
-                        const isBarangaySelected = sidebarFilter.type === 'borough' && sidebarFilter.id === barangay.id;
-
-                        return (
+                    return (
+                      <div key={`city-${city.id}`} className="ml-6 hidden md:block">
+                        <div className="flex items-center">
                           <button
-                            key={`barangay-${barangay.id}`}
-                            onClick={() => setSidebarFilter({ type: 'borough', id: barangay.id })}
-                            className={`w-full flex items-center justify-between py-2 pl-12 pr-4 text-sm transition-colors hover:bg-gray-800 ${
-                              isBarangaySelected
+                            onClick={() => toggleCity(city.id)}
+                            className="p-2 hover:bg-gray-800 transition-colors"
+                          >
+                            {isCityExpanded ? (
+                              <ChevronDown className="h-3 w-3 text-gray-400" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3 text-gray-400" />
+                            )}
+                          </button>
+                          <button
+                            onClick={() => setSidebarFilter({ type: 'city', id: city.id })}
+                            className={`flex-1 flex items-center justify-between py-2 pr-4 text-sm transition-colors hover:bg-gray-800 ${
+                              isCitySelected
                                 ? 'bg-orange-500 bg-opacity-20 text-orange-400'
                                 : 'text-gray-300'
                             }`}
                           >
-                            <span className="text-xs">{barangay.name}</span>
-                            {barangayCount > 0 && (
+                            <span className="text-xs">{city.name}</span>
+                            {cityCount > 0 && (
                               <span className={`px-2 py-0.5 rounded-full text-xs ${
-                                isBarangaySelected
+                                isCitySelected
                                   ? 'bg-orange-600 text-white'
                                   : 'bg-gray-700 text-gray-300'
                               }`}>
-                                {barangayCount}
+                                {cityCount}
                               </span>
                             )}
                           </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })}
-              </div>
-            );
-          })}
+                        </div>
+
+                        {/* Barangays under City */}
+                        {isCityExpanded && cityBarangays.map(barangay => {
+                          const barangayCount = getCountForBarangay(barangay.id);
+                          const isBarangaySelected = sidebarFilter.type === 'borough' && sidebarFilter.id === barangay.id;
+
+                          return (
+                            <button
+                              key={`barangay-${barangay.id}`}
+                              onClick={() => setSidebarFilter({ type: 'borough', id: barangay.id })}
+                              className={`w-full flex items-center justify-between py-2 pl-12 pr-4 text-sm transition-colors hover:bg-gray-800 ${
+                                isBarangaySelected
+                                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                                  : 'text-gray-300'
+                              }`}
+                            >
+                              <span className="text-xs">{barangay.name}</span>
+                              {barangayCount > 0 && (
+                                <span className={`px-2 py-0.5 rounded-full text-xs ${
+                                  isBarangaySelected
+                                    ? 'bg-orange-600 text-white'
+                                    : 'bg-gray-700 text-gray-300'
+                                }`}>
+                                  {barangayCount}
+                                </span>
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="bg-gray-900 overflow-hidden flex-1">
+      <div className="bg-gray-900 overflow-hidden flex-1 order-1 md:order-2">
         <div className="flex flex-col h-full">
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
