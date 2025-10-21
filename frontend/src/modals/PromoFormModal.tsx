@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Loader2 } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 
 interface Promo {
   id: number;
@@ -24,34 +24,47 @@ const PromoFormModal: React.FC<PromoFormModalProps> = ({
     name: '',
     status: ''
   });
-  const [savingForm, setSavingForm] = useState(false);
-  const [panelAnimating, setPanelAnimating] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
-    if (isOpen) {
-      if (editingPromo) {
-        setFormData({
-          name: editingPromo.name,
-          status: editingPromo.status || ''
-        });
-      } else {
-        resetForm();
-      }
-      setTimeout(() => setPanelAnimating(true), 10);
-    } else {
-      setPanelAnimating(false);
+    if (isOpen && editingPromo) {
+      setFormData({
+        name: editingPromo.name,
+        status: editingPromo.status || ''
+      });
+    } else if (isOpen && !editingPromo) {
+      resetForm();
     }
   }, [isOpen, editingPromo]);
 
-  const handleSubmit = async () => {
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      status: ''
+    });
+    setErrors({});
+  };
+
+  const validateForm = (): boolean => {
+    const newErrors: Record<string, string> = {};
+
     if (!formData.name.trim()) {
-      alert('Promo name is required');
+      newErrors.name = 'Promo name is required';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) {
       return;
     }
     
-    setSavingForm(true);
+    setLoading(true);
     
     try {
       const payload = {
@@ -92,102 +105,95 @@ const PromoFormModal: React.FC<PromoFormModalProps> = ({
       console.error('Error submitting form:', error);
       alert(`Failed to ${editingPromo ? 'update' : 'add'} promo: ${error instanceof Error ? error.message : 'Unknown error'}`);
     } finally {
-      setSavingForm(false);
+      setLoading(false);
     }
   };
 
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      status: ''
-    });
-  };
-
   const handleClose = () => {
-    setPanelAnimating(false);
-    setTimeout(() => {
-      onClose();
-    }, 300);
+    resetForm();
+    onClose();
   };
 
   if (!isOpen) return null;
 
   return (
-    <>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50" onClick={handleClose}>
       <div 
-        className={`fixed inset-0 bg-black z-40 transition-opacity duration-300 ${
-          panelAnimating ? 'bg-opacity-50' : 'bg-opacity-0'
-        }`}
-        onClick={handleClose}
-      />
-      
-      <div className={`fixed right-0 top-0 h-full w-[500px] bg-gray-900 shadow-2xl z-50 flex flex-col transform transition-all duration-300 ease-out ${
-        panelAnimating ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'
-      }`}>
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-800 bg-gradient-to-r from-gray-900 to-gray-800">
-          <h2 className="text-xl font-semibold text-white flex items-center gap-2">
-            <div className="w-3 h-3 rounded-full bg-red-600" />
-            Promo List Form
-          </h2>
-          <div className="flex items-center gap-3">
+        className="h-full w-3/4 md:w-full md:max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">{editingPromo ? 'Edit Promo' : 'Add Promo'}</h2>
+          <div className="flex items-center space-x-3">
             <button
               onClick={handleClose}
-              className="px-6 py-2 text-gray-300 hover:text-white hover:bg-gray-700 rounded-lg border border-gray-600"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleSubmit}
-              disabled={savingForm}
-              className="px-6 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              disabled={loading}
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm flex items-center"
             >
-              {savingForm && <Loader2 className="h-4 w-4 animate-spin" />}
-              Save
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                'Save'
+              )}
+            </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={24} />
             </button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto px-6 py-6">
-          <div className="space-y-6">
-            <div className="animate-fade-in">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Promo Name<span className="text-red-500 ml-1">*</span>
-              </label>
-              <input
-                type="text"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
-                placeholder="Enter promo name"
-              />
-            </div>
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Promo Name<span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className={`w-full px-3 py-2 bg-gray-800 border ${errors.name ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
+              placeholder="Enter promo name"
+            />
+            {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
+          </div>
 
-            <div className="animate-fade-in [animation-delay:100ms]">
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Status
-              </label>
-              <select
-                value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value })}
-                className="w-full px-4 py-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:border-red-500 focus:outline-none"
-              >
-                <option value="">Select Status</option>
-                <option value="Active">Active</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-300 mb-2">
+              Status
+            </label>
+            <select
+              value={formData.status}
+              onChange={(e) => setFormData({ ...formData, status: e.target.value })}
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
+            >
+              <option value="">Select Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+            </select>
+          </div>
 
-            <div className="animate-fade-in [animation-delay:200ms]">
-              <div className="p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
-                <p className="text-blue-300 text-sm">
-                  <strong>Note:</strong> Created and updated timestamps will be set automatically when the promo is created or updated.
-                </p>
-              </div>
+          <div>
+            <div className="p-4 bg-blue-900/20 border border-blue-700/30 rounded-lg">
+              <p className="text-blue-300 text-sm">
+                <strong>Note:</strong> Created and updated timestamps will be set automatically when the promo is created or updated.
+              </p>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
