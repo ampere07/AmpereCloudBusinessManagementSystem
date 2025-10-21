@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Plus, Edit2, Trash2, Loader2 } from 'lucide-react';
-import { getAllPorts, createPort, updatePort, deletePort, Port } from '../services/portService';
+import { getAllPorts, deletePort, Port } from '../services/portService';
+import AddPortModal from '../modals/AddPortModal';
 
 const Ports: React.FC = () => {
   const [ports, setPorts] = useState<Port[]>([]);
@@ -12,11 +13,6 @@ const Ports: React.FC = () => {
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-
-  const [formData, setFormData] = useState({
-    port_id: '',
-    label: ''
-  });
 
   useEffect(() => {
     fetchPorts();
@@ -47,17 +43,21 @@ const Ports: React.FC = () => {
 
   const handleAddClick = () => {
     setEditingPort(null);
-    setFormData({ port_id: '', label: '' });
     setShowAddModal(true);
   };
 
   const handleEditClick = (port: Port) => {
     setEditingPort(port);
-    setFormData({
-      port_id: port.PORT_ID,
-      label: port.Label
-    });
     setShowAddModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowAddModal(false);
+    setEditingPort(null);
+  };
+
+  const handleSaveModal = async () => {
+    await fetchPorts();
   };
 
   const handleDelete = async (id: number) => {
@@ -78,40 +78,6 @@ const Ports: React.FC = () => {
       alert('Failed to delete port');
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.port_id.trim() || !formData.label.trim()) {
-      alert('Please fill in all fields');
-      return;
-    }
-
-    try {
-      const portData = {
-        port_id: formData.port_id.trim(),
-        label: formData.label.trim()
-      };
-
-      let response;
-      if (editingPort) {
-        response = await updatePort(editingPort.id, portData);
-      } else {
-        response = await createPort(portData);
-      }
-
-      if (response.success) {
-        setShowAddModal(false);
-        setFormData({ port_id: '', label: '' });
-        await fetchPorts();
-      } else {
-        alert(response.message || 'Failed to save port');
-      }
-    } catch (error) {
-      console.error('Error saving port:', error);
-      alert('Failed to save port');
     }
   };
 
@@ -163,14 +129,12 @@ const Ports: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex flex-col">
-      {/* Header */}
       <div className="bg-gray-900 px-6 py-4 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold text-white">Ports</h1>
         </div>
       </div>
 
-      {/* Search and Add Section */}
       <div className="bg-gray-900 px-6 py-4 border-b border-gray-700 flex-shrink-0">
         <div className="flex items-center justify-between">
           <div className="relative flex-1 max-w-md">
@@ -193,7 +157,6 @@ const Ports: React.FC = () => {
         </div>
       </div>
 
-      {/* Ports Table */}
       <div className="flex-1 overflow-y-auto">
         {ports.length > 0 ? (
           <div className="overflow-x-auto">
@@ -255,69 +218,12 @@ const Ports: React.FC = () => {
         )}
       </div>
 
-      {/* Add/Edit Modal */}
-      {showAddModal && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40"
-            onClick={() => setShowAddModal(false)}
-          />
-          
-          <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
-              <div className="px-6 py-4 border-b border-gray-700">
-                <h2 className="text-xl font-semibold text-white">
-                  {editingPort ? 'Edit Port' : 'Add Port'}
-                </h2>
-              </div>
-              
-              <form onSubmit={handleSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Port ID<span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.port_id}
-                    onChange={(e) => setFormData({ ...formData, port_id: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="Enter port ID"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Label<span className="text-red-500 ml-1">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.label}
-                    onChange={(e) => setFormData({ ...formData, label: e.target.value })}
-                    className="w-full px-4 py-2 bg-gray-700 text-white rounded border border-gray-600 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                    placeholder="Enter label"
-                  />
-                </div>
-
-                <div className="flex items-center gap-3 pt-4">
-                  <button
-                    type="button"
-                    onClick={() => setShowAddModal(false)}
-                    className="flex-1 px-4 py-2 text-gray-300 border border-gray-600 rounded hover:bg-gray-700 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="flex-1 px-4 py-2 bg-orange-600 text-white rounded hover:bg-orange-700 transition-colors"
-                  >
-                    {editingPort ? 'Update' : 'Add'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </>
-      )}
+      <AddPortModal
+        isOpen={showAddModal}
+        onClose={handleCloseModal}
+        onSave={handleSaveModal}
+        editingPort={editingPort}
+      />
     </div>
   );
 };
