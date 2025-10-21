@@ -31,27 +31,42 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  
-  // Additional display fields
   const [modifiedDate, setModifiedDate] = useState<string>('');
-  const [modifiedBy] = useState<string>('ravenampere0123@gmail.com');
+  const [modifiedBy, setModifiedBy] = useState<string>('');
 
   useEffect(() => {
-    if (napItem) {
-      setFormData({
-        name: napItem.nap_name
-      });
-    } else {
-      setFormData({
-        name: ''
-      });
+    // Get current user email from localStorage
+    const authData = localStorage.getItem('authData');
+    let userEmail = 'Unknown User';
+    
+    if (authData) {
+      try {
+        const userData = JSON.parse(authData);
+        userEmail = userData.email || userData.email_address || 'Unknown User';
+      } catch (error) {
+        console.error('Error parsing auth data:', error);
+      }
     }
     
-    // Set current date/time
-    const now = new Date();
-    const formattedDate = formatDateTime(now);
-    setModifiedDate(formattedDate);
-  }, [napItem]);
+    setModifiedBy(userEmail);
+
+    if (isOpen) {
+      if (napItem) {
+        setFormData({
+          name: napItem.nap_name
+        });
+      } else {
+        setFormData({
+          name: ''
+        });
+      }
+      
+      // Set current date/time
+      const now = new Date();
+      const formattedDate = formatDateTime(now);
+      setModifiedDate(formattedDate);
+    }
+  }, [isOpen, napItem]);
 
   const formatDateTime = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -64,7 +79,7 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
     const ampm = hours >= 12 ? 'pm' : 'am';
     
     hours = hours % 12;
-    hours = hours ? hours : 12; // 0 should be 12
+    hours = hours ? hours : 12;
     const strHours = String(hours).padStart(2, '0');
     
     return `${month}/${day}/${year} ${strHours}:${minutes}:${seconds} ${ampm}`;
@@ -120,32 +135,26 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
-      <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
-        {/* Header */}
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50" onClick={handleClose}>
+      <div 
+        className="h-full w-3/4 md:w-full md:max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out overflow-hidden flex flex-col"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
+          <h2 className="text-xl font-semibold text-white">
+            {napItem ? 'Edit NAP' : 'Add NAP'}
+          </h2>
           <div className="flex items-center space-x-3">
             <button
               onClick={handleClose}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <X size={24} />
-            </button>
-            <h2 className="text-xl font-semibold text-white">
-              {napItem ? napItem.nap_name : 'Add NAP'}
-            </h2>
-          </div>
-          <div className="flex items-center space-x-3">
-            <button
-              onClick={handleClose}
-              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm border border-red-600"
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded text-sm"
             >
               Cancel
             </button>
             <button
               onClick={handleSave}
               disabled={loading}
-              className="px-4 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm flex items-center"
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm flex items-center"
             >
               {loading ? (
                 <>
@@ -156,12 +165,16 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
                 'Save'
               )}
             </button>
+            <button
+              onClick={handleClose}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={24} />
+            </button>
           </div>
         </div>
 
-        {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* NAP Name Input */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               NAP Name<span className="text-red-500">*</span>
@@ -173,13 +186,12 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
               placeholder="Enter NAP name"
               className={`w-full px-3 py-2 bg-gray-800 border ${
                 errors.name ? 'border-red-500' : 'border-gray-700'
-              } rounded text-white focus:outline-none focus:border-red-500`}
+              } rounded text-white focus:outline-none focus:border-orange-500`}
               autoFocus
             />
             {errors.name && <p className="text-red-500 text-xs mt-1">{errors.name}</p>}
           </div>
 
-          {/* Modified Date */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Modified Date
@@ -195,14 +207,16 @@ const EditNapModal: React.FC<EditNapModalProps> = ({
             </div>
           </div>
 
-          {/* Modified By */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
               Modified By
             </label>
-            <div className="px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-400">
-              {modifiedBy}
-            </div>
+            <input
+              type="text"
+              value={modifiedBy}
+              readOnly
+              className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-gray-400 cursor-not-allowed"
+            />
           </div>
         </div>
       </div>
