@@ -1,10 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import DCNotice from './DCNotice';
 import Discounts from './Discounts';
-import AdvancePayment from './AdvancePayment';
 import Overdue from './Overdue';
 import StaggeredPayment from './StaggeredPayment';
-import StaggeredInstallation from './StaggeredInstallation';
 import MassRebate from './MassRebate';
 import SMSBlast from './SMSBlast';
 import SMSBlastLogs from './SMSBlastLogs';
@@ -17,10 +15,9 @@ import UserManagement from './UserManagement';
 import OrganizationManagement from './OrganizationManagement';
 import GroupManagement from './GroupManagement';
 import ApplicationManagement from './ApplicationManagement';
-import Billing from './Billing';
+import Customer from './Customer';
 import BillingListView from './BillingListView';
 import TransactionList from './TransactionList';
-import TransactionsPendingList from './TransactionsPendingList';
 import PaymentPortal from './PaymentPortal';
 import JobOrder from './JobOrder';
 import ServiceOrder from './ServiceOrder';
@@ -34,9 +31,7 @@ import NapList from './NapList';
 import LcpNapList from './LcpNapList';
 import Inventory from './Inventory';
 import ExpensesLog from './ExpensesLog';
-import DailyExpenses from './DailyExpenses';
 import Logs from './Logs';
-import SalesAgentList from './SalesAgentList';
 import SOA from './SOA';
 import Invoice from './Invoice';
 import InventoryCategoryList from './InventoryCategoryList';
@@ -77,10 +72,7 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
 
   const renderContent = () => {
     switch (activeSection) {
-      case 'customer-map':
-        return <div className="p-6 text-white">Customer Map - Coming Soon</div>;
-      case 'sales-agent-list':
-        return <SalesAgentList />;
+
       case 'soa':
         return <SOA />;
       case 'invoice':
@@ -91,17 +83,12 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <DCNotice />;
       case 'discounts':
         return <Discounts />;
-      case 'advanced-payment':
-        return <AdvancePayment />;
-      case 'advance-payment':
-        return <AdvancePayment />;
+
 
       case 'staggered-payment':
         console.log('Loading StaggeredPayment component');
         return <StaggeredPayment />;
-      case 'staggered-installation':
-        console.log('Loading StaggeredInstallation component');
-        return <StaggeredInstallation />;
+
       case 'mass-rebate':
         console.log('Loading MassRebate component');
         return <MassRebate />;
@@ -125,12 +112,10 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <GroupManagement />;
       case 'application-management':
         return <ApplicationManagement />;
-      case 'billing':
-        return <Billing />;
+      case 'customer':
+        return <Customer />;
       case 'transaction-list':
         return <TransactionList />;
-      case 'transactions-pending-list':
-        return <TransactionsPendingList />;
       case 'payment-portal':
         return <PaymentPortal />;
       case 'job-order':
@@ -167,8 +152,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <InventoryCategoryList />;
       case 'expenses-log':
         return <ExpensesLog />;
-      case 'daily-expenses':
-        return <DailyExpenses />;
       case 'logs':
         return <Logs />;
       case 'soa-generation':

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter } from 'lucide-react';
-import BillingDetails from '../components/BillingDetails';
+import BillingDetails from '../components/CustomerDetails';
 import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
@@ -82,7 +82,7 @@ const allColumns = [
   { key: 'relatedAttachments', label: 'Related Attachments', width: 'min-w-40' }
 ];
 
-const Billing: React.FC = () => {
+const Customer: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedBilling, setSelectedBilling] = useState<BillingRecord | null>(null);
@@ -389,7 +389,7 @@ const Billing: React.FC = () => {
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
-            <h2 className="text-lg font-semibold text-white">Billing Details</h2>
+            <h2 className="text-lg font-semibold text-white">Customer Details</h2>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto">
@@ -428,7 +428,7 @@ const Billing: React.FC = () => {
               <div className="relative flex-1">
                 <input
                   type="text"
-                  placeholder="Search billing records..."
+                  placeholder="Search customer records..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
@@ -536,7 +536,7 @@ const Billing: React.FC = () => {
                     <div className="h-4 w-1/3 bg-gray-700 rounded mb-4"></div>
                     <div className="h-4 w-1/2 bg-gray-700 rounded"></div>
                   </div>
-                  <p className="mt-4">Loading billing records...</p>
+                  <p className="mt-4">Loading customer records...</p>
                 </div>
               ) : error ? (
                 <div className="px-4 py-12 text-center text-red-400">
@@ -579,7 +579,7 @@ const Billing: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12 text-gray-400">
-                    No billing records found matching your filters
+                    No customer records found matching your filters
                   </div>
                 )
               ) : (
@@ -618,7 +618,7 @@ const Billing: React.FC = () => {
                       ) : (
                         <tr>
                           <td colSpan={filteredColumns.length} className="px-4 py-12 text-center text-gray-400 border-b border-gray-800">
-                            No billing records found matching your filters
+                            No customer records found matching your filters
                           </td>
                         </tr>
                       )}
@@ -658,4 +658,4 @@ const Billing: React.FC = () => {
   );
 };
 
-export default Billing;
+export default Customer;

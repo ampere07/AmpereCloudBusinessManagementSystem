@@ -84,7 +84,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         return JSON.parse(authData);
       }
     } catch (error) {
-      console.error('Error getting current user:', error);
     }
     return null;
   };
@@ -164,16 +163,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
         if (jobOrderId) {
           try {
-            console.log('========== FETCHING JOB ORDER ITEMS ==========');
-            console.log('Fetching job order items for job order:', jobOrderId);
             const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
             const data = response.data as { success: boolean; data: any[] };
             
-            console.log('Job Order Items Response:', data);
-            
             if (data.success && Array.isArray(data.data)) {
               const items = data.data;
-              console.log('Loaded job order items from API:', items);
               
               if (items.length > 0) {
                 const uniqueItems = new Map();
@@ -197,16 +191,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 const formattedItems = Array.from(uniqueItems.values());
                 formattedItems.push({ itemId: '', quantity: '' });
                 
-                console.log('Formatted unique items:', formattedItems);
                 setOrderItems(formattedItems);
-                console.log('Set order items to:', formattedItems);
               } else {
                 setOrderItems([{ itemId: '', quantity: '' }]);
               }
             }
-            console.log('============================================');
           } catch (error) {
-            console.error('Error fetching job order items:', error);
             setOrderItems([{ itemId: '', quantity: '' }]);
           }
         }
@@ -220,22 +210,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Fetching LCPNAP data from database...');
           const response = await getAllLCPNAPs();
-          console.log('LCPNAP API Response:', response);
-          console.log('LCPNAP Data:', response.data);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Successfully loaded LCPNAP records:', response.data.length);
-            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
-            console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
-          console.error('Error fetching LCPNAP records:', error);
-          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }
@@ -248,26 +230,15 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchPorts = async () => {
       if (isOpen && formData.lcpnap) {
         try {
-          console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
-          console.log('Fetching ports with params:', {
-            lcpnap: formData.lcpnap,
-            excludeUsed: true,
-            currentJobOrderId: jobOrderId
-          });
           const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
-          console.log('Port API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
-            console.log('Loaded Available Ports for', formData.lcpnap, ':', response.data.length);
-            console.log('Port Labels:', response.data.map(p => p.Label));
           } else {
-            console.warn('Unexpected Port response structure:', response);
             setPorts([]);
           }
         } catch (error) {
-          console.error('Error fetching Ports:', error);
           setPorts([]);
         }
       } else if (isOpen && !formData.lcpnap) {
@@ -288,7 +259,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             setVlans([]);
           }
         } catch (error) {
-          console.error('Error fetching VLANs:', error);
           setVlans([]);
         }
       }
@@ -307,7 +277,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             setGroups([]);
           }
         } catch (error) {
-          console.error('Error fetching Groups:', error);
           setGroups([]);
         }
       }
@@ -319,19 +288,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchUsageTypes = async () => {
       if (isOpen) {
         try {
-          console.log('Loading usage types from database...');
           const response = await getAllUsageTypes();
-          console.log('Usage Type API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setUsageTypes(response.data);
-            console.log('Loaded Usage Types:', response.data.length);
           } else {
-            console.warn('Unexpected Usage Type response structure:', response);
             setUsageTypes([]);
           }
         } catch (error) {
-          console.error('Error fetching Usage Types:', error);
           setUsageTypes([]);
         }
       }
@@ -344,19 +308,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchInventoryItems = async () => {
       if (isOpen) {
         try {
-          console.log('Loading inventory items from database...');
           const response = await getAllInventoryItems();
-          console.log('Inventory Items API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setInventoryItems(response.data);
-            console.log('Loaded Inventory Items:', response.data.length);
           } else {
-            console.warn('Unexpected Inventory Items response structure:', response);
             setInventoryItems([]);
           }
         } catch (error) {
-          console.error('Error fetching Inventory Items:', error);
           setInventoryItems([]);
         }
       }
@@ -369,28 +328,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchRegions = async () => {
       if (isOpen) {
         try {
-          console.log('========== FETCHING REGIONS ==========');
-          console.log('Loading regions from database...');
           const fetchedRegions = await getRegions();
-          console.log('Regions API Response:', fetchedRegions);
-          console.log('Regions API Response Type:', typeof fetchedRegions);
-          console.log('Is Array:', Array.isArray(fetchedRegions));
           
           if (Array.isArray(fetchedRegions)) {
-            console.log('Regions Count:', fetchedRegions.length);
-            console.log('All Regions:', JSON.stringify(fetchedRegions, null, 2));
             setRegions(fetchedRegions);
-            console.log('Successfully set regions state with', fetchedRegions.length, 'regions');
           } else {
-            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
-          console.log('======================================');
         } catch (error) {
-          console.error('========== ERROR FETCHING REGIONS ==========');
-          console.error('Error fetching Regions:', error);
-          console.error('Error details:', JSON.stringify(error, null, 2));
-          console.error('===========================================');
           setRegions([]);
         }
       }
@@ -403,18 +348,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchAllCities = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all cities from database...');
           const fetchedCities = await getCities();
-          console.log('All Cities API Response:', fetchedCities);
           
           if (Array.isArray(fetchedCities)) {
             setAllCities(fetchedCities);
-            console.log('Loaded All Cities:', fetchedCities.length);
           } else {
             setAllCities([]);
           }
         } catch (error) {
-          console.error('Error fetching Cities:', error);
           setAllCities([]);
         }
       }
@@ -427,18 +368,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchAllBarangays = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all barangays from database...');
           const response = await barangayService.getAll();
-          console.log('All Barangays API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllBarangays(response.data);
-            console.log('Loaded All Barangays:', response.data.length);
           } else {
             setAllBarangays([]);
           }
         } catch (error) {
-          console.error('Error fetching Barangays:', error);
           setAllBarangays([]);
         }
       }
@@ -451,18 +388,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchAllLocations = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all locations from database...');
           const response = await locationDetailService.getAll();
-          console.log('All Locations API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllLocations(response.data);
-            console.log('Loaded All Locations:', response.data.length);
           } else {
             setAllLocations([]);
           }
         } catch (error) {
-          console.error('Error fetching Locations:', error);
           setAllLocations([]);
         }
       }
@@ -492,7 +425,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             setTechnicians(technicianList);
           }
         } catch (error) {
-          console.error('Error fetching technicians:', error);
         }
       }
     };
@@ -507,7 +439,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           const fetchedPlans = await planService.getAllPlans();
           setPlans(fetchedPlans);
         } catch (error) {
-          console.error('Error fetching plans:', error);
         }
       }
     };
@@ -522,7 +453,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
           const fetchedRouterModels = await routerModelService.getAllRouterModels();
           setRouterModels(fetchedRouterModels);
         } catch (error) {
-          console.error('Error fetching router models:', error);
         }
       }
     };
@@ -532,8 +462,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
-      console.log('JobOrderDoneFormTechModal - Received jobOrderData:', jobOrderData);
-      console.log('Raw jobOrderData keys:', Object.keys(jobOrderData));
       
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
@@ -548,7 +476,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       
       const getValue = (value: any, fieldName: string): string => {
         const result = isEmptyValue(value) ? '' : value;
-        console.log(`getValue(${fieldName}): "${value}" -> "${result}"`);
         return result;
       };
       
@@ -556,11 +483,9 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         try {
           const applicationId = jobOrderData.application_id || jobOrderData.Application_ID;
           if (applicationId) {
-            console.log('Fetching application data for ID:', applicationId);
             const appResponse = await apiClient.get<{ success: boolean; application: any }>(`/applications/${applicationId}`);
             if (appResponse.data.success && appResponse.data.application) {
               const appData = appResponse.data.application;
-              console.log('Loaded application data:', appData);
               
               const newFormData = {
                 dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
@@ -588,37 +513,20 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 addressCoordinates: getValue(jobOrderData.Address_Coordinates || jobOrderData.address_coordinates, 'addressCoordinates')
               };
               
-              console.log('========== FORM DATA WITH APPLICATION LOCATION ==========');
-              console.log('Region:', newFormData.region);
-              console.log('City:', newFormData.city);
-              console.log('Barangay:', newFormData.barangay);
-              console.log('Location (from application):', newFormData.location);
-              console.log('========================================================');
-              
               setFormData(prev => ({
                 ...prev,
                 ...newFormData
               }));
             }
           } else {
-            console.warn('No application_id found, using jobOrderData for location');
             loadDefaultFormData();
           }
         } catch (error) {
-          console.error('Error fetching application data:', error);
           loadDefaultFormData();
         }
       };
       
       const loadDefaultFormData = () => {
-        console.log('========== LOADING FORM DATA FROM DATABASE ==========');
-        console.log('Date Installed:', jobOrderData.Date_Installed || jobOrderData.date_installed);
-        console.log('Region:', jobOrderData.Region || jobOrderData.region);
-        console.log('City:', jobOrderData.City || jobOrderData.city);
-        console.log('Barangay:', jobOrderData.Barangay || jobOrderData.barangay);
-        console.log('Location:', jobOrderData.Location || jobOrderData.location);
-        console.log('=====================================================');
-        
         const newFormData = {
           dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
           usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
@@ -813,7 +721,8 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         visit_by: updatedFormData.visit_by,
         visit_with: updatedFormData.visit_with,
         visit_with_other: updatedFormData.visit_with_other,
-        updated_by_user_email: updatedFormData.modifiedBy
+        updated_by_user_email: updatedFormData.modifiedBy,
+        desired_plan: updatedFormData.choosePlan
       };
       
       if (updatedFormData.onsiteStatus === 'Done') {
@@ -825,24 +734,13 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         jobOrderUpdateData.onsite_status = 'Done';
         jobOrderUpdateData.group_name = updatedFormData.groupName;
         
-        // Generate username when onsite status is Done
-        console.log('========== GENERATING USERNAME ==========');
         const lastName = (jobOrderData.Last_Name || jobOrderData.last_name || '').toLowerCase().replace(/\s+/g, '');
         const mobileNumber = (jobOrderData.Mobile_Number || jobOrderData.mobile_number || '').replace(/[^0-9]/g, '');
         
-        console.log('Last Name:', lastName);
-        console.log('Mobile Number:', mobileNumber);
-        
         if (lastName && mobileNumber) {
           const generatedUsername = `${lastName}${mobileNumber}`;
-          console.log('Generated Username:', generatedUsername);
           jobOrderUpdateData.username = generatedUsername;
-        } else {
-          console.warn('Cannot generate username - missing last name or mobile number');
-          console.warn('Last Name available:', !!lastName);
-          console.warn('Mobile Number available:', !!mobileNumber);
         }
-        console.log('=========================================');
       }
       
       if (updatedFormData.onsiteStatus === 'Failed' || updatedFormData.onsiteStatus === 'Reschedule') {
@@ -856,139 +754,123 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         jobOrderUpdateData.group_name = updatedFormData.groupName;
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', JSON.stringify(jobOrderUpdateData, null, 2));
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
 
-      console.log('Job order updated successfully:', jobOrderResponse);
+      // RADIUS account creation temporarily disabled
+      // if (updatedFormData.onsiteStatus === 'Done') {
+      //   const planNameForRadius = updatedFormData.choosePlan.includes(' - P') 
+      //     ? updatedFormData.choosePlan.split(' - P')[0].trim()
+      //     : updatedFormData.choosePlan;
+      //   
+      //   try {
+      //     const radiusResponse = await apiClient.post<{
+      //       success: boolean;
+      //       message: string;
+      //       data?: {
+      //         username: string;
+      //         group: string;
+      //         radius_response?: any;
+      //       };
+      //     }>(`/job-orders/${jobOrderId}/create-radius-account`);
+      //     
+      //     if (radiusResponse.data.success) {
+      //       alert(`Success! Job order saved and RADIUS account created for username: ${radiusResponse.data.data?.username} with plan: ${planNameForRadius}`);
+      //     } else {
+      //       alert(`Warning: Job order saved but RADIUS account creation failed: ${radiusResponse.data.message}`);
+      //     }
+      //   } catch (radiusError: any) {
+      //     const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
+      //     alert(`Warning: Job order saved but RADIUS account creation failed: ${errorMsg}`);
+      //   }
+      // }
 
       let applicationId = jobOrderData.application_id || jobOrderData.Application_ID || jobOrderData.account_id;
-      console.log('========== LOOKING FOR APPLICATION ID ==========');
-      console.log('jobOrderData.application_id:', jobOrderData.application_id);
-      console.log('jobOrderData.Application_ID:', jobOrderData.Application_ID);
-      console.log('jobOrderData.account_id:', jobOrderData.account_id);
-      console.log('Resolved applicationId:', applicationId);
       
       if (!applicationId) {
-        console.log('Application ID not in jobOrderData, fetching from database...');
         try {
           const jobOrderResponse = await apiClient.get<{ success: boolean; data: any }>(`/job-orders/${jobOrderId}`);
           if (jobOrderResponse.data.success && jobOrderResponse.data.data) {
             applicationId = jobOrderResponse.data.data.application_id;
-            console.log('Fetched application_id from database:', applicationId);
           }
         } catch (fetchError: any) {
-          console.error('Failed to fetch application_id:', fetchError);
         }
       }
-      
-      console.log('Final resolved applicationId:', applicationId);
-      console.log('All available keys:', Object.keys(jobOrderData));
-      console.log('===============================================');
       
       if (applicationId) {
         try {
-          console.log('========== UPDATING APPLICATION ==========');
-          console.log('Application ID:', applicationId);
-          const applicationUpdateData = {
+          
+          const firstName = jobOrderData?.First_Name || jobOrderData?.first_name || '';
+          const middleInitial = jobOrderData?.Middle_Initial || jobOrderData?.middle_initial || '';
+          const lastName = jobOrderData?.Last_Name || jobOrderData?.last_name || '';
+          const mobileNumber = jobOrderData?.Mobile_Number || jobOrderData?.mobile_number || '';
+          const secondaryMobile = jobOrderData?.Secondary_Mobile_Number || jobOrderData?.secondary_mobile_number || '';
+          const emailAddress = jobOrderData?.Email_Address || jobOrderData?.email_address || '';
+          const installationAddress = jobOrderData?.Installation_Address || jobOrderData?.installation_address || '';
+          const landmark = jobOrderData?.Landmark || jobOrderData?.landmark || '';
+          const referredBy = jobOrderData?.Referred_By || jobOrderData?.referred_by || '';
+          const promo = jobOrderData?.Promo || jobOrderData?.promo || '';
+          
+          const planNameForDisplay = updatedFormData.choosePlan.includes(' - P') 
+            ? updatedFormData.choosePlan.split(' - P')[0].trim()
+            : updatedFormData.choosePlan;
+          
+          const applicationUpdateData: any = {
+            first_name: firstName,
+            middle_initial: middleInitial,
+            last_name: lastName,
+            mobile_number: mobileNumber,
+            secondary_mobile_number: secondaryMobile,
+            email_address: emailAddress,
+            installation_address: installationAddress,
+            landmark: landmark,
             region: updatedFormData.region,
             city: updatedFormData.city,
             barangay: updatedFormData.barangay,
-            location: updatedFormData.location
+            location: updatedFormData.location,
+            desired_plan: updatedFormData.choosePlan,
+            referred_by: referredBy,
+            promo: promo
           };
-          
-          console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
-          console.log('Calling updateApplication API...');
           
           const applicationResponse = await updateApplication(applicationId.toString(), applicationUpdateData);
           
-          console.log('Application API Response:', applicationResponse);
-          console.log('Application updated successfully!');
-          console.log('==========================================');
-          
-          alert(`Success! Application ID ${applicationId} location updated to: ${updatedFormData.region}, ${updatedFormData.city}, ${updatedFormData.barangay}, ${updatedFormData.location}`);
+          alert(`Success! Application updated:\n- Plan: ${updatedFormData.choosePlan}\n- Location: ${updatedFormData.region}, ${updatedFormData.city}, ${updatedFormData.barangay}, ${updatedFormData.location}`);
         } catch (appError: any) {
-          console.error('========== APPLICATION UPDATE ERROR ==========');
-          console.error('Error updating application:', appError);
-          console.error('Error response:', appError.response?.data);
-          console.error('Error message:', appError.message);
-          console.error('Error status:', appError.response?.status);
-          console.error('Full error:', JSON.stringify(appError, null, 2));
-          console.error('==============================================');
-          
           const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
-          alert(`Warning: Job order was saved but application location update failed!\n\nError: ${errorMsg}\n\nApplication ID: ${applicationId}\nPlease update the location manually in the applications table.`);
+          alert(`Warning: Job order was saved but application update failed!\n\nError: ${errorMsg}\n\nApplication ID: ${applicationId}\nPlease update the application manually.`);
         }
       } else {
-        console.error('========== NO APPLICATION ID FOUND ==========');
-        console.error('Cannot update application - no application_id in job order data');
-        console.error('Available keys in jobOrderData:', Object.keys(jobOrderData));
-        console.error('============================================');
-        alert('Warning: Cannot update location in application - missing application ID');
+        alert('Warning: Cannot update application - missing application ID');
       }
 
       if (updatedFormData.onsiteStatus === 'Done') {
-        console.log('========== ITEMS BEFORE FILTERING ==========');
-        console.log('Total order items count:', orderItems.length);
-        orderItems.forEach((item, index) => {
-          console.log(`Item ${index + 1}:`, {
-            itemId: item.itemId,
-            itemId_type: typeof item.itemId,
-            itemId_isEmpty: item.itemId === '',
-            itemId_length: item.itemId.length,
-            quantity: item.quantity,
-            quantity_type: typeof item.quantity,
-            quantity_parsed: parseInt(item.quantity),
-            quantity_isValid: !isNaN(parseInt(item.quantity)) && parseInt(item.quantity) > 0
-          });
-        });
-        console.log('==========================================');
-
         const validItems = orderItems.filter(item => {
           const quantity = parseInt(item.quantity);
           const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
           
-          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
-          
           return isValid;
         });
 
-        console.log('Filtered valid items:', validItems);
-        console.log('Total order items:', orderItems);
-
         if (validItems.length > 0) {
-          console.log('========== DELETING EXISTING ITEMS ==========');
           try {
-            console.log('Fetching existing items for job order:', jobOrderId);
             const existingItemsResponse = await apiClient.get<{ success: boolean; data: any[] }>(`/job-order-items?job_order_id=${jobOrderId}`);
             
             if (existingItemsResponse.data.success && existingItemsResponse.data.data.length > 0) {
               const existingItems = existingItemsResponse.data.data;
-              console.log('Found', existingItems.length, 'existing items to delete');
               
               for (const item of existingItems) {
                 try {
                   await apiClient.delete(`/job-order-items/${item.id}`);
-                  console.log('Deleted item ID:', item.id);
                 } catch (deleteErr) {
-                  console.warn('Failed to delete item ID:', item.id, deleteErr);
                 }
               }
-              
-              console.log('All existing items deleted successfully');
-            } else {
-              console.log('No existing items to delete');
             }
           } catch (deleteError: any) {
-            console.error('Error deleting existing items:', deleteError);
-            console.warn('Continuing with item creation despite delete error');
           }
-          console.log('============================================');
 
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
             return {
@@ -997,10 +879,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               quantity: parseInt(item.quantity)
             };
           });
-
-          console.log('Creating job order items:');
-          console.log('- Job Order ID:', jobOrderId);
-          console.log('- Items:', JSON.stringify(jobOrderItems, null, 2));
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
@@ -1008,19 +886,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             if (!itemsResponse.success) {
               throw new Error(itemsResponse.message || 'Failed to create job order items');
             }
-            
-            console.log('Job order items created successfully:', itemsResponse);
-            console.log('Items saved:', itemsResponse.data);
           } catch (itemsError: any) {
-            console.error('========== JOB ORDER ITEMS ERROR ==========');
-            console.error('Error creating job order items:', itemsError);
-            console.error('Error message:', itemsError.message);
-            console.error('Error response:', itemsError.response);
-            console.error('Error response data:', itemsError.response?.data);
-            console.error('Error response status:', itemsError.response?.status);
-            console.error('Items that failed:', jobOrderItems);
-            console.error('=========================================');
-            
             const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
             const validationErrors = itemsError.response?.data?.errors;
             
@@ -1033,8 +899,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
             setLoading(false);
             return;
           }
-        } else {
-          console.warn('No valid items to save');
         }
       }
 
@@ -1042,7 +906,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       onSave(updatedFormData);
       onClose();
     } catch (error: any) {
-      console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       alert(`Failed to update records: ${errorMessage}`);
     } finally {
@@ -1078,20 +941,6 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   const filteredCities = getFilteredCities();
   const filteredBarangays = getFilteredBarangays();
   const filteredLocations = getFilteredLocations();
-
-  console.log('========== RENDER STATE ==========');
-  console.log('Regions in state:', regions.length, regions);
-  console.log('All Cities in state:', allCities.length);
-  console.log('All Barangays in state:', allBarangays.length);
-  console.log('All Locations in state:', allLocations.length);
-  console.log('Current formData.region:', formData.region);
-  console.log('Current formData.city:', formData.city);
-  console.log('Current formData.barangay:', formData.barangay);
-  console.log('Current formData.location:', formData.location);
-  console.log('Filtered Cities:', filteredCities.length);
-  console.log('Filtered Barangays:', filteredBarangays.length);
-  console.log('Filtered Locations:', filteredLocations.length);
-  console.log('==================================');
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
@@ -1180,14 +1029,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                 {formData.region && !regions.some(reg => reg.name === formData.region) && (
                   <option value={formData.region}>{formData.region}</option>
                 )}
-                {regions.map((region) => {
-                  console.log('Rendering region option:', region);
-                  return (
-                    <option key={region.id} value={region.name}>
-                      {region.name}
-                    </option>
-                  );
-                })}
+                {regions.map((region) => (
+                  <option key={region.id} value={region.name}>
+                    {region.name}
+                  </option>
+                ))}
               </select>
               <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
             </div>

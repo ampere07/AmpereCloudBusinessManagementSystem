@@ -9,8 +9,8 @@ use Exception;
 
 class RadiusController extends Controller
 {
-    private $primaryUrl = 'https://103.186.139.138:8484/rest/user-manage/user';
-    private $backupUrl = 'https://103.186.139.138:8484/rest/user-manage/user';
+    private $primaryUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
+    private $backupUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
     private $username = 'googleapi';
     private $password = 'Edward123@';
 

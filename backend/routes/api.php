@@ -904,6 +904,7 @@ Route::prefix('job-orders')->middleware('ensure.database.tables')->group(functio
     Route::put('/{id}', [JobOrderController::class, 'update']);
     Route::delete('/{id}', [JobOrderController::class, 'destroy']);
     Route::post('/{id}/approve', [JobOrderController::class, 'approve']);
+    Route::post('/{id}/create-radius-account', [JobOrderController::class, 'createRadiusAccount']);
     
     // Lookup table endpoints
     Route::get('/lookup/modem-router-sns', [JobOrderController::class, 'getModemRouterSNs']);
@@ -1558,4 +1559,10 @@ Route::prefix('location-details')->group(function () {
     Route::put('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'update']);
     Route::delete('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'destroy']);
     Route::get('/barangay/{barangayId}', [\App\Http\Controllers\LocationDetailController::class, 'getByBarangay']);
+});
+
+// Google Drive Test Routes
+Route::prefix('gdrive-test')->group(function () {
+    Route::post('/upload', [\App\Http\Controllers\FileTestController::class, 'testUpload']);
+    Route::get('/list', [\App\Http\Controllers\FileTestController::class, 'testList']);
 });
