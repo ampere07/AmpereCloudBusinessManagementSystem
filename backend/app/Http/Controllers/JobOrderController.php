@@ -16,6 +16,8 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class JobOrderController extends Controller
 {
@@ -503,6 +505,169 @@ class JobOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch LCPNAPs',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function createRadiusAccount(Request $request, $id): JsonResponse
+    {
+        try {
+            $jobOrder = JobOrder::with('application')->findOrFail($id);
+
+            if (!$jobOrder->application) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Job order must have an associated application',
+                ], 400);
+            }
+
+            $application = $jobOrder->application;
+
+            $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? ''));
+            $mobileNumber = preg_replace('/[^0-9]/', '', $application->mobile_number ?? '');
+            $username = $lastName . $mobileNumber;
+
+            if (empty($username) || strlen($username) < 3) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unable to generate username from application data',
+                ], 400);
+            }
+
+            $planName = $application->desired_plan;
+            if (empty($planName)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Plan name is required to create radius account. No desired_plan found in application.',
+                ], 400);
+            }
+            
+            // Extract plan name only (e.g., "FLASH - P1299.00" becomes "FLASH")
+            if (strpos($planName, ' - P') !== false) {
+                $planName = trim(explode(' - P', $planName)[0]);
+            }
+
+            Log::info('RADIUS Account Creation - Input Data', [
+                'job_order_id' => $id,
+                'last_name' => $lastName,
+                'mobile_number' => $mobileNumber,
+                'generated_username' => $username,
+                'original_plan' => $application->desired_plan,
+                'extracted_plan_name' => $planName,
+            ]);
+
+            $characters = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ';
+            $password = '';
+            $charactersLength = strlen($characters);
+            for ($i = 0; $i < 12; $i++) {
+                $password .= $characters[random_int(0, $charactersLength - 1)];
+            }
+
+            $modifiedUsername = str_replace(['|', 'ñ'], ['i', 'n'], $username);
+
+            $primaryUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
+            $backupUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
+            $radiusUsername = 'googleapi';
+            $radiusPassword = 'Edward123@';
+
+            $payload = [
+                'name' => $modifiedUsername,
+                'group' => $planName,
+                'password' => $password
+            ];
+
+            Log::info('Creating RADIUS account', [
+                'job_order_id' => $id,
+                'username' => $modifiedUsername,
+                'group' => $planName,
+                'payload' => $payload,
+            ]);
+
+            $response = Http::withBasicAuth($radiusUsername, $radiusPassword)
+                ->withOptions([
+                    'verify' => false,
+                    'timeout' => 10,
+                ])
+                ->put($primaryUrl, $payload);
+
+            if (!$response->successful()) {
+                Log::warning('Primary RADIUS server request failed, trying backup URL', [
+                    'primary_url' => $primaryUrl,
+                    'status' => $response->status(),
+                    'body' => $response->body(),
+                ]);
+
+                $response = Http::withBasicAuth($radiusUsername, $radiusPassword)
+                    ->withOptions([
+                        'verify' => false,
+                        'timeout' => 10,
+                    ])
+                    ->put($backupUrl, $payload);
+            }
+
+            if (!$response->successful()) {
+                $errorBody = $response->body();
+                $errorData = json_decode($errorBody, true);
+                
+                Log::error('RADIUS account creation failed on both primary and backup', [
+                    'job_order_id' => $id,
+                    'username' => $modifiedUsername,
+                    'group' => $planName,
+                    'primary_url' => $primaryUrl,
+                    'backup_url' => $backupUrl,
+                    'status' => $response->status(),
+                    'body' => $errorBody,
+                    'error_detail' => $errorData['detail'] ?? 'Unknown error',
+                ]);
+
+                $errorMessage = 'Failed to create RADIUS account on both primary and backup servers';
+                if (isset($errorData['detail'])) {
+                    if (strpos($errorData['detail'], 'input does not match any value of group') !== false) {
+                        $errorMessage = "The plan '{$planName}' does not exist in the RADIUS server. Please verify the plan name matches exactly with a group in the RADIUS server.";
+                    } else {
+                        $errorMessage .= ': ' . $errorData['detail'];
+                    }
+                }
+
+                return response()->json([
+                    'success' => false,
+                    'message' => $errorMessage,
+                    'error' => $errorBody,
+                    'debug_info' => [
+                        'username' => $modifiedUsername,
+                        'group_sent' => $planName,
+                        'radius_error' => $errorData['detail'] ?? 'Unknown',
+                    ],
+                ], 500);
+            }
+
+            Log::info('RADIUS account created successfully', [
+                'job_order_id' => $id,
+                'username' => $modifiedUsername,
+                'response' => $response->json(),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'RADIUS account created successfully',
+                'data' => [
+                    'username' => $modifiedUsername,
+                    'group' => $planName,
+                    'radius_response' => $response->json(),
+                ],
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error creating RADIUS account', [
+                'job_order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create RADIUS account',
                 'error' => $e->getMessage(),
             ], 500);
         }

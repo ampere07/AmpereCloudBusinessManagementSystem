@@ -904,6 +904,7 @@ Route::prefix('job-orders')->middleware('ensure.database.tables')->group(functio
     Route::put('/{id}', [JobOrderController::class, 'update']);
     Route::delete('/{id}', [JobOrderController::class, 'destroy']);
     Route::post('/{id}/approve', [JobOrderController::class, 'approve']);
+    Route::post('/{id}/create-radius-account', [JobOrderController::class, 'createRadiusAccount']);
     
     // Lookup table endpoints
     Route::get('/lookup/modem-router-sns', [JobOrderController::class, 'getModemRouterSNs']);
