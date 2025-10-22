@@ -760,33 +760,33 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
 
-      
-      if (updatedFormData.onsiteStatus === 'Done') {
-        const planNameForRadius = updatedFormData.choosePlan.includes(' - P') 
-          ? updatedFormData.choosePlan.split(' - P')[0].trim()
-          : updatedFormData.choosePlan;
-        
-        try {
-          const radiusResponse = await apiClient.post<{
-            success: boolean;
-            message: string;
-            data?: {
-              username: string;
-              group: string;
-              radius_response?: any;
-            };
-          }>(`/job-orders/${jobOrderId}/create-radius-account`);
-          
-          if (radiusResponse.data.success) {
-            alert(`Success! Job order saved and RADIUS account created for username: ${radiusResponse.data.data?.username} with plan: ${planNameForRadius}`);
-          } else {
-            alert(`Warning: Job order saved but RADIUS account creation failed: ${radiusResponse.data.message}`);
-          }
-        } catch (radiusError: any) {
-          const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
-          alert(`Warning: Job order saved but RADIUS account creation failed: ${errorMsg}`);
-        }
-      }
+      // RADIUS account creation temporarily disabled
+      // if (updatedFormData.onsiteStatus === 'Done') {
+      //   const planNameForRadius = updatedFormData.choosePlan.includes(' - P') 
+      //     ? updatedFormData.choosePlan.split(' - P')[0].trim()
+      //     : updatedFormData.choosePlan;
+      //   
+      //   try {
+      //     const radiusResponse = await apiClient.post<{
+      //       success: boolean;
+      //       message: string;
+      //       data?: {
+      //         username: string;
+      //         group: string;
+      //         radius_response?: any;
+      //       };
+      //     }>(`/job-orders/${jobOrderId}/create-radius-account`);
+      //     
+      //     if (radiusResponse.data.success) {
+      //       alert(`Success! Job order saved and RADIUS account created for username: ${radiusResponse.data.data?.username} with plan: ${planNameForRadius}`);
+      //     } else {
+      //       alert(`Warning: Job order saved but RADIUS account creation failed: ${radiusResponse.data.message}`);
+      //     }
+      //   } catch (radiusError: any) {
+      //     const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
+      //     alert(`Warning: Job order saved but RADIUS account creation failed: ${errorMsg}`);
+      //   }
+      // }
 
       let applicationId = jobOrderData.application_id || jobOrderData.Application_ID || jobOrderData.account_id;
       
