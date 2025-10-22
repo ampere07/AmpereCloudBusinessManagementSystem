@@ -175,8 +175,11 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
     referred_by: detailedApplication?.referred_by || '',
     proof_of_billing_url: detailedApplication?.proof_of_billing_url || '',
     government_valid_id_url: detailedApplication?.government_valid_id_url || '',
-    second_government_valid_id_url: detailedApplication?.second_government_valid_id_url || '',
+    secondary_government_valid_id_url: detailedApplication?.secondary_government_valid_id_url || '',
     house_front_picture_url: detailedApplication?.house_front_picture_url || '',
+    promo_url: detailedApplication?.promo_url || '',
+    nearest_landmark1_url: detailedApplication?.nearest_landmark1_url || '',
+    nearest_landmark2_url: detailedApplication?.nearest_landmark2_url || '',
     document_attachment_url: detailedApplication?.document_attachment_url || '',
     other_isp_bill_url: detailedApplication?.other_isp_bill_url || '',
     terms_agreed: detailedApplication?.terms_agreed || false,
@@ -414,6 +417,18 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               </div>
               
+              <div className="flex py-3 border-b border-gray-800">
+                <div className="w-40 text-gray-400 text-sm">Promo</div>
+                <div className="text-white flex-1">{detailedApplication?.promo || 'None'}</div>
+              </div>
+              
+              {detailedApplication?.terms_agreed && (
+                <div className="flex py-3 border-b border-gray-800">
+                  <div className="w-40 text-gray-400 text-sm">Terms and Conditions</div>
+                  <div className="text-white flex-1">Agreed</div>
+                </div>
+              )}
+              
               {detailedApplication?.government_valid_id_url && (
                 <div className="flex py-3 border-b border-gray-800">
                   <div className="w-40 text-gray-400 text-sm">Government Valid ID</div>
@@ -429,15 +444,68 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                 </div>
               )}
               
-              {detailedApplication?.terms_agreed && (
+              {detailedApplication?.secondary_government_valid_id_url && (
                 <div className="flex py-3 border-b border-gray-800">
-                  <div className="w-40 text-gray-400 text-sm">Terms and Conditions</div>
-                  <div className="text-white flex-1">Agreed</div>
+                  <div className="w-40 text-gray-400 text-sm">Secondary Government Valid ID</div>
+                  <div className="text-white flex-1 flex justify-between items-center truncate">
+                    <span className="truncate">{detailedApplication.secondary_government_valid_id_url}</span>
+                    <button 
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => window.open(detailedApplication.secondary_government_valid_id_url)}
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {detailedApplication?.promo_url && (
+                <div className="flex py-3 border-b border-gray-800">
+                  <div className="w-40 text-gray-400 text-sm">Promo URL</div>
+                  <div className="text-white flex-1 flex justify-between items-center truncate">
+                    <span className="truncate">{detailedApplication.promo_url}</span>
+                    <button 
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => window.open(detailedApplication.promo_url)}
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {detailedApplication?.nearest_landmark1_url && (
+                <div className="flex py-3 border-b border-gray-800">
+                  <div className="w-40 text-gray-400 text-sm">Nearest Landmark 1</div>
+                  <div className="text-white flex-1 flex justify-between items-center truncate">
+                    <span className="truncate">{detailedApplication.nearest_landmark1_url}</span>
+                    <button 
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => window.open(detailedApplication.nearest_landmark1_url)}
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
+                </div>
+              )}
+              
+              {detailedApplication?.nearest_landmark2_url && (
+                <div className="flex py-3 border-b border-gray-800">
+                  <div className="w-40 text-gray-400 text-sm">Nearest Landmark 2</div>
+                  <div className="text-white flex-1 flex justify-between items-center truncate">
+                    <span className="truncate">{detailedApplication.nearest_landmark2_url}</span>
+                    <button 
+                      className="text-gray-400 hover:text-white"
+                      onClick={() => window.open(detailedApplication.nearest_landmark2_url)}
+                    >
+                      <ExternalLink size={16} />
+                    </button>
+                  </div>
                 </div>
               )}
               
               {detailedApplication?.house_front_picture_url && (
-                <div className="flex py-3 border-b border-gray-800">
+                <div className="flex py-3">
                   <div className="w-40 text-gray-400 text-sm">House Front Picture</div>
                   <div className="text-white flex-1 flex justify-between items-center truncate">
                     <span className="truncate">{detailedApplication.house_front_picture_url}</span>
@@ -450,11 +518,6 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
                   </div>
                 </div>
               )}
-              
-              <div className="flex py-3">
-                <div className="w-40 text-gray-400 text-sm">Promo</div>
-                <div className="text-white flex-1">{detailedApplication?.promo || 'None'}</div>
-              </div>
             </div>
           </div>
         )}
