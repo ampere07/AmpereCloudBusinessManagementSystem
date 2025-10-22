@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter } from 'lucide-react';
-import BillingDetails from '../components/BillingDetails';
+import CustomerDetails from '../components/CustomerDetails';
 import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
@@ -642,7 +642,7 @@ const Customer: React.FC = () => {
             </button>
           </div>
           {displayMode === 'card' ? (
-            <BillingDetails
+            <CustomerDetails
               billingRecord={selectedBilling}
               onlineStatusRecords={[]}
             />
