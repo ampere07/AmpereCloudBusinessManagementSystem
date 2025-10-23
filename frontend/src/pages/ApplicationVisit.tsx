@@ -9,8 +9,9 @@ interface ApplicationVisit {
   application_id: string;
   timestamp: string;
   assigned_email?: string;
-  visit_by_user_email?: string;
+  visit_by?: string;
   visit_with?: string;
+  visit_with_other?: string;
   visit_status: string;
   visit_remarks?: string;
   status_remarks?: string;
@@ -31,6 +32,9 @@ interface ApplicationVisit {
   choose_plan?: string;
   promo?: string;
   house_front_picture_url?: string;
+  image1_url?: string;
+  image2_url?: string;
+  image3_url?: string;
 }
 
 interface LocationItem {
@@ -53,6 +57,7 @@ const allColumns = [
   { key: 'fullAddress', label: 'Full Address', width: 'min-w-56' },
   { key: 'visitBy', label: 'Visit By', width: 'min-w-32' },
   { key: 'visitWith', label: 'Visit With', width: 'min-w-32' },
+  { key: 'visitWithOther', label: 'Visit With (Other)', width: 'min-w-32' },
   { key: 'visitRemarks', label: 'Visit Remarks', width: 'min-w-40' },
   { key: 'modifiedDate', label: 'Modified Date', width: 'min-w-40' },
   { key: 'modifiedBy', label: 'Modified By', width: 'min-w-32' },
@@ -65,6 +70,10 @@ const allColumns = [
   { key: 'location', label: 'Location', width: 'min-w-32' },
   { key: 'choosePlan', label: 'Choose Plan', width: 'min-w-36' },
   { key: 'promo', label: 'Promo', width: 'min-w-28' },
+  { key: 'houseFrontPicture', label: 'House Front Picture', width: 'min-w-48' },
+  { key: 'image1', label: 'Image 1', width: 'min-w-48' },
+  { key: 'image2', label: 'Image 2', width: 'min-w-48' },
+  { key: 'image3', label: 'Image 3', width: 'min-w-48' },
   { key: 'applicationId', label: 'Application ID', width: 'min-w-32' },
   { key: 'createdAt', label: 'Created At', width: 'min-w-40' }
 ];
@@ -165,8 +174,9 @@ const ApplicationVisit: React.FC = () => {
           application_id: visit.application_id || '',
           timestamp: visit.timestamp || visit.created_at || '',
           assigned_email: visit.assigned_email || '',
-          visit_by_user_email: visit.visit_by_user_email || '',
+          visit_by: visit.visit_by || '',
           visit_with: visit.visit_with || '',
+          visit_with_other: visit.visit_with_other || '',
           visit_status: visit.visit_status || 'Scheduled',
           visit_remarks: visit.visit_remarks || '',
           status_remarks: visit.status_remarks || '',
@@ -187,6 +197,9 @@ const ApplicationVisit: React.FC = () => {
           choose_plan: visit.choose_plan || '',
           promo: visit.promo || '',
           house_front_picture_url: visit.house_front_picture_url || '',
+          image1_url: visit.image1_url || '',
+          image2_url: visit.image2_url || '',
+          image3_url: visit.image3_url || '',
         }));
         
         setApplicationVisits(visits);
@@ -394,9 +407,11 @@ const ApplicationVisit: React.FC = () => {
       case 'fullAddress':
         return visit.full_address || 'No address';
       case 'visitBy':
-        return visit.visit_by_user_email || 'Unassigned';
+        return visit.visit_by || 'Unassigned';
       case 'visitWith':
         return visit.visit_with || 'None';
+      case 'visitWithOther':
+        return visit.visit_with_other || 'None';
       case 'visitRemarks':
         return visit.visit_remarks || 'No remarks';
       case 'modifiedDate':
