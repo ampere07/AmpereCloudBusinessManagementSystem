@@ -18,8 +18,10 @@ interface ApplicationVisitDetailsProps {
     assigned_email?: string;
     visit_by?: string;
     visit_with?: string;
+    visit_with_other?: string;
     visit_status?: string;
     visit_remarks?: string;
+    status_remarks?: string;
     application_status?: string;
     full_name: string;
     full_address: string;
@@ -31,6 +33,9 @@ interface ApplicationVisitDetailsProps {
     middle_initial?: string;
     last_name?: string;
     house_front_picture_url?: string;
+    image1_url?: string;
+    image2_url?: string;
+    image3_url?: string;
     [key: string]: any;
   };
   onClose: () => void;
@@ -61,6 +66,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
 
   useEffect(() => {
     setCurrentVisitData(applicationVisit);
+    console.log('ApplicationVisitDetails - Current visit data:', applicationVisit);
+    console.log('ApplicationVisitDetails - visit_by:', applicationVisit.visit_by);
+    console.log('ApplicationVisitDetails - visit_with:', applicationVisit.visit_with);
+    console.log('ApplicationVisitDetails - visit_with_other:', applicationVisit.visit_with_other);
   }, [applicationVisit]);
 
   useEffect(() => {
@@ -349,6 +358,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm">Visit With (Other)</div>
+              <div className="text-white flex-1">
+                {currentVisitData.visit_with_other || 'None'}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Visit Type</div>
               <div className="text-white flex-1">Initial Visit</div>
             </div>
@@ -417,6 +433,57 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
                 )}
               </div>
             </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Image 1</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {currentVisitData.image1_url || 'No image available'}
+                </span>
+                {currentVisitData.image1_url && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(currentVisitData.image1_url)}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Image 2</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {currentVisitData.image2_url || 'No image available'}
+                </span>
+                {currentVisitData.image2_url && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(currentVisitData.image2_url)}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Image 3</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {currentVisitData.image3_url || 'No image available'}
+                </span>
+                {currentVisitData.image3_url && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(currentVisitData.image3_url)}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -477,7 +544,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           assigned_email: currentVisitData.assigned_email || '',
           visit_by: currentVisitData.visit_by || '',
           visit_with: currentVisitData.visit_with || '',
-          visit_with_other: '',
+          visit_with_other: currentVisitData.visit_with_other || '',
           application_status: currentVisitData.application_status || '',
           visit_status: currentVisitData.visit_status || ''
         }}

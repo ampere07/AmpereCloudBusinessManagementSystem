@@ -952,6 +952,7 @@ Route::prefix('application-visits')->middleware('ensure.database.tables')->group
     Route::put('/{id}', [ApplicationVisitController::class, 'update']);
     Route::delete('/{id}', [ApplicationVisitController::class, 'destroy']);
     Route::get('/application/{applicationId}', [ApplicationVisitController::class, 'getByApplication']);
+    Route::post('/{id}/upload-images', [\App\Http\Controllers\ApplicationVisitImageController::class, 'uploadImages']);
 });
 
 // Location Management Routes - New centralized system

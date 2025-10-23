@@ -34,6 +34,13 @@ class ApplicationVisitController extends Controller
                     ? trim("{$application->installation_address}, {$application->location}, {$application->barangay}, {$application->city}, {$application->region}")
                     : '';
                 
+                Log::info('Mapping visit data:', [
+                    'visit_id' => $visit->id,
+                    'visit_by' => $visit->visit_by,
+                    'visit_with' => $visit->visit_with,
+                    'visit_with_other' => $visit->visit_with_other,
+                ]);
+                
                 return [
                     'id' => $visit->id,
                     'application_id' => $visit->application_id,
@@ -41,6 +48,7 @@ class ApplicationVisitController extends Controller
                     'assigned_email' => $visit->assigned_email,
                     'visit_by' => $visit->visit_by,
                     'visit_with' => $visit->visit_with,
+                    'visit_with_other' => $visit->visit_with_other,
                     'visit_status' => $visit->visit_status,
                     'visit_remarks' => $visit->visit_remarks,
                     'application_status' => $visit->application_status,

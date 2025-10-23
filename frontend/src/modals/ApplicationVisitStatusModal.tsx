@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, ChevronDown } from 'lucide-react';
-import { updateApplicationVisit } from '../services/applicationVisitService';
+import { updateApplicationVisit, uploadApplicationVisitImages } from '../services/applicationVisitService';
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
 import { locationDetailService, LocationDetail } from '../services/locationDetailService';
@@ -72,6 +72,13 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   onSave,
   visitData
 }) => {
+  console.log('========== MODAL OPENED ==========');
+  console.log('Raw visitData received:', visitData);
+  console.log('visitData.visit_by:', visitData.visit_by);
+  console.log('visitData.visit_with:', visitData.visit_with);
+  console.log('visitData.visit_with_other:', visitData.visit_with_other);
+  console.log('==================================');
+  
   const [userRole, setUserRole] = useState<string>('');
   
   useEffect(() => {
@@ -128,7 +135,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     image3: null,
     visit_by: visitData?.visit_by || '',
     visit_with: visitData?.visit_with || '',
-    visit_with_other: visitData?.visit_with_other || '',
+    visit_with_other: visitData?.visit_with_other || 'None',
     visitStatus: visitData?.visit_status || '',
     visitRemarks: visitData?.visit_remarks || '',
     statusRemarks: visitData?.status_remarks || ''
@@ -148,6 +155,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   useEffect(() => {
     if (visitData) {
       console.log('DEBUG - Visit data loaded:', visitData);
+      console.log('DEBUG - visit_by value:', visitData.visit_by);
+      console.log('DEBUG - visit_with value:', visitData.visit_with);
+      console.log('DEBUG - visit_with_other value:', visitData.visit_with_other);
       
       setFormData(prev => ({
         ...prev,
@@ -167,19 +177,24 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         assignedEmail: visitData.assigned_email || prev.assignedEmail
       }));
 
-      setTechnicianFormData(prev => ({
-        ...prev,
-        fullAddress: visitData.address || prev.fullAddress,
-        image1: null,
-        image2: null,
-        image3: null,
-        visit_by: visitData.visit_by || prev.visit_by,
-        visit_with: visitData.visit_with || prev.visit_with,
-        visit_with_other: visitData.visit_with_other || prev.visit_with_other,
-        visitStatus: visitData.visit_status || prev.visitStatus,
-        visitRemarks: visitData.visit_remarks || prev.visitRemarks,
-        statusRemarks: visitData.status_remarks || prev.statusRemarks
-      }));
+      setTechnicianFormData(prev => {
+        const newData = {
+          ...prev,
+          fullAddress: visitData.address || prev.fullAddress,
+          image1: null,
+          image2: null,
+          image3: null,
+          visit_by: visitData.visit_by || prev.visit_by,
+          visit_with: visitData.visit_with || prev.visit_with,
+          visit_with_other: visitData.visit_with_other || 'None',
+          visitStatus: visitData.visit_status || prev.visitStatus,
+          visitRemarks: visitData.visit_remarks || prev.visitRemarks,
+          statusRemarks: visitData.status_remarks || prev.statusRemarks
+        };
+        
+        console.log('DEBUG - Setting technicianFormData:', newData);
+        return newData;
+      });
     }
   }, [visitData]);
 
@@ -318,6 +333,11 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 };
               })
               .filter((tech: any) => tech.name);
+            
+            console.log('Technicians loaded:', technicianList);
+            console.log('Current visit_by from DB:', visitData?.visit_by);
+            console.log('Current visit_with_other from DB:', visitData?.visit_with_other);
+            
             setTechnicians(technicianList);
           }
         } catch (error) {
@@ -327,7 +347,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     };
     
     fetchTechnicians();
-  }, [isOpen]);
+  }, [isOpen, visitData]);
 
   useEffect(() => {
     const fetchPlans = async () => {
@@ -382,7 +402,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         image3: null,
         visit_by: visitData.visit_by || '',
         visit_with: visitData.visit_with || '',
-        visit_with_other: visitData.visit_with_other || '',
+        visit_with_other: visitData.visit_with_other || 'None',
         visitStatus: visitData.visit_status || '',
         visitRemarks: visitData.visit_remarks || '',
         statusRemarks: visitData.status_remarks || ''
@@ -515,7 +535,55 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       }
       
       console.log('Visit details updated successfully');
-      alert(`Visit details updated successfully!\n\nCustomer: ${formData.firstName} ${formData.lastName}`);
+      
+      if (userRole === 'technician' && (technicianFormData.image1 || technicianFormData.image2 || technicianFormData.image3)) {
+        console.log('Uploading images to Google Drive...');
+        console.log('Upload parameters:', {
+          visitId: visitData.id,
+          firstName: visitData.first_name,
+          middleInitial: visitData.middle_initial,
+          lastName: visitData.last_name,
+          hasImage1: !!technicianFormData.image1,
+          hasImage2: !!technicianFormData.image2,
+          hasImage3: !!technicianFormData.image3
+        });
+        
+        try {
+          const uploadResult = await uploadApplicationVisitImages(
+            visitData.id,
+            visitData.first_name,
+            visitData.middle_initial,
+            visitData.last_name,
+            {
+              image1: technicianFormData.image1,
+              image2: technicianFormData.image2,
+              image3: technicianFormData.image3
+            }
+          );
+          
+          console.log('Upload result received:', uploadResult);
+          
+          if (uploadResult.success) {
+            console.log('Images uploaded successfully:', uploadResult);
+            alert(`Visit details updated and images uploaded successfully!\n\nCustomer: ${visitData.first_name} ${visitData.last_name}`);
+          } else {
+            console.error('Image upload failed:', uploadResult);
+            alert(`Visit details updated, but image upload failed: ${uploadResult.message}`);
+          }
+        } catch (uploadError: any) {
+          console.error('Error uploading images:', uploadError);
+          console.error('Error details:', {
+            message: uploadError.message,
+            response: uploadError.response?.data,
+            status: uploadError.response?.status
+          });
+          
+          const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
+          alert(`Visit details updated, but image upload failed: ${errorMsg}`);
+        }
+      } else {
+        alert(`Visit details updated successfully!\n\nCustomer: ${formData.firstName} ${formData.lastName}`);
+      }
       
       setErrors({});
       
@@ -718,9 +786,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_by ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit By</option>
-                  {technicianFormData.visit_by && !technicians.some(t => t.name === technicianFormData.visit_by) && (
-                    <option value={technicianFormData.visit_by}>{technicianFormData.visit_by}</option>
-                  )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
@@ -739,9 +804,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 >
                   <option value="">Select Visit With</option>
                   <option value="None">None</option>
-                  {technicianFormData.visit_with && !technicians.some(t => t.name === technicianFormData.visit_with) && technicianFormData.visit_with !== 'None' && (
-                    <option value={technicianFormData.visit_with}>{technicianFormData.visit_with}</option>
-                  )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
@@ -755,14 +817,14 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 </label>
                 <select
                   value={technicianFormData.visit_with_other}
-                  onChange={(e) => handleTechnicianInputChange('visit_with_other', e.target.value)}
+                  onChange={(e) => {
+                    console.log('Visit With Other changed to:', e.target.value);
+                    handleTechnicianInputChange('visit_with_other', e.target.value);
+                  }}
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with_other ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
                 >
                   <option value="">Select Visit With(Other)</option>
                   <option value="None">None</option>
-                  {technicianFormData.visit_with_other && !technicians.some(t => t.name === technicianFormData.visit_with_other) && technicianFormData.visit_with_other !== 'None' && (
-                    <option value={technicianFormData.visit_with_other}>{technicianFormData.visit_with_other}</option>
-                  )}
                   {technicians.map((technician, index) => (
                     <option key={index} value={technician.name}>{technician.name}</option>
                   ))}
