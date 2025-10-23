@@ -30,6 +30,7 @@ interface ApplicationVisit {
   location?: string;
   choose_plan?: string;
   promo?: string;
+  house_front_picture_url?: string;
 }
 
 interface LocationItem {
@@ -185,6 +186,7 @@ const ApplicationVisit: React.FC = () => {
           location: visit.location || '',
           choose_plan: visit.choose_plan || '',
           promo: visit.promo || '',
+          house_front_picture_url: visit.house_front_picture_url || '',
         }));
         
         setApplicationVisits(visits);
