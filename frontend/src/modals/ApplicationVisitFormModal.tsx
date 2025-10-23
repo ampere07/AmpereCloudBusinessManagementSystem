@@ -443,7 +443,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       barangay: formData.barangay,
       location: formData.location,
       choosePlan: formData.choosePlan,
-      promo: formData.promo
+      promo: formData.promo,
+      house_front_picture_url: applicationData?.house_front_picture_url
     });
     
     return {
@@ -460,6 +461,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       location: formData.location,
       choose_plan: formData.choosePlan,
       promo: formData.promo || null,
+      house_front_picture_url: applicationData?.house_front_picture_url || null,
       created_by_user_email: currentUserEmail,
       updated_by_user_email: currentUserEmail
     };

@@ -43,7 +43,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       id: 'application',
       label: 'Application',
       icon: FileCheck,
-      allowedRoles: ['administrator'],
+      allowedRoles: ['administrator', 'technician'],
       children: [
         { id: 'application-management', label: 'Application', icon: FileCheck, allowedRoles: ['administrator'] },
         { id: 'application-visit', label: 'Application Visit', icon: MapPin, allowedRoles: ['administrator', 'technician'] },

@@ -30,6 +30,7 @@ interface ApplicationVisitDetailsProps {
     first_name?: string;
     middle_initial?: string;
     last_name?: string;
+    house_front_picture_url?: string;
     [key: string]: any;
   };
   onClose: () => void;
@@ -46,7 +47,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   const [currentVisitData, setCurrentVisitData] = useState(applicationVisit);
   const [userRole, setUserRole] = useState<string>('');
 
-  // Get user role from localStorage
   useEffect(() => {
     const authData = localStorage.getItem('authData');
     if (authData) {
@@ -59,12 +59,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     }
   }, []);
 
-  // Update current visit data when applicationVisit prop changes
   useEffect(() => {
     setCurrentVisitData(applicationVisit);
   }, [applicationVisit]);
 
-  // Fetch associated application data
   useEffect(() => {
     const fetchApplicationData = async () => {
       if (!applicationVisit.application_id) return;
@@ -115,7 +113,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     }
   };
 
-  // Format the scheduled date
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return 'Not scheduled';
     try {
@@ -129,7 +126,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     return currentVisitData.full_name || `${currentVisitData.first_name || ''} ${currentVisitData.middle_initial || ''} ${currentVisitData.last_name || ''}`.trim();
   };
 
-  // Handle status update
   const handleStatusUpdate = async (newStatus: string | null) => {
     try {
       setLoading(true);
@@ -172,7 +168,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
 
   return (
     <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
-      {/* Header */}
       <div className="bg-gray-800 p-3 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center">
           <h2 className="text-white font-medium">{getFullName()}</h2>
@@ -215,7 +210,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         </div>
       </div>
       
-      {/* Status Buttons - Only visible for administrators */}
       {userRole !== 'technician' && userRole === 'administrator' && (
         <div className="bg-gray-900 py-4 border-b border-gray-700 flex items-center justify-center space-x-8">
           <button 
@@ -256,14 +250,12 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         </div>
       )}
       
-      {/* Error message if any */}
       {error && (
         <div className="bg-red-900 bg-opacity-20 border border-red-700 text-red-400 p-3 m-3 rounded">
           {error}
         </div>
       )}
       
-      {/* Application Visit Details */}
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto py-1 px-4 bg-gray-950">
           <div className="space-y-1">
@@ -284,39 +276,41 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Contact Number</div>
-              <div className="text-white flex-1 flex items-center">
-                {applicationDetails?.mobile_number || 'Not provided'}
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <Phone size={16} />
-                </button>
-                <button className="text-gray-400 hover:text-white ml-2">
-                  <MessageSquare size={16} />
-                </button>
+              <div className="text-white flex-1 flex items-center justify-between">
+                <span>{applicationDetails?.mobile_number || 'Not provided'}</span>
+                <div className="flex items-center space-x-2">
+                  <button className="text-gray-400 hover:text-white">
+                    <Phone size={16} />
+                  </button>
+                  <button className="text-gray-400 hover:text-white">
+                    <MessageSquare size={16} />
+                  </button>
+                </div>
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Second Contact Number</div>
-              <div className="text-white flex-1 flex items-center">
-                {applicationDetails?.secondary_mobile_number || 'Not provided'}
+              <div className="text-white flex-1 flex items-center justify-between">
+                <span>{applicationDetails?.secondary_mobile_number || 'Not provided'}</span>
                 {applicationDetails?.secondary_mobile_number && (
-                  <>
-                    <button className="text-gray-400 hover:text-white ml-2">
+                  <div className="flex items-center space-x-2">
+                    <button className="text-gray-400 hover:text-white">
                       <Phone size={16} />
                     </button>
-                    <button className="text-gray-400 hover:text-white ml-2">
+                    <button className="text-gray-400 hover:text-white">
                       <MessageSquare size={16} />
                     </button>
-                  </>
+                  </div>
                 )}
               </div>
             </div>
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Email Address</div>
-              <div className="text-white flex-1 flex items-center">
-                {applicationDetails?.email_address || 'Not provided'}
-                <button className="text-gray-400 hover:text-white ml-2">
+              <div className="text-white flex-1 flex items-center justify-between">
+                <span>{applicationDetails?.email_address || 'Not provided'}</span>
+                <button className="text-gray-400 hover:text-white">
                   <Mail size={16} />
                 </button>
               </div>
@@ -329,9 +323,9 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Chosen Plan</div>
-              <div className="text-white flex-1 flex items-center">
-                {applicationDetails?.desired_plan || 'Not specified'}
-                <button className="ml-2 text-gray-400">
+              <div className="text-white flex-1 flex items-center justify-between">
+                <span>{applicationDetails?.desired_plan || 'Not specified'}</span>
+                <button className="text-gray-400 hover:text-white">
                   <Info size={16} />
                 </button>
               </div>
@@ -378,10 +372,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Assigned Email</div>
-              <div className="text-white flex-1 flex items-center">
-                {currentVisitData.assigned_email || 'Not assigned'}
+              <div className="text-white flex-1 flex items-center justify-between">
+                <span>{currentVisitData.assigned_email || 'Not assigned'}</span>
                 {currentVisitData.assigned_email && (
-                  <button className="ml-2 text-gray-400">
+                  <button className="text-gray-400 hover:text-white">
                     <Mail size={16} />
                   </button>
                 )}
@@ -400,17 +394,33 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
               <div className="text-white flex-1">{currentVisitData.updated_by_user_email || 'System'}</div>
             </div>
             
-            <div className="flex py-2">
+            <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Modified Date</div>
               <div className="text-white flex-1">
                 {formatDate(currentVisitData.updated_at) || 'Not modified'}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">House Front Picture</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {currentVisitData.house_front_picture_url || 'No image available'}
+                </span>
+                {currentVisitData.house_front_picture_url && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(currentVisitData.house_front_picture_url)}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Use the ConfirmationModal component */}
       <ConfirmationModal
         isOpen={showMoveConfirmation}
         title="Confirm"
@@ -421,7 +431,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         onCancel={() => setShowMoveConfirmation(false)}
       />
 
-      {/* Use the JOAssignFormModal component */}
       <JOAssignFormModal
         isOpen={showJOAssignForm}
         onClose={() => setShowJOAssignForm(false)}
@@ -444,7 +453,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         }}
       />
 
-      {/* Use the ApplicationVisitStatusModal component */}
       <ApplicationVisitStatusModal
         isOpen={showEditStatusModal}
         onClose={() => setShowEditStatusModal(false)}

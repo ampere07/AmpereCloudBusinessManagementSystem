@@ -56,6 +56,8 @@ interface StatusFormData {
 interface TechnicianFormData {
   fullAddress: string;
   image1: File | null;
+  image2: File | null;
+  image3: File | null;
   visit_by: string;
   visit_with: string;
   visit_with_other: string;
@@ -122,6 +124,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const [technicianFormData, setTechnicianFormData] = useState<TechnicianFormData>({
     fullAddress: visitData?.address || '',
     image1: null,
+    image2: null,
+    image3: null,
     visit_by: visitData?.visit_by || '',
     visit_with: visitData?.visit_with || '',
     visit_with_other: visitData?.visit_with_other || '',
@@ -166,6 +170,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData(prev => ({
         ...prev,
         fullAddress: visitData.address || prev.fullAddress,
+        image1: null,
+        image2: null,
+        image3: null,
         visit_by: visitData.visit_by || prev.visit_by,
         visit_with: visitData.visit_with || prev.visit_with,
         visit_with_other: visitData.visit_with_other || prev.visit_with_other,
@@ -371,6 +378,8 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       setTechnicianFormData({
         fullAddress: visitData.address || '',
         image1: null,
+        image2: null,
+        image3: null,
         visit_by: visitData.visit_by || '',
         visit_with: visitData.visit_with || '',
         visit_with_other: visitData.visit_with_other || '',
@@ -412,9 +421,9 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = (field: 'image1' | 'image2' | 'image3', e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      handleTechnicianInputChange('image1', e.target.files[0]);
+      handleTechnicianInputChange(field, e.target.files[0]);
     }
   };
 
@@ -627,11 +636,11 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   <input
                     type="file"
                     accept="image/*"
-                    onChange={handleImageChange}
+                    onChange={(e) => handleImageChange('image1', e)}
                     className="hidden"
-                    id="image-upload"
+                    id="image-upload-1"
                   />
-                  <label htmlFor="image-upload" className="cursor-pointer flex flex-col items-center">
+                  <label htmlFor="image-upload-1" className="cursor-pointer flex flex-col items-center">
                     <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
                     </svg>
@@ -644,6 +653,60 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                 </div>
                 {errors.image1 && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.image1}</p>}
               </div>
+
+              {technicianFormData.image1 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Image 2
+                  </label>
+                  <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageChange('image2', e)}
+                      className="hidden"
+                      id="image-upload-2"
+                    />
+                    <label htmlFor="image-upload-2" className="cursor-pointer flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                      </svg>
+                      {technicianFormData.image2 ? (
+                        <span className="text-sm text-gray-300">{technicianFormData.image2.name}</span>
+                      ) : (
+                        <span className="text-sm text-gray-500">Click to upload image</span>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {technicianFormData.image1 && technicianFormData.image2 && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
+                    Image 3
+                  </label>
+                  <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => handleImageChange('image3', e)}
+                      className="hidden"
+                      id="image-upload-3"
+                    />
+                    <label htmlFor="image-upload-3" className="cursor-pointer flex flex-col items-center">
+                      <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+                      </svg>
+                      {technicianFormData.image3 ? (
+                        <span className="text-sm text-gray-300">{technicianFormData.image3.name}</span>
+                      ) : (
+                        <span className="text-sm text-gray-500">Click to upload image</span>
+                      )}
+                    </label>
+                  </div>
+                </div>
+              )}
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
