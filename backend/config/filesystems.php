@@ -56,16 +56,6 @@ return [
             'throw' => false,
         ],
 
-        'google' => [
-            'driver' => 'google',
-            'clientId' => env('GOOGLE_DRIVE_CLIENT_ID'),
-            'clientEmail' => env('GOOGLE_DRIVE_CLIENT_EMAIL'),
-            'privateKey' => env('GOOGLE_DRIVE_PRIVATE_KEY'),
-            'privateKeyId' => env('GOOGLE_DRIVE_PRIVATE_KEY_ID'),
-            'projectId' => env('GOOGLE_DRIVE_PROJECT_ID'),
-            'folder' => env('GOOGLE_DRIVE_FOLDER_ID'),
-        ],
-
     ],
 
     /*
