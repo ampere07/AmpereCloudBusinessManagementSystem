@@ -471,7 +471,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         if (value === null || value === undefined || value === '') return true;
         if (typeof value === 'string') {
           const trimmed = value.trim().toLowerCase();
-          return trimmed === 'none' || trimmed === 'null';
+          return trimmed === 'null';
         }
         return false;
       };
@@ -479,6 +479,23 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       const getValue = (value: any, fieldName: string): string => {
         const result = isEmptyValue(value) ? '' : value;
         return result;
+      };
+      
+      const formatDateForInput = (dateValue: any): string => {
+        if (!dateValue || isEmptyValue(dateValue)) return '';
+        
+        try {
+          const date = new Date(dateValue);
+          if (isNaN(date.getTime())) return '';
+          
+          const year = date.getFullYear();
+          const month = String(date.getMonth() + 1).padStart(2, '0');
+          const day = String(date.getDate()).padStart(2, '0');
+          
+          return `${year}-${month}-${day}`;
+        } catch (error) {
+          return '';
+        }
       };
       
       const fetchApplicationData = async () => {
@@ -490,7 +507,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               const appData = appResponse.data.application;
               
               const newFormData = {
-                dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+                dateInstalled: formatDateForInput(jobOrderData.Date_Installed || jobOrderData.date_installed),
                 usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
                 choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
                 connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
@@ -530,7 +547,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       
       const loadDefaultFormData = () => {
         const newFormData = {
-          dateInstalled: getValue(jobOrderData.Date_Installed || jobOrderData.date_installed, 'dateInstalled'),
+          dateInstalled: formatDateForInput(jobOrderData.Date_Installed || jobOrderData.date_installed),
           usageType: getValue(jobOrderData.Usage_Type || jobOrderData.usage_type, 'usageType'),
           choosePlan: getValue(jobOrderData.Desired_Plan || jobOrderData.desired_plan || jobOrderData.Choose_Plan || jobOrderData.choose_plan || jobOrderData.plan, 'choosePlan'),
           connectionType: getValue(jobOrderData.Connection_Type || jobOrderData.connection_type, 'connectionType'),
@@ -1404,7 +1421,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <select value={formData.visit_with} onChange={(e) => handleInputChange('visit_with', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value="">Select Visit With</option>
                     <option value="None">None</option>
-                    {formData.visit_with && !technicians.some(t => t.name === formData.visit_with) && (
+                    {formData.visit_with && formData.visit_with !== 'None' && formData.visit_with !== '' && !technicians.some(t => t.name === formData.visit_with) && (
                       <option value={formData.visit_with}>{formData.visit_with}</option>
                     )}
                     {technicians.map((technician, index) => (
@@ -1427,7 +1444,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <select value={formData.visit_with_other} onChange={(e) => handleInputChange('visit_with_other', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with_other ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value="">Visit With(Other)</option>
                     <option value="None">None</option>
-                    {formData.visit_with_other && !technicians.some(t => t.name === formData.visit_with_other) && (
+                    {formData.visit_with_other && formData.visit_with_other !== 'None' && formData.visit_with_other !== '' && !technicians.some(t => t.name === formData.visit_with_other) && (
                       <option value={formData.visit_with_other}>{formData.visit_with_other}</option>
                     )}
                     {technicians.map((technician, index) => (
@@ -1691,7 +1708,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <select value={formData.visit_with} onChange={(e) => handleInputChange('visit_with', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value="">Visit With</option>
                     <option value="None">None</option>
-                    {formData.visit_with && !technicians.some(t => t.name === formData.visit_with) && (
+                    {formData.visit_with && formData.visit_with !== 'None' && formData.visit_with !== '' && !technicians.some(t => t.name === formData.visit_with) && (
                       <option value={formData.visit_with}>{formData.visit_with}</option>
                     )}
                     {technicians.map((technician, index) => (
@@ -1714,7 +1731,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   <select value={formData.visit_with_other} onChange={(e) => handleInputChange('visit_with_other', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.visit_with_other ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                     <option value="">Visit With(Other)</option>
                     <option value="None">None</option>
-                    {formData.visit_with_other && !technicians.some(t => t.name === formData.visit_with_other) && (
+                    {formData.visit_with_other && formData.visit_with_other !== 'None' && formData.visit_with_other !== '' && !technicians.some(t => t.name === formData.visit_with_other) && (
                       <option value={formData.visit_with_other}>{formData.visit_with_other}</option>
                     )}
                     {technicians.map((technician, index) => (

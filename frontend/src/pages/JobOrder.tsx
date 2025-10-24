@@ -14,18 +14,49 @@ interface LocationItem {
 
 type DisplayMode = 'card' | 'table';
 
-// All available columns from job_orders table
 const allColumns = [
   { key: 'timestamp', label: 'Timestamp', width: 'min-w-40' },
+  { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-36' },
+  { key: 'installationFee', label: 'Installation Fee', width: 'min-w-32' },
+  { key: 'billingDay', label: 'Billing Day', width: 'min-w-28' },
+  { key: 'billingStatusId', label: 'Billing Status ID', width: 'min-w-32' },
+  { key: 'modemRouterSN', label: 'Modem/Router SN', width: 'min-w-36' },
+  { key: 'routerModel', label: 'Router Model', width: 'min-w-32' },
+  { key: 'groupName', label: 'Group Name', width: 'min-w-32' },
+  { key: 'lcpnap', label: 'LCPNAP', width: 'min-w-28' },
+  { key: 'port', label: 'PORT', width: 'min-w-24' },
+  { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
+  { key: 'username', label: 'Username', width: 'min-w-32' },
+  { key: 'ipAddress', label: 'IP Address', width: 'min-w-32' },
+  { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
+  { key: 'usageType', label: 'Usage Type', width: 'min-w-32' },
+  { key: 'usernameStatus', label: 'Username Status', width: 'min-w-32' },
+  { key: 'visitBy', label: 'Visit By', width: 'min-w-32' },
+  { key: 'visitWith', label: 'Visit With', width: 'min-w-32' },
+  { key: 'visitWithOther', label: 'Visit With Other', width: 'min-w-32' },
+  { key: 'onsiteStatus', label: 'Onsite Status', width: 'min-w-32' },
+  { key: 'onsiteRemarks', label: 'Onsite Remarks', width: 'min-w-40' },
+  { key: 'statusRemarks', label: 'Status Remarks', width: 'min-w-40' },
+  { key: 'addressCoordinates', label: 'Address Coordinates', width: 'min-w-40' },
+  { key: 'contractLink', label: 'Contract Link', width: 'min-w-48' },
+  { key: 'clientSignatureUrl', label: 'Client Signature URL', width: 'min-w-48' },
+  { key: 'setupImageUrl', label: 'Setup Image URL', width: 'min-w-48' },
+  { key: 'speedtestImageUrl', label: 'Speedtest Image URL', width: 'min-w-48' },
+  { key: 'signedContractImageUrl', label: 'Signed Contract Image URL', width: 'min-w-48' },
+  { key: 'boxReadingImageUrl', label: 'Box Reading Image URL', width: 'min-w-48' },
+  { key: 'routerReadingImageUrl', label: 'Router Reading Image URL', width: 'min-w-48' },
+  { key: 'portLabelImageUrl', label: 'Port Label Image URL', width: 'min-w-48' },
+  { key: 'houseFrontPictureUrl', label: 'House Front Picture URL', width: 'min-w-48' },
+  { key: 'createdAt', label: 'Created At', width: 'min-w-40' },
+  { key: 'createdByUserEmail', label: 'Created By User Email', width: 'min-w-48' },
+  { key: 'updatedAt', label: 'Updated At', width: 'min-w-40' },
+  { key: 'updatedByUserEmail', label: 'Updated By User Email', width: 'min-w-48' },
+  { key: 'assignedEmail', label: 'Assigned Email', width: 'min-w-48' },
+  { key: 'pppoeUsername', label: 'PPPoE Username', width: 'min-w-36' },
+  { key: 'pppoePassword', label: 'PPPoE Password', width: 'min-w-36' },
   { key: 'fullName', label: 'Full Name of Client', width: 'min-w-48' },
   { key: 'address', label: 'Full Address of Client', width: 'min-w-56' },
-  { key: 'onsiteStatus', label: 'Onsite Status', width: 'min-w-32' },
-  { key: 'billingStatus', label: 'Billing Status', width: 'min-w-32' },
-  { key: 'statusRemarks', label: 'Status Remarks', width: 'min-w-40' },
-  { key: 'assignedEmail', label: 'Assigned Email', width: 'min-w-48' },
   { key: 'contractTemplate', label: 'Contract Template', width: 'min-w-36' },
-  { key: 'billingDay', label: 'Billing Day', width: 'min-w-28' },
-  { key: 'installationFee', label: 'Installation Fee', width: 'min-w-32' },
   { key: 'modifiedBy', label: 'Modified By', width: 'min-w-32' },
   { key: 'modifiedDate', label: 'Modified Date', width: 'min-w-40' },
   { key: 'firstName', label: 'First Name', width: 'min-w-32' },
@@ -39,23 +70,7 @@ const allColumns = [
   { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
   { key: 'location', label: 'Location', width: 'min-w-32' },
   { key: 'choosePlan', label: 'Choose Plan', width: 'min-w-36' },
-  { key: 'connectionType', label: 'Connection Type', width: 'min-w-36' },
-  { key: 'usageType', label: 'Usage Type', width: 'min-w-32' },
-  { key: 'username', label: 'Username', width: 'min-w-32' },
-  { key: 'pppoeUsername', label: 'PPPoE Username', width: 'min-w-36' },
-  { key: 'pppoePassword', label: 'PPPoE Password', width: 'min-w-36' },
-  { key: 'modemRouterSN', label: 'Modem/Router SN', width: 'min-w-36' },
-  { key: 'routerModel', label: 'Router Model', width: 'min-w-32' },
-  { key: 'lcp', label: 'LCP', width: 'min-w-24' },
-  { key: 'nap', label: 'NAP', width: 'min-w-24' },
-  { key: 'port', label: 'PORT', width: 'min-w-24' },
-  { key: 'vlan', label: 'VLAN', width: 'min-w-24' },
-  { key: 'lcpnap', label: 'LCPNAP', width: 'min-w-28' },
-  { key: 'lcpnapport', label: 'LCPNAPPORT', width: 'min-w-32' },
-  { key: 'visitBy', label: 'Visit By', width: 'min-w-32' },
-  { key: 'visitWith', label: 'Visit With', width: 'min-w-32' },
   { key: 'referredBy', label: 'Referred By', width: 'min-w-32' },
-  { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-36' },
   { key: 'startTimestamp', label: 'Start Timestamp', width: 'min-w-40' },
   { key: 'endTimestamp', label: 'End Timestamp', width: 'min-w-40' },
   { key: 'duration', label: 'Duration', width: 'min-w-28' }
@@ -78,7 +93,6 @@ const JobOrderPage: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
-  // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -96,27 +110,29 @@ const JobOrderPage: React.FC = () => {
     };
   }, [dropdownRef, filterDropdownRef]);
 
-  // Format date function
   const formatDate = (dateStr?: string | null): string => {
-    if (!dateStr) return 'Not scheduled';
+    if (!dateStr) return '-';
     try {
       return new Date(dateStr).toLocaleString();
     } catch (e) {
-      return dateStr;
+      return '-';
     }
   };
   
-  // Format price function
+  const getLastDayOfMonth = (): number => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return lastDay.getDate();
+  };
+  
   const formatPrice = (price?: number | null): string => {
-    if (price === null || price === undefined || price === 0) return '₱0.00';
+    if (price === null || price === undefined || price === 0) return '-';
     return `₱${price.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  // Get billing status name by ID
   const getBillingStatusName = (statusId?: number | null): string => {
-    if (!statusId) return 'Not Set';
+    if (!statusId) return '-';
     
-    // If billing statuses haven't loaded yet, show a default based on common IDs
     if (billingStatuses.length === 0) {
       const defaultStatuses: { [key: number]: string } = {
         1: 'In Progress',
@@ -125,11 +141,11 @@ const JobOrderPage: React.FC = () => {
         4: 'Cancelled',
         5: 'Overdue'
       };
-      return defaultStatuses[statusId] || 'Loading...';
+      return defaultStatuses[statusId] || '-';
     }
     
     const status = billingStatuses.find(s => s.id === statusId);
-    return status ? status.status_name : `Unknown (ID: ${statusId})`;
+    return status ? status.status_name : '-';
   };
 
   const [userEmail, setUserEmail] = useState<string>('');
@@ -147,31 +163,17 @@ const JobOrderPage: React.FC = () => {
     }
   }, []);
 
-  // Fetch data from API
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         
-        // Fetch cities data
-        console.log('Fetching cities...');
         const citiesData = await getCities();
-        console.log(`Found ${citiesData.length} cities`);
-        if (citiesData.length === 0) {
-          console.warn('No cities returned from API. This may affect location filtering.');
-        } else {
-          console.log('Cities data sample:', citiesData[0]);
-        }
         setCities(citiesData);
         
-        // Fetch billing statuses
-        console.log('Fetching billing statuses...');
         const billingStatusesData = await getBillingStatuses();
-        console.log(`Found ${billingStatusesData.length} billing statuses`);
         setBillingStatuses(billingStatusesData);
         
-        // Fetch job orders data from job_orders table with email filter for technicians
-        console.log('Fetching job orders from job_orders table...');
         const authData = localStorage.getItem('authData');
         let assignedEmail: string | undefined;
         
@@ -180,7 +182,6 @@ const JobOrderPage: React.FC = () => {
             const userData = JSON.parse(authData);
             if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
               assignedEmail = userData.email;
-              console.log('Filtering job orders for technician:', assignedEmail);
             }
           } catch (error) {
             console.error('Error parsing auth data:', error);
@@ -188,35 +189,19 @@ const JobOrderPage: React.FC = () => {
         }
         
         const response = await getJobOrders(assignedEmail);
-        console.log('Job Orders API Response:', response);
         
         if (response.success && Array.isArray(response.data)) {
-          console.log(`Found ${response.data.length} job orders`);
-          
-          // Process the job orders
           const processedOrders: JobOrder[] = response.data.map((order, index) => {
             const id = order.id || order.JobOrder_ID || String(index);
             
             return {
               ...order,
-              id: id,
-              Onsite_Status: order.Onsite_Status || null,
-              Billing_Status: order.Billing_Status || null,
-              Status_Remarks: order.Status_Remarks || null,
-              Installation_Fee: order.Installation_Fee !== undefined ? 
-                Number(order.Installation_Fee) : null,
-              Assigned_Email: order.Assigned_Email || null,
-              Contract_Template: order.Contract_Template || null,
-              Billing_Day: order.Billing_Day || null,
-              Modified_By: order.Modified_By || 'System',
-              Modified_Date: order.Modified_Date || null
+              id: id
             };
           });
           
           setJobOrders(processedOrders);
-          console.log('Job orders data processed successfully');
         } else {
-          console.warn('No job orders returned from API or invalid response format', response);
           setJobOrders([]);
         }
       } catch (err: any) {
@@ -230,29 +215,26 @@ const JobOrderPage: React.FC = () => {
     fetchData();
   }, []);
   
-  // Get client full name
   const getClientFullName = (jobOrder: JobOrder): string => {
     return [
-      jobOrder.First_Name || '',
-      jobOrder.Middle_Initial ? jobOrder.Middle_Initial + '.' : '',
-      jobOrder.Last_Name || ''
-    ].filter(Boolean).join(' ').trim() || 'Unknown Client';
+      jobOrder.First_Name || jobOrder.first_name || '',
+      jobOrder.Middle_Initial || jobOrder.middle_initial ? (jobOrder.Middle_Initial || jobOrder.middle_initial) + '.' : '',
+      jobOrder.Last_Name || jobOrder.last_name || ''
+    ].filter(Boolean).join(' ').trim() || '-';
   };
 
-  // Get client full address
   const getClientFullAddress = (jobOrder: JobOrder): string => {
     const addressParts = [
-      jobOrder.Address,
-      jobOrder.Location,
-      jobOrder.Barangay,
-      jobOrder.City,
-      jobOrder.Region
+      jobOrder.Address || jobOrder.address,
+      jobOrder.Location || jobOrder.location,
+      jobOrder.Barangay || jobOrder.barangay,
+      jobOrder.City || jobOrder.city,
+      jobOrder.Region || jobOrder.region
     ].filter(Boolean);
     
-    return addressParts.length > 0 ? addressParts.join(', ') : 'No address provided';
+    return addressParts.length > 0 ? addressParts.join(', ') : '-';
   };
 
-  // Generate location items from cities data
   const locationItems: LocationItem[] = [
     {
       id: 'all',
@@ -261,10 +243,9 @@ const JobOrderPage: React.FC = () => {
     }
   ];
 
-  // Add cities from database
   cities.forEach(city => {
     const cityCount = jobOrders.filter(job => {
-      const jobCity = (job.City || '').toLowerCase();
+      const jobCity = ((job.City || job.city) || '').toLowerCase();
       const cityName = city.name.toLowerCase();
       return jobCity.includes(cityName) || cityName.includes(jobCity);
     }).length;
@@ -276,9 +257,8 @@ const JobOrderPage: React.FC = () => {
     });
   });
   
-  // Filter job orders based on location and search query
   const filteredJobOrders = jobOrders.filter(jobOrder => {
-    const jobLocation = (jobOrder.City || '').toLowerCase();
+    const jobLocation = ((jobOrder.City || jobOrder.city) || '').toLowerCase();
     
     const matchesLocation = selectedLocation === 'all' || 
                           jobLocation.includes(selectedLocation) || 
@@ -287,15 +267,14 @@ const JobOrderPage: React.FC = () => {
     const fullName = getClientFullName(jobOrder).toLowerCase();
     const matchesSearch = searchQuery === '' || 
                          fullName.includes(searchQuery.toLowerCase()) ||
-                         (jobOrder.Address || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         (jobOrder.Assigned_Email || '').toLowerCase().includes(searchQuery.toLowerCase());
+                         ((jobOrder.Address || jobOrder.address) || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         ((jobOrder.Assigned_Email || jobOrder.assigned_email) || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesLocation && matchesSearch;
   });
 
-  // Status text color component
   const StatusText = ({ status, type }: { status?: string | null, type: 'onsite' | 'billing' }) => {
-    if (!status) return <span className="text-gray-400">Unknown</span>;
+    if (!status) return <span className="text-gray-400">-</span>;
     
     let textColor = '';
     
@@ -361,96 +340,175 @@ const JobOrderPage: React.FC = () => {
 
   const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
 
+  const getValue = (value: any): string => {
+    if (value === null || value === undefined || value === '') return '-';
+    if (typeof value === 'string' && value.trim().toLowerCase() === 'null') return '-';
+    return value;
+  };
+
   const renderCellValue = (jobOrder: JobOrder, columnKey: string) => {
     switch (columnKey) {
       case 'timestamp':
-        return formatDate(jobOrder.Timestamp);
+        return formatDate(jobOrder.Timestamp || jobOrder.timestamp);
+      case 'dateInstalled':
+        return formatDate(jobOrder.Date_Installed || jobOrder.date_installed);
+      case 'installationFee':
+        return formatPrice(jobOrder.Installation_Fee || jobOrder.installation_fee);
+      case 'billingDay':
+        const billingDay = jobOrder.Billing_Day ?? jobOrder.billing_day;
+        if (billingDay === null || billingDay === undefined) return '-';
+        const dayValue = Number(billingDay);
+        if (isNaN(dayValue)) return '-';
+        return dayValue === 0 ? String(getLastDayOfMonth()) : String(dayValue);
+      case 'billingStatusId':
+        return getValue(jobOrder.billing_status_id || jobOrder.Billing_Status_ID);
+      case 'modemRouterSN':
+        return getValue(jobOrder.Modem_Router_SN || jobOrder.modem_router_sn);
+      case 'routerModel':
+        return getValue(jobOrder.Router_Model || jobOrder.router_model);
+      case 'groupName':
+        return getValue(jobOrder.group_name || jobOrder.Group_Name);
+      case 'lcpnap':
+        return getValue(jobOrder.LCPNAP || jobOrder.lcpnap);
+      case 'port':
+        return getValue(jobOrder.PORT || jobOrder.Port || jobOrder.port);
+      case 'vlan':
+        return getValue(jobOrder.VLAN || jobOrder.vlan);
+      case 'username':
+        return getValue(jobOrder.Username || jobOrder.username);
+      case 'ipAddress':
+        return getValue(jobOrder.IP_Address || jobOrder.ip_address || jobOrder.IP || jobOrder.ip);
+      case 'connectionType':
+        return getValue(jobOrder.Connection_Type || jobOrder.connection_type);
+      case 'usageType':
+        return getValue(jobOrder.Usage_Type || jobOrder.usage_type);
+      case 'usernameStatus':
+        return getValue(jobOrder.username_status || jobOrder.Username_Status);
+      case 'visitBy':
+        return getValue(jobOrder.Visit_By || jobOrder.visit_by);
+      case 'visitWith':
+        return getValue(jobOrder.Visit_With || jobOrder.visit_with);
+      case 'visitWithOther':
+        return getValue(jobOrder.Visit_With_Other || jobOrder.visit_with_other);
+      case 'onsiteStatus':
+        return <StatusText status={jobOrder.Onsite_Status || jobOrder.onsite_status} type="onsite" />;
+      case 'onsiteRemarks':
+        return getValue(jobOrder.Onsite_Remarks || jobOrder.onsite_remarks);
+      case 'statusRemarks':
+        return getValue(jobOrder.Status_Remarks || jobOrder.status_remarks);
+      case 'addressCoordinates':
+        return getValue(jobOrder.Address_Coordinates || jobOrder.address_coordinates);
+      case 'contractLink':
+        return getValue(jobOrder.Contract_Link || jobOrder.contract_link);
+      case 'clientSignatureUrl':
+        return getValue(
+          jobOrder.client_signature_url || 
+          jobOrder.Client_Signature_URL || 
+          jobOrder.client_signature_image_url ||
+          jobOrder.Client_Signature_Image_URL
+        );
+      case 'setupImageUrl':
+        return getValue(
+          jobOrder.setup_image_url || 
+          jobOrder.Setup_Image_URL ||
+          jobOrder.Setup_Image_Url
+        );
+      case 'speedtestImageUrl':
+        return getValue(
+          jobOrder.speedtest_image_url || 
+          jobOrder.Speedtest_Image_URL ||
+          jobOrder.speedtest_image ||
+          jobOrder.Speedtest_Image
+        );
+      case 'signedContractImageUrl':
+        return getValue(
+          jobOrder.signed_contract_image_url || 
+          jobOrder.Signed_Contract_Image_URL ||
+          jobOrder.signed_contract_url ||
+          jobOrder.Signed_Contract_URL
+        );
+      case 'boxReadingImageUrl':
+        return getValue(
+          jobOrder.box_reading_image_url || 
+          jobOrder.Box_Reading_Image_URL ||
+          jobOrder.box_reading_url ||
+          jobOrder.Box_Reading_URL
+        );
+      case 'routerReadingImageUrl':
+        return getValue(
+          jobOrder.router_reading_image_url || 
+          jobOrder.Router_Reading_Image_URL ||
+          jobOrder.router_reading_url ||
+          jobOrder.Router_Reading_URL
+        );
+      case 'portLabelImageUrl':
+        return getValue(
+          jobOrder.port_label_image_url || 
+          jobOrder.Port_Label_Image_URL ||
+          jobOrder.port_label_url ||
+          jobOrder.Port_Label_URL
+        );
+      case 'houseFrontPictureUrl':
+        return getValue(
+          jobOrder.house_front_picture_url || 
+          jobOrder.House_Front_Picture_URL ||
+          jobOrder.house_front_picture ||
+          jobOrder.House_Front_Picture
+        );
+      case 'createdAt':
+        return formatDate(jobOrder.created_at || jobOrder.Created_At);
+      case 'createdByUserEmail':
+        return getValue(jobOrder.created_by_user_email || jobOrder.Created_By_User_Email);
+      case 'updatedAt':
+        return formatDate(jobOrder.updated_at || jobOrder.Updated_At);
+      case 'updatedByUserEmail':
+        return getValue(jobOrder.updated_by_user_email || jobOrder.Updated_By_User_Email);
+      case 'assignedEmail':
+        return getValue(jobOrder.Assigned_Email || jobOrder.assigned_email);
+      case 'pppoeUsername':
+        return getValue(jobOrder.PPPoE_Username || jobOrder.pppoe_username);
+      case 'pppoePassword':
+        return getValue(jobOrder.PPPoE_Password || jobOrder.pppoe_password);
       case 'fullName':
         return getClientFullName(jobOrder);
       case 'address':
         return getClientFullAddress(jobOrder);
-      case 'onsiteStatus':
-        return <StatusText status={jobOrder.Onsite_Status} type="onsite" />;
-      case 'billingStatus':
-        return <StatusText status={getBillingStatusName(jobOrder.billing_status_id)} type="billing" />;
-      case 'statusRemarks':
-        return jobOrder.Status_Remarks || 'No remarks';
-      case 'assignedEmail':
-        return jobOrder.Assigned_Email || 'Unassigned';
       case 'contractTemplate':
-        return jobOrder.Contract_Template || 'Standard';
-      case 'billingDay':
-        return (jobOrder.Billing_Day === '0' || Number(jobOrder.Billing_Day) === 0)
-          ? 'Every end of month' 
-          : (jobOrder.Billing_Day || '-');
-      case 'installationFee':
-        return formatPrice(jobOrder.Installation_Fee);
+        return getValue(jobOrder.Contract_Template || jobOrder.contract_template);
       case 'modifiedBy':
-        return jobOrder.Modified_By || 'System';
+        return getValue(jobOrder.Modified_By || jobOrder.modified_by);
       case 'modifiedDate':
-        return formatDate(jobOrder.Modified_Date);
+        return formatDate(jobOrder.Modified_Date || jobOrder.modified_date);
       case 'firstName':
-        return jobOrder.First_Name || '-';
+        return getValue(jobOrder.First_Name || jobOrder.first_name);
       case 'middleInitial':
-        return jobOrder.Middle_Initial || '-';
+        return getValue(jobOrder.Middle_Initial || jobOrder.middle_initial);
       case 'lastName':
-        return jobOrder.Last_Name || '-';
+        return getValue(jobOrder.Last_Name || jobOrder.last_name);
       case 'contactNumber':
-        return jobOrder.Contact_Number || jobOrder.Mobile_Number || '-';
+        return getValue(jobOrder.Contact_Number || jobOrder.Mobile_Number || jobOrder.contact_number || jobOrder.mobile_number);
       case 'secondContactNumber':
-        return jobOrder.Second_Contact_Number || jobOrder.Secondary_Mobile_Number || '-';
+        return getValue(jobOrder.Second_Contact_Number || jobOrder.Secondary_Mobile_Number || jobOrder.second_contact_number || jobOrder.secondary_mobile_number);
       case 'emailAddress':
-        return jobOrder.Email_Address || jobOrder.Applicant_Email_Address || '-';
+        return getValue(jobOrder.Email_Address || jobOrder.Applicant_Email_Address || jobOrder.email_address || jobOrder.applicant_email_address);
       case 'region':
-        return jobOrder.Region || '-';
+        return getValue(jobOrder.Region || jobOrder.region);
       case 'city':
-        return jobOrder.City || '-';
+        return getValue(jobOrder.City || jobOrder.city);
       case 'barangay':
-        return jobOrder.Barangay || '-';
+        return getValue(jobOrder.Barangay || jobOrder.barangay);
       case 'location':
-        return jobOrder.Location || '-';
+        return getValue(jobOrder.Location || jobOrder.location);
       case 'choosePlan':
-        return jobOrder.Choose_Plan || jobOrder.Desired_Plan || '-';
-      case 'connectionType':
-        return jobOrder.Connection_Type || '-';
-      case 'usageType':
-        return jobOrder.Usage_Type || '-';
-      case 'username':
-        return jobOrder.Username || '-';
-      case 'pppoeUsername':
-        return jobOrder.PPPoE_Username || jobOrder.pppoe_username || '-';
-      case 'pppoePassword':
-        return jobOrder.PPPoE_Password || jobOrder.pppoe_password || '-';
-      case 'modemRouterSN':
-        return jobOrder.Modem_Router_SN || '-';
-      case 'routerModel':
-        return jobOrder.Router_Model || '-';
-      case 'lcp':
-        return jobOrder.LCP || '-';
-      case 'nap':
-        return jobOrder.NAP || '-';
-      case 'port':
-        return jobOrder.PORT || jobOrder.Port || '-';
-      case 'vlan':
-        return jobOrder.VLAN || '-';
-      case 'lcpnap':
-        return jobOrder.LCPNAP || '-';
-      case 'lcpnapport':
-        return jobOrder.LCPNAPPORT || '-';
-      case 'visitBy':
-        return jobOrder.Visit_By || '-';
-      case 'visitWith':
-        return jobOrder.Visit_With || '-';
+        return getValue(jobOrder.Choose_Plan || jobOrder.Desired_Plan || jobOrder.choose_plan || jobOrder.desired_plan);
       case 'referredBy':
-        return jobOrder.Referred_By || '-';
-      case 'dateInstalled':
-        return formatDate(jobOrder.Date_Installed);
+        return getValue(jobOrder.Referred_By || jobOrder.referred_by);
       case 'startTimestamp':
-        return formatDate(jobOrder.StartTimeStamp);
+        return formatDate(jobOrder.StartTimeStamp || jobOrder.start_timestamp);
       case 'endTimestamp':
-        return formatDate(jobOrder.EndTimeStamp);
+        return formatDate(jobOrder.EndTimeStamp || jobOrder.end_timestamp);
       case 'duration':
-        return jobOrder.Duration || '-';
+        return getValue(jobOrder.Duration || jobOrder.duration);
       default:
         return '-';
     }
@@ -486,7 +544,6 @@ const JobOrderPage: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container - Hidden for technician role */}
       {userRole.toLowerCase() !== 'technician' && (
       <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
@@ -526,10 +583,8 @@ const JobOrderPage: React.FC = () => {
       </div>
       )}
 
-      {/* Job Orders List */}
       <div className={`bg-gray-900 overflow-hidden flex-1`}>
         <div className="flex flex-col h-full">
-          {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
               <div className="relative flex-1">
@@ -632,7 +687,6 @@ const JobOrderPage: React.FC = () => {
             </div>
           </div>
           
-          {/* Content Container */}
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               {displayMode === 'card' ? (
@@ -650,11 +704,11 @@ const JobOrderPage: React.FC = () => {
                               {getClientFullName(jobOrder)}
                             </div>
                             <div className="text-gray-400 text-xs">
-                              {formatDate(jobOrder.Timestamp)} | {getClientFullAddress(jobOrder)}
+                              {formatDate(jobOrder.Timestamp || jobOrder.timestamp)} | {getClientFullAddress(jobOrder)}
                             </div>
                           </div>
                           <div className="flex flex-col items-end space-y-1 ml-4 flex-shrink-0">
-                            <StatusText status={jobOrder.Onsite_Status} type="onsite" />
+                            <StatusText status={jobOrder.Onsite_Status || jobOrder.onsite_status} type="onsite" />
                           </div>
                         </div>
                       </div>
@@ -716,7 +770,6 @@ const JobOrderPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Job Order Detail View - Only visible when a job order is selected */}
       {selectedJobOrder && (
         <div className="w-full max-w-2xl overflow-hidden">
           <JobOrderDetails 

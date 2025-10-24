@@ -61,6 +61,7 @@ class JobOrderController extends Controller
                     'Status_Remarks' => $jobOrder->status_remarks,
                     'Assigned_Email' => $jobOrder->assigned_email,
                     'Contract_Template' => $jobOrder->contract_link,
+                    'contract_link' => $jobOrder->contract_link,
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'Username' => $jobOrder->username,
@@ -74,8 +75,8 @@ class JobOrderController extends Controller
                     'connection_type' => $jobOrder->connection_type,
                     'router_model' => $jobOrder->router_model,
                     'modem_router_sn' => $jobOrder->modem_router_sn,
-                    'Modem_SN' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
-                    'modem_sn' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
+                    'Modem_SN' => $jobOrder->modem_router_sn,
+                    'modem_sn' => $jobOrder->modem_router_sn,
                     'lcpnap' => $jobOrder->lcpnap,
                     'port' => $jobOrder->port,
                     'vlan' => $jobOrder->vlan,
@@ -85,6 +86,23 @@ class JobOrderController extends Controller
                     'ip_address' => $jobOrder->ip_address,
                     'address_coordinates' => $jobOrder->address_coordinates,
                     'onsite_remarks' => $jobOrder->onsite_remarks,
+                    'username_status' => $jobOrder->username_status,
+                    
+                    // Image URLs from job_orders table
+                    'client_signature_url' => $jobOrder->client_signature_url,
+                    'setup_image_url' => $jobOrder->setup_image_url,
+                    'speedtest_image_url' => $jobOrder->speedtest_image_url,
+                    'signed_contract_image_url' => $jobOrder->signed_contract_image_url,
+                    'box_reading_image_url' => $jobOrder->box_reading_image_url,
+                    'router_reading_image_url' => $jobOrder->router_reading_image_url,
+                    'port_label_image_url' => $jobOrder->port_label_image_url,
+                    'house_front_picture_url' => $jobOrder->house_front_picture_url,
+                    
+                    // Timestamps
+                    'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
+                    'updated_at' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
+                    'created_by_user_email' => $jobOrder->created_by_user_email,
+                    'updated_by_user_email' => $jobOrder->updated_by_user_email,
                     
                     'First_Name' => $application ? $application->first_name : null,
                     'Middle_Initial' => $application ? $application->middle_initial : null,
