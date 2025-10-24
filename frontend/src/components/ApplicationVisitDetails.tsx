@@ -59,17 +59,13 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         const user = JSON.parse(authData);
         setUserRole(user.role?.toLowerCase() || '');
       } catch (error) {
-        console.error('Error parsing user data:', error);
+        // Error parsing user data
       }
     }
   }, []);
 
   useEffect(() => {
     setCurrentVisitData(applicationVisit);
-    console.log('ApplicationVisitDetails - Current visit data:', applicationVisit);
-    console.log('ApplicationVisitDetails - visit_by:', applicationVisit.visit_by);
-    console.log('ApplicationVisitDetails - visit_with:', applicationVisit.visit_with);
-    console.log('ApplicationVisitDetails - visit_with_other:', applicationVisit.visit_with_other);
   }, [applicationVisit]);
 
   useEffect(() => {
@@ -81,7 +77,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
         const appData = await getApplication(applicationVisit.application_id);
         setApplicationDetails(appData);
       } catch (err: any) {
-        console.error('Error fetching application details:', err);
         setError(`Failed to load application data: ${err.message}`);
       } finally {
         setLoading(false);
@@ -101,8 +96,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   };
 
   const handleSaveJOForm = (formData: JobOrderData) => {
-    console.log('Job Order saved successfully:', formData);
-    console.log('Application Visit ID:', applicationVisit.id);
     setShowJOAssignForm(false);
     if (onUpdate) {
       onUpdate();
@@ -114,7 +107,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
   };
 
   const handleSaveEditedVisit = (updatedVisit: any) => {
-    console.log('Visit details updated successfully:', updatedVisit);
     setCurrentVisitData({ ...currentVisitData, ...updatedVisit });
     setShowEditStatusModal(false);
     if (onUpdate) {
@@ -148,7 +140,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           const user = JSON.parse(authData);
           updatedByEmail = user.email;
         } catch (error) {
-          console.error('Error parsing auth data:', error);
+          // Error parsing auth data
         }
       }
       
@@ -168,8 +160,6 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
     } catch (err: any) {
       const errorMessage = err.response?.data?.message || err.message || 'Unknown error occurred';
       setError(`Failed to update status: ${errorMessage}`);
-      console.error('Status update error:', err);
-      console.error('Error response:', err.response?.data);
     } finally {
       setLoading(false);
     }
@@ -515,6 +505,7 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           barangay: applicationDetails?.barangay,
           city: applicationDetails?.city,
           region: applicationDetails?.region,
+          location: applicationDetails?.location,
           desired_plan: applicationDetails?.desired_plan,
           landmark: applicationDetails?.landmark,
         }}

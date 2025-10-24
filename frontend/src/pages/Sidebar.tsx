@@ -136,8 +136,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
   ];
 
   const filterMenuByRole = (items: MenuItem[]): MenuItem[] => {
-    console.log('Current user role:', userRole);
-    
     return items.filter(item => {
       if (!item.allowedRoles || item.allowedRoles.length === 0) {
         return true;
@@ -148,8 +146,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       const hasAccess = item.allowedRoles.some(role => 
         role.toLowerCase().trim() === normalizedUserRole
       );
-      
-      console.log(`Item: ${item.id}, Allowed Roles:`, item.allowedRoles, 'Has Access:', hasAccess);
       
       if (hasAccess && item.children) {
         item.children = filterMenuByRole(item.children);
