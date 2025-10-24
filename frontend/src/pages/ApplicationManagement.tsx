@@ -132,7 +132,6 @@ const ApplicationManagement: React.FC = () => {
     try {
       setIsLoading(true);
       const apiApplications = await getApplications();
-      console.log('Fetched applications:', apiApplications);
       
       if (apiApplications && apiApplications.length > 0) {
         const transformedApplications: Application[] = apiApplications.map(app => {
@@ -169,9 +168,7 @@ const ApplicationManagement: React.FC = () => {
         });
         
         setApplications(transformedApplications);
-        console.log('Transformed applications:', transformedApplications);
       } else {
-        console.log('No applications found');
         setApplications([]);
       }
       
@@ -194,9 +191,7 @@ const ApplicationManagement: React.FC = () => {
   useEffect(() => {
     const handleLocationUpdate = async () => {
       try {
-        console.log('Location updated, refreshing cities...');
         const citiesData = await getCities();
-        console.log('Updated cities:', citiesData);
         setCities(citiesData || []);
       } catch (err) {
         console.error('Failed to refresh cities after location update:', err);

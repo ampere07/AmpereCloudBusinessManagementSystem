@@ -558,6 +558,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       contract_link: null,
       username: null,
       group_name: toNullIfEmpty(data.groupName),
+      house_front_picture_url: applicationData?.house_front_picture_url || null,
       created_by_user_email: data.modifiedBy,
       updated_by_user_email: data.modifiedBy,
     };

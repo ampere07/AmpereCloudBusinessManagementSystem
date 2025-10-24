@@ -116,15 +116,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   };
 
   const handleSaveJOForm = (formData: JobOrderData) => {
-    console.log('Job Order saved successfully:', formData);
-    console.log('Application ID:', application.id);
-    // Job order has already been saved by the modal
     setShowJOAssignForm(false);
   };
 
   const handleSaveVisitForm = (formData: ApplicationVisitData) => {
-    console.log('Visit scheduled successfully:', formData);
-    console.log('Application ID:', application.id);
     setShowVisitForm(false);
     
     if (onApplicationUpdate) {
@@ -572,12 +567,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         applicationData={{
           ...detailedApplication,
           id: detailedApplication?.id || application.id,
-          secondaryNumber: detailedApplication?.mobile_alt || '',
-          __debug: console.log('DEBUG - Data passed to Visit Modal:', {
-            applicationId: application.id,
-            mobile_alt: detailedApplication?.mobile_alt,
-            secondaryNumber: detailedApplication?.mobile_alt || ''
-          })
+          secondaryNumber: detailedApplication?.mobile_alt || ''
         }}
       />
     </div>
