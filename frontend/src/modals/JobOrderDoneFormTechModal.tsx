@@ -55,6 +55,7 @@ interface JobOrderDoneFormData {
   routerReadingImage: File | null;
   portLabelImage: File | null;
   clientSignatureImage: File | null;
+  speedTestImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
   itemName1: string;
@@ -114,6 +115,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     routerReadingImage: null,
     portLabelImage: null,
     clientSignatureImage: null,
+    speedTestImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
       month: '2-digit',
@@ -588,7 +590,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
@@ -666,6 +668,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
       if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
       if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
+      if (!formData.speedTestImage) newErrors.speedTestImage = 'Speed Test Image is required';
     }
     
     if (formData.onsiteStatus === 'Failed' || formData.onsiteStatus === 'Reschedule') {
@@ -740,6 +743,86 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         if (lastName && mobileNumber) {
           const generatedUsername = `${lastName}${mobileNumber}`;
           jobOrderUpdateData.username = generatedUsername;
+        }
+        
+        const firstName = (jobOrderData?.First_Name || jobOrderData?.first_name || '').trim();
+        const middleInitial = (jobOrderData?.Middle_Initial || jobOrderData?.middle_initial || '').trim();
+        const fullLastName = (jobOrderData?.Last_Name || jobOrderData?.last_name || '').trim();
+        const folderName = `(joborder)${firstName} ${middleInitial} ${fullLastName}`.trim();
+        
+        const imageFormData = new FormData();
+        imageFormData.append('folder_name', folderName);
+        
+        if (updatedFormData.signedContractImage) {
+          imageFormData.append('signed_contract_image', updatedFormData.signedContractImage);
+        }
+        if (updatedFormData.setupImage) {
+          imageFormData.append('setup_image', updatedFormData.setupImage);
+        }
+        if (updatedFormData.boxReadingImage) {
+          imageFormData.append('box_reading_image', updatedFormData.boxReadingImage);
+        }
+        if (updatedFormData.routerReadingImage) {
+          imageFormData.append('router_reading_image', updatedFormData.routerReadingImage);
+        }
+        if (updatedFormData.portLabelImage) {
+          imageFormData.append('port_label_image', updatedFormData.portLabelImage);
+        }
+        if (updatedFormData.clientSignatureImage) {
+          imageFormData.append('client_signature_image', updatedFormData.clientSignatureImage);
+        }
+        if (updatedFormData.speedTestImage) {
+          imageFormData.append('speed_test_image', updatedFormData.speedTestImage);
+        }
+        
+        try {
+          const uploadResponse = await apiClient.post<{
+            success: boolean;
+            message: string;
+            data?: {
+              signed_contract_image_url?: string;
+              setup_image_url?: string;
+              box_reading_image_url?: string;
+              router_reading_image_url?: string;
+              port_label_image_url?: string;
+              client_signature_image_url?: string;
+              speedtest_image_url?: string;
+            };
+            folder_id?: string;
+          }>(`/job-orders/${jobOrderId}/upload-images`, imageFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          if (uploadResponse.data.success && uploadResponse.data.data) {
+            const imageUrls = uploadResponse.data.data;
+            
+            if (imageUrls.signed_contract_image_url) {
+              jobOrderUpdateData.signed_contract_image_url = imageUrls.signed_contract_image_url;
+            }
+            if (imageUrls.setup_image_url) {
+              jobOrderUpdateData.setup_image_url = imageUrls.setup_image_url;
+            }
+            if (imageUrls.box_reading_image_url) {
+              jobOrderUpdateData.box_reading_image_url = imageUrls.box_reading_image_url;
+            }
+            if (imageUrls.router_reading_image_url) {
+              jobOrderUpdateData.router_reading_image_url = imageUrls.router_reading_image_url;
+            }
+            if (imageUrls.port_label_image_url) {
+              jobOrderUpdateData.port_label_image_url = imageUrls.port_label_image_url;
+            }
+            if (imageUrls.client_signature_image_url) {
+              jobOrderUpdateData.client_signature_image_url = imageUrls.client_signature_image_url;
+            }
+            if (imageUrls.speedtest_image_url) {
+              jobOrderUpdateData.speedtest_image_url = imageUrls.speedtest_image_url;
+            }
+          }
+        } catch (uploadError: any) {
+          const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
+          alert(`Warning: Failed to upload images to Google Drive!\n\nError: ${errorMsg}\n\nJob order will be saved without image URLs.`);
         }
       }
       
@@ -1475,6 +1558,24 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                   )}
                 </div>
                 {errors.clientSignatureImage && (
+                  <div className="flex items-center mt-1">
+                    <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+                    <p className="text-orange-500 text-xs">This entry is required</p>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">Speed Test Image<span className="text-red-500">*</span></label>
+                <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
+                  <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('speedTestImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
+                  {formData.speedTestImage ? (
+                    <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
+                  ) : (
+                    <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
+                  )}
+                </div>
+                {errors.speedTestImage && (
                   <div className="flex items-center mt-1">
                     <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
                     <p className="text-orange-500 text-xs">This entry is required</p>

@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use App\Services\GoogleDriveService;
+
 class JobOrderController extends Controller
 {
     public function index(Request $request): JsonResponse
@@ -668,6 +670,143 @@ class JobOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create RADIUS account',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function uploadImages(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'folder_name' => 'required|string|max:255',
+                'signed_contract_image' => 'nullable|image|max:10240',
+                'setup_image' => 'nullable|image|max:10240',
+                'box_reading_image' => 'nullable|image|max:10240',
+                'router_reading_image' => 'nullable|image|max:10240',
+                'port_label_image' => 'nullable|image|max:10240',
+                'client_signature_image' => 'nullable|image|max:10240',
+                'speed_test_image' => 'nullable|image|max:10240',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $jobOrder = JobOrder::findOrFail($id);
+            $folderName = $request->input('folder_name');
+
+            $driveService = new GoogleDriveService();
+            
+            $folderId = $driveService->createFolder($folderName);
+
+            $imageUrls = [];
+
+            if ($request->hasFile('signed_contract_image')) {
+                $file = $request->file('signed_contract_image');
+                $fileName = 'signed_contract_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['signed_contract_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('setup_image')) {
+                $file = $request->file('setup_image');
+                $fileName = 'setup_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['setup_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('box_reading_image')) {
+                $file = $request->file('box_reading_image');
+                $fileName = 'box_reading_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['box_reading_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('router_reading_image')) {
+                $file = $request->file('router_reading_image');
+                $fileName = 'router_reading_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['router_reading_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('port_label_image')) {
+                $file = $request->file('port_label_image');
+                $fileName = 'port_label_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['port_label_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('client_signature_image')) {
+                $file = $request->file('client_signature_image');
+                $fileName = 'client_signature_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['client_signature_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('speed_test_image')) {
+                $file = $request->file('speed_test_image');
+                $fileName = 'speed_test_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['speedtest_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            Log::info('Job order images uploaded successfully', [
+                'job_order_id' => $id,
+                'folder_name' => $folderName,
+                'folder_id' => $folderId,
+                'image_count' => count($imageUrls),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Images uploaded successfully to Google Drive',
+                'data' => $imageUrls,
+                'folder_id' => $folderId,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading job order images', [
+                'job_order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload images to Google Drive',
                 'error' => $e->getMessage(),
             ], 500);
         }
