@@ -366,12 +366,14 @@ class JobOrderController extends Controller
             
             $accountNumber = $yearPrefix . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
+            $installationFee = $jobOrder->installation_fee ?? 0;
+            
             $billingAccount = BillingAccount::create([
                 'customer_id' => $customer->id,
                 'account_no' => $accountNumber,
                 'date_installed' => $jobOrder->date_installed ?? now(),
                 'plan_id' => null,
-                'account_balance' => 0,
+                'account_balance' => $installationFee,
                 'balance_update_date' => now(),
                 'billing_day' => $jobOrder->billing_day,
                 'billing_status_id' => 2,
@@ -428,6 +430,8 @@ class JobOrderController extends Controller
                     'billing_account_id' => $billingAccount->id,
                     'technical_detail_id' => $technicalDetail->id,
                     'account_number' => $accountNumber,
+                    'installation_fee' => $installationFee,
+                    'account_balance' => $installationFee,
                 ]
             ]);
 
