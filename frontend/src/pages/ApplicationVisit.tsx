@@ -128,7 +128,7 @@ const ApplicationVisit: React.FC = () => {
         const userData = JSON.parse(authData);
         setUserRole(userData.role || '');
       } catch (err) {
-        console.error('Error parsing auth data:', err);
+        // Error parsing auth data
       }
     }
   }, []);
@@ -138,7 +138,6 @@ const ApplicationVisit: React.FC = () => {
       if (isInitialLoad) {
         setLoading(true);
       }
-      console.log('Fetching application visits...');
       
       const authData = localStorage.getItem('authData');
       let assignedEmail: string | undefined;
@@ -148,26 +147,19 @@ const ApplicationVisit: React.FC = () => {
           const userData = JSON.parse(authData);
           if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
             assignedEmail = userData.email;
-            console.log('Filtering application visits for technician:', assignedEmail);
           }
         } catch (err) {
-          console.error('Error parsing auth data:', err);
+          // Error parsing auth data
         }
       }
       
       const response = await getAllApplicationVisits(assignedEmail);
-      console.log('API Response:', response);
       
       if (!response.success) {
         throw new Error(response.message || 'Failed to fetch application visits');
       }
       
       if (response.success && Array.isArray(response.data)) {
-        console.log(`Found ${response.data.length} application visits`);
-        
-        if (response.data.length > 0) {
-          console.log('First item example:', response.data[0]);
-        }
         
         const visits: ApplicationVisit[] = response.data.map((visit: any) => ({
           id: visit.id || '',
@@ -204,16 +196,13 @@ const ApplicationVisit: React.FC = () => {
         
         setApplicationVisits(visits);
         setError(null);
-        console.log('Application visits data processed successfully', visits);
       } else {
-        console.warn('No application visits returned from API or invalid response format', response);
         setApplicationVisits([]);
         if (response.message) {
           setError(response.message);
         }
       }
     } catch (err: any) {
-      console.error('Error fetching application visits:', err);
       if (isInitialLoad) {
         setError(err.message || 'Failed to load application visits. Please try again.');
         setApplicationVisits([]);
@@ -231,7 +220,6 @@ const ApplicationVisit: React.FC = () => {
 
   useEffect(() => {
     const intervalId = setInterval(() => {
-      console.log('Auto-refreshing application visits...');
       fetchApplicationVisits(false);
     }, 5 * 60 * 1000);
 
@@ -245,7 +233,6 @@ const ApplicationVisit: React.FC = () => {
   };
 
   const handleVisitUpdate = async () => {
-    console.log('Visit updated, refreshing data...');
     await fetchApplicationVisits(false);
   };
 
@@ -307,14 +294,12 @@ const ApplicationVisit: React.FC = () => {
           
           setSelectedVisit(updatedVisit);
         } catch (err: any) {
-          console.error('Error fetching application data:', err);
           setSelectedVisit(visit);
         }
       } else {
         setSelectedVisit(visit);
       }
     } catch (err: any) {
-      console.error('Error selecting visit:', err);
       setError(`Failed to select visit: ${err.message || 'Unknown error'}`);
     }
   };

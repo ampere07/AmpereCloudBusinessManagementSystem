@@ -15,7 +15,6 @@ export interface JobOrderItem {
 
 export const createJobOrderItems = async (items: JobOrderItem[]): Promise<ApiResponse<JobOrderItem[]>> => {
   try {
-    console.log('Sending job order items to backend:', JSON.stringify(items, null, 2));
     const response = await apiClient.post<ApiResponse<JobOrderItem[]>>('/job-order-items', { items });
     return response.data;
   } catch (error: any) {

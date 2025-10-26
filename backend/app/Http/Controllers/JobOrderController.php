@@ -19,6 +19,8 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
+use App\Services\GoogleDriveService;
+
 class JobOrderController extends Controller
 {
     public function index(Request $request): JsonResponse
@@ -59,6 +61,7 @@ class JobOrderController extends Controller
                     'Status_Remarks' => $jobOrder->status_remarks,
                     'Assigned_Email' => $jobOrder->assigned_email,
                     'Contract_Template' => $jobOrder->contract_link,
+                    'contract_link' => $jobOrder->contract_link,
                     'Modified_By' => $jobOrder->created_by_user_email,
                     'Modified_Date' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'Username' => $jobOrder->username,
@@ -72,8 +75,8 @@ class JobOrderController extends Controller
                     'connection_type' => $jobOrder->connection_type,
                     'router_model' => $jobOrder->router_model,
                     'modem_router_sn' => $jobOrder->modem_router_sn,
-                    'Modem_SN' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
-                    'modem_sn' => $jobOrder->modem_router_sn,  // Alias for frontend compatibility
+                    'Modem_SN' => $jobOrder->modem_router_sn,
+                    'modem_sn' => $jobOrder->modem_router_sn,
                     'lcpnap' => $jobOrder->lcpnap,
                     'port' => $jobOrder->port,
                     'vlan' => $jobOrder->vlan,
@@ -83,6 +86,23 @@ class JobOrderController extends Controller
                     'ip_address' => $jobOrder->ip_address,
                     'address_coordinates' => $jobOrder->address_coordinates,
                     'onsite_remarks' => $jobOrder->onsite_remarks,
+                    'username_status' => $jobOrder->username_status,
+                    
+                    // Image URLs from job_orders table
+                    'client_signature_url' => $jobOrder->client_signature_url,
+                    'setup_image_url' => $jobOrder->setup_image_url,
+                    'speedtest_image_url' => $jobOrder->speedtest_image_url,
+                    'signed_contract_image_url' => $jobOrder->signed_contract_image_url,
+                    'box_reading_image_url' => $jobOrder->box_reading_image_url,
+                    'router_reading_image_url' => $jobOrder->router_reading_image_url,
+                    'port_label_image_url' => $jobOrder->port_label_image_url,
+                    'house_front_picture_url' => $jobOrder->house_front_picture_url,
+                    
+                    // Timestamps
+                    'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
+                    'updated_at' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
+                    'created_by_user_email' => $jobOrder->created_by_user_email,
+                    'updated_by_user_email' => $jobOrder->updated_by_user_email,
                     
                     'First_Name' => $application ? $application->first_name : null,
                     'Middle_Initial' => $application ? $application->middle_initial : null,
@@ -668,6 +688,143 @@ class JobOrderController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to create RADIUS account',
+                'error' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function uploadImages(Request $request, $id): JsonResponse
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'folder_name' => 'required|string|max:255',
+                'signed_contract_image' => 'nullable|image|max:10240',
+                'setup_image' => 'nullable|image|max:10240',
+                'box_reading_image' => 'nullable|image|max:10240',
+                'router_reading_image' => 'nullable|image|max:10240',
+                'port_label_image' => 'nullable|image|max:10240',
+                'client_signature_image' => 'nullable|image|max:10240',
+                'speed_test_image' => 'nullable|image|max:10240',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed',
+                    'errors' => $validator->errors(),
+                ], 422);
+            }
+
+            $jobOrder = JobOrder::findOrFail($id);
+            $folderName = $request->input('folder_name');
+
+            $driveService = new GoogleDriveService();
+            
+            $folderId = $driveService->createFolder($folderName);
+
+            $imageUrls = [];
+
+            if ($request->hasFile('signed_contract_image')) {
+                $file = $request->file('signed_contract_image');
+                $fileName = 'signed_contract_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['signed_contract_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('setup_image')) {
+                $file = $request->file('setup_image');
+                $fileName = 'setup_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['setup_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('box_reading_image')) {
+                $file = $request->file('box_reading_image');
+                $fileName = 'box_reading_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['box_reading_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('router_reading_image')) {
+                $file = $request->file('router_reading_image');
+                $fileName = 'router_reading_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['router_reading_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('port_label_image')) {
+                $file = $request->file('port_label_image');
+                $fileName = 'port_label_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['port_label_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('client_signature_image')) {
+                $file = $request->file('client_signature_image');
+                $fileName = 'client_signature_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['client_signature_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            if ($request->hasFile('speed_test_image')) {
+                $file = $request->file('speed_test_image');
+                $fileName = 'speed_test_' . time() . '.' . $file->getClientOriginalExtension();
+                $imageUrls['speedtest_image_url'] = $driveService->uploadFile(
+                    $file,
+                    $folderId,
+                    $fileName,
+                    $file->getMimeType()
+                );
+            }
+
+            Log::info('Job order images uploaded successfully', [
+                'job_order_id' => $id,
+                'folder_name' => $folderName,
+                'folder_id' => $folderId,
+                'image_count' => count($imageUrls),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Images uploaded successfully to Google Drive',
+                'data' => $imageUrls,
+                'folder_id' => $folderId,
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error uploading job order images', [
+                'job_order_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to upload images to Google Drive',
                 'error' => $e->getMessage(),
             ], 500);
         }

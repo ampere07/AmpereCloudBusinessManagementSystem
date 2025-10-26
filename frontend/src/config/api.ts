@@ -11,9 +11,6 @@ if (!API_BASE_URL) {
   throw new Error('REACT_APP_API_BASE_URL must be defined in .env file');
 }
 
-console.log('Environment:', process.env.NODE_ENV);
-console.log('API Base URL:', API_BASE_URL);
-
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
   withCredentials: true,
@@ -37,9 +34,8 @@ export const initializeCsrf = async (): Promise<void> => {
       withCredentials: true,
     });
     csrfInitialized = true;
-    console.log('CSRF cookie initialized');
   } catch (error) {
-    console.error('Failed to initialize CSRF cookie:', error);
+    // CSRF initialization failed
   }
 };
 
@@ -58,30 +54,19 @@ apiClient.interceptors.request.use(
       config.headers['X-XSRF-TOKEN'] = xsrfToken;
     }
 
-    console.log(
-      `API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`,
-      config.data || 'No data'
-    );
     return config;
   },
   (error) => {
-    console.error('API Request Error:', error);
     return Promise.reject(error);
   }
 );
 
 apiClient.interceptors.response.use(
   (response) => {
-    console.log(`API Response: ${response.status} ${response.config.url}`, response.data);
     return response;
   },
   async (error) => {
     if (error.response) {
-      console.error(
-        `API Error: ${error.response.status} ${error.response.config?.url}`,
-        error.response.data
-      );
-
       if (error.response.status === 419) {
         csrfInitialized = false;
         const originalRequest = error.config;
@@ -100,10 +85,6 @@ apiClient.interceptors.response.use(
           }
         }
       }
-    } else if (error.request) {
-      console.error('API Error: No response received', error.request);
-    } else {
-      console.error('API Error:', error.message);
     }
     return Promise.reject(error);
   }

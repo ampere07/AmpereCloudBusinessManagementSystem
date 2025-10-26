@@ -12,13 +12,11 @@ interface ApplicationResponse {
 export const getApplications = async (): Promise<Application[]> => {
   try {
     const response = await apiClient.get<ApplicationResponse>('/applications');
-    console.log('Application API response:', response.data);
     
     if (response.data && response.data.applications && Array.isArray(response.data.applications)) {
       return response.data.applications;
     }
     
-    console.log('No applications found in API response');
     return [];
   } catch (error: any) {
     console.error('Error fetching applications:', error);

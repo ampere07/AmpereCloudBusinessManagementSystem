@@ -21,10 +21,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
   const [userRole, setUserRole] = useState<string>('');
   
-  console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
-  console.log('JobOrderDetails - Secondary_Mobile_Number:', jobOrder.Secondary_Mobile_Number);
-  console.log('JobOrderDetails - Second_Contact_Number:', jobOrder.Second_Contact_Number);
-  
   // Get user role from localStorage
   useEffect(() => {
     const authData = localStorage.getItem('authData');
@@ -84,6 +80,20 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
     if (price === null || price === undefined) return '₱0.00';
     const numPrice = typeof price === 'string' ? parseFloat(price) : price;
     return `₱${numPrice.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
+  const getLastDayOfMonth = (): number => {
+    const now = new Date();
+    const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    return lastDay.getDate();
+  };
+
+  const getBillingDayDisplay = (billingDay?: string | number | null): string => {
+    const day = billingDay ?? null;
+    if (day === null || day === undefined) return 'Not set';
+    const dayValue = Number(day);
+    if (isNaN(dayValue)) return 'Not set';
+    return dayValue === 0 ? String(getLastDayOfMonth()) : String(dayValue);
   };
 
   const getClientFullName = (): string => {
@@ -382,9 +392,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Billing Day:</div>
               <div className="text-white flex-1">
-                {(jobOrder.Billing_Day === '0' || Number(jobOrder.Billing_Day) === 0)
-                  ? 'Every end of month' 
-                  : (jobOrder.Billing_Day || 'Not set')}
+                {getBillingDayDisplay(jobOrder.Billing_Day ?? jobOrder.billing_day)}
               </div>
             </div>
             
@@ -505,6 +513,30 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Date Installed:</div>
+              <div className="text-white flex-1">
+                {jobOrder.Date_Installed || jobOrder.date_installed 
+                  ? formatDate(jobOrder.Date_Installed || jobOrder.date_installed) 
+                  : 'Not installed yet'}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Visit By:</div>
+              <div className="text-white flex-1">{jobOrder.Visit_By || jobOrder.visit_by || 'Not assigned'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Visit With:</div>
+              <div className="text-white flex-1">{jobOrder.Visit_With || jobOrder.visit_with || 'None'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Visit With Other:</div>
+              <div className="text-white flex-1">{jobOrder.Visit_With_Other || jobOrder.visit_with_other || 'None'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Onsite Status:</div>
               <div className={`${getStatusColor(jobOrder.Onsite_Status, 'onsite')} flex-1 capitalize`}>
                 {jobOrder.Onsite_Status === 'inprogress' ? 'In Progress' : (jobOrder.Onsite_Status || 'Not set')}
@@ -543,9 +575,128 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
               <div className="text-white flex-1">{formatDate(jobOrder.Modified_Date)}</div>
             </div>
             
-            <div className="flex pb-4">
+            <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Assigned Email:</div>
               <div className="text-white flex-1">{jobOrder.Assigned_Email || 'Not assigned'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Setup Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.setup_image_url || jobOrder.Setup_Image_URL || jobOrder.Setup_Image_Url || 'No image available'}
+                </span>
+                {(jobOrder.setup_image_url || jobOrder.Setup_Image_URL || jobOrder.Setup_Image_Url) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.setup_image_url || jobOrder.Setup_Image_URL || jobOrder.Setup_Image_Url || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Speedtest Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.speedtest_image_url || jobOrder.Speedtest_Image_URL || jobOrder.speedtest_image || jobOrder.Speedtest_Image || 'No image available'}
+                </span>
+                {(jobOrder.speedtest_image_url || jobOrder.Speedtest_Image_URL || jobOrder.speedtest_image || jobOrder.Speedtest_Image) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.speedtest_image_url || jobOrder.Speedtest_Image_URL || jobOrder.speedtest_image || jobOrder.Speedtest_Image || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Signed Contract Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.signed_contract_image_url || jobOrder.Signed_Contract_Image_URL || jobOrder.signed_contract_url || jobOrder.Signed_Contract_URL || 'No image available'}
+                </span>
+                {(jobOrder.signed_contract_image_url || jobOrder.Signed_Contract_Image_URL || jobOrder.signed_contract_url || jobOrder.Signed_Contract_URL) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.signed_contract_image_url || jobOrder.Signed_Contract_Image_URL || jobOrder.signed_contract_url || jobOrder.Signed_Contract_URL || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Box Reading Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.box_reading_image_url || jobOrder.Box_Reading_Image_URL || jobOrder.box_reading_url || jobOrder.Box_Reading_URL || 'No image available'}
+                </span>
+                {(jobOrder.box_reading_image_url || jobOrder.Box_Reading_Image_URL || jobOrder.box_reading_url || jobOrder.Box_Reading_URL) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.box_reading_image_url || jobOrder.Box_Reading_Image_URL || jobOrder.box_reading_url || jobOrder.Box_Reading_URL || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Router Reading Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.router_reading_image_url || jobOrder.Router_Reading_Image_URL || jobOrder.router_reading_url || jobOrder.Router_Reading_URL || 'No image available'}
+                </span>
+                {(jobOrder.router_reading_image_url || jobOrder.Router_Reading_Image_URL || jobOrder.router_reading_url || jobOrder.Router_Reading_URL) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.router_reading_image_url || jobOrder.Router_Reading_Image_URL || jobOrder.router_reading_url || jobOrder.Router_Reading_URL || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">Port Label Image</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.port_label_image_url || jobOrder.Port_Label_Image_URL || jobOrder.port_label_url || jobOrder.Port_Label_URL || 'No image available'}
+                </span>
+                {(jobOrder.port_label_image_url || jobOrder.Port_Label_Image_URL || jobOrder.port_label_url || jobOrder.Port_Label_URL) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.port_label_image_url || jobOrder.Port_Label_Image_URL || jobOrder.port_label_url || jobOrder.Port_Label_URL || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 py-2">
+              <div className="w-40 text-gray-400 text-sm whitespace-nowrap">House Front Picture</div>
+              <div className="text-white flex-1 flex items-center justify-between min-w-0">
+                <span className="truncate mr-2">
+                  {jobOrder.house_front_picture_url || jobOrder.House_Front_Picture_URL || jobOrder.house_front_picture || jobOrder.House_Front_Picture || 'No image available'}
+                </span>
+                {(jobOrder.house_front_picture_url || jobOrder.House_Front_Picture_URL || jobOrder.house_front_picture || jobOrder.House_Front_Picture) && (
+                  <button 
+                    className="text-gray-400 hover:text-white flex-shrink-0"
+                    onClick={() => window.open(jobOrder.house_front_picture_url || jobOrder.House_Front_Picture_URL || jobOrder.house_front_picture || jobOrder.House_Front_Picture || '')}
+                  >
+                    <ExternalLink size={16} />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

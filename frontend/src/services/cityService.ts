@@ -51,30 +51,18 @@ export interface City {
 export const getCities = async (): Promise<City[]> => {
   try {
     const response = await apiClient.get('/cities');
-    console.log('Raw cities response:', response);
-    console.log('Cities response.data:', response.data);
-    
     const data = response.data as any;
     
-    // Handle direct array response
     if (Array.isArray(data)) {
-      console.log(`Successfully retrieved ${data.length} cities from direct array`);
       return data;
     }
     
-    // Handle wrapped response
     if (data.success && Array.isArray(data.data)) {
-      const cities = data.data;
-      console.log(`Successfully retrieved ${cities.length} cities from wrapped response`);
-      return cities;
+      return data.data;
     }
     
-    console.log('Using empty cities array as fallback. Data type:', typeof data, 'Is array:', Array.isArray(data));
     return [];
-    
   } catch (error: any) {
-    console.error('Error fetching cities:', error);
-    console.error('Error details:', error.response ? error.response.data : 'No response data');
     return [];
   }
 };
@@ -88,7 +76,6 @@ export const getLocationsByType = async (type: 'region' | 'city' | 'borough' | '
     }>(`/locations/type/${type}`);
     return response.data.success ? response.data.data : [];
   } catch (error) {
-    console.error(`Error fetching ${type}s:`, error);
     return [];
   }
 };
@@ -102,7 +89,6 @@ export const getLocationChildren = async (parentId: number): Promise<Location[]>
     }>(`/locations/parent/${parentId}`);
     return response.data.success ? response.data.data : [];
   } catch (error) {
-    console.error('Error fetching child locations:', error);
     return [];
   }
 };
@@ -116,7 +102,6 @@ export const getAllLocations = async (): Promise<Location[]> => {
     }>('/locations');
     return response.data.success ? response.data.data : [];
   } catch (error) {
-    console.error('Error fetching all locations:', error);
     return [];
   }
 };
@@ -145,7 +130,6 @@ export const createRegion = async (data: { name: string; code?: string; descript
     }
     throw new Error(response.data.message || 'Failed to create region');
   } catch (error: any) {
-    console.error('Error creating region:', error);
     throw error;
   }
 };
@@ -159,7 +143,6 @@ export const createCity = async (data: { name: string; region_id: number; code?:
     }
     throw new Error(response.data.message || 'Failed to create city');
   } catch (error: any) {
-    console.error('Error creating city:', error);
     throw error;
   }
 };
@@ -173,7 +156,6 @@ export const createBarangay = async (data: { name: string; city_id: number; code
     }
     throw new Error(response.data.message || 'Failed to create barangay');
   } catch (error: any) {
-    console.error('Error creating barangay:', error);
     throw error;
   }
 };
@@ -190,7 +172,6 @@ export const createLocation = async (data: { name: string; barangay_id: number }
     }
     throw new Error(response.data.message || 'Failed to create location');
   } catch (error: any) {
-    console.error('Error creating location:', error);
     throw error;
   }
 };
@@ -201,19 +182,16 @@ export const getRegions = async (): Promise<Region[]> => {
     const response = await apiClient.get('/regions');
     const data = response.data as any;
     
-    // Handle direct array response
     if (Array.isArray(data)) {
       return data;
     }
     
-    // Handle wrapped response
     if (data.success && Array.isArray(data.data)) {
       return data.data;
     }
     
     return [];
   } catch (error: any) {
-    console.error('Error fetching regions:', error);
     return [];
   }
 };
@@ -224,19 +202,16 @@ export const getBoroughs = async (): Promise<Borough[]> => {
     const response = await apiClient.get('/barangays');
     const data = response.data as any;
     
-    // Handle direct array response
     if (Array.isArray(data)) {
       return data;
     }
     
-    // Handle wrapped response
     if (data.success && Array.isArray(data.data)) {
       return data.data;
     }
     
     return [];
   } catch (error: any) {
-    console.error('Error fetching barangays:', error);
     return [];
   }
 };
@@ -247,19 +222,16 @@ export const getLocations = async (): Promise<LocationDetail[]> => {
     const response = await apiClient.get('/location-details');
     const data = response.data as any;
     
-    // Handle direct array response
     if (Array.isArray(data)) {
       return data;
     }
     
-    // Handle wrapped response
     if (data.success && Array.isArray(data.data)) {
       return data.data;
     }
     
     return [];
   } catch (error: any) {
-    console.error('Error fetching locations:', error);
     return [];
   }
 };
@@ -273,7 +245,6 @@ export const getRegionById = async (id: number): Promise<Region | null> => {
     }
     return null;
   } catch (error: any) {
-    console.error('Error fetching region:', error);
     return null;
   }
 };
@@ -287,7 +258,6 @@ export const getCityById = async (id: number): Promise<City | null> => {
     }
     return null;
   } catch (error: any) {
-    console.error('Error fetching city:', error);
     return null;
   }
 };
@@ -301,7 +271,6 @@ export const getBarangayById = async (id: number): Promise<Borough | null> => {
     }
     return null;
   } catch (error: any) {
-    console.error('Error fetching barangay:', error);
     return null;
   }
 };
@@ -311,7 +280,6 @@ export const deleteRegion = async (id: number, cascade: boolean = false): Promis
   try {
     await apiClient.delete(`/regions/${id}${cascade ? '?cascade=true' : ''}`);
   } catch (error: any) {
-    console.error('Error deleting region:', error);
     throw error;
   }
 };
@@ -321,7 +289,6 @@ export const deleteCity = async (id: number, cascade: boolean = false): Promise<
   try {
     await apiClient.delete(`/cities/${id}${cascade ? '?cascade=true' : ''}`);
   } catch (error: any) {
-    console.error('Error deleting city:', error);
     throw error;
   }
 };
@@ -331,7 +298,6 @@ export const deleteBarangay = async (id: number, cascade: boolean = false): Prom
   try {
     await apiClient.delete(`/barangays/${id}${cascade ? '?cascade=true' : ''}`);
   } catch (error: any) {
-    console.error('Error deleting barangay:', error);
     throw error;
   }
 };
@@ -341,7 +307,6 @@ export const deleteLocation = async (id: number): Promise<void> => {
   try {
     await apiClient.delete(`/location-details/${id}`);
   } catch (error: any) {
-    console.error('Error deleting location:', error);
     throw error;
   }
 };

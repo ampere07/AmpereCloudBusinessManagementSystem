@@ -67,26 +67,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
   useEffect(() => {
     if (isOpen && applicationData) {
-      console.log('DEBUG - Initial ApplicationVisitFormModal data:', {
-        applicationData,
-        mobile_alt: applicationData.mobile_alt,
-        secondaryNumber: applicationData.secondaryNumber,
-        properties: Object.keys(applicationData || {}),
-        region: applicationData.Region || applicationData.region,
-        city: applicationData.City || applicationData.city,
-        barangay: applicationData.Barangay || applicationData.barangay
-      });
     }
   }, [isOpen, applicationData]);
   
 
   const [formData, setFormData] = useState<VisitFormData>(() => {
     const initialSecondContact = applicationData?.secondary_mobile_number || '';
-                                
-    console.log('DEBUG - Initial second contact values:', {
-      secondary_mobile_number: applicationData?.secondary_mobile_number,
-      initialSecondContact
-    });
     
     return {
       firstName: applicationData?.first_name || '',
@@ -147,15 +133,11 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const fetchPlans = async () => {
       if (isOpen) {
         try {
-          console.log('Loading plans from database...');
           const response = await planService.getAllPlans();
-          console.log('Plans API Response:', response);
           
           if (Array.isArray(response)) {
             setPlans(response);
-            console.log('Loaded Plans:', response.length);
           } else {
-            console.warn('Unexpected Plans response structure:', response);
             setPlans([]);
           }
         } catch (error) {
@@ -173,18 +155,14 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const loadPromos = async () => {
       if (isOpen) {
         try {
-          console.log('Loading promos from database...');
           const response = await apiClient.get<ApiResponse<Promo[]> | Promo[]>('/promos');
           const data = response.data;
           
           if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
             setPromos(data.data);
-            console.log('Loaded promos:', data.data.length);
           } else if (Array.isArray(data)) {
             setPromos(data);
-            console.log('Loaded promos:', data.length);
           } else {
-            console.warn('No promos data found');
             setPromos([]);
           }
         } catch (error) {
@@ -202,24 +180,15 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const fetchRegions = async () => {
       if (isOpen) {
         try {
-          console.log('========== FETCHING REGIONS ==========');
-          console.log('Loading regions from database...');
           const fetchedRegions = await getRegions();
-          console.log('Regions API Response:', fetchedRegions);
           
           if (Array.isArray(fetchedRegions)) {
-            console.log('Regions Count:', fetchedRegions.length);
             setRegions(fetchedRegions);
-            console.log('Successfully set regions state');
           } else {
-            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
-          console.log('======================================');
         } catch (error) {
-          console.error('========== ERROR FETCHING REGIONS ==========');
           console.error('Error fetching Regions:', error);
-          console.error('===========================================');
           setRegions([]);
         }
       }
@@ -232,13 +201,10 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const fetchAllCities = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all cities from database...');
           const fetchedCities = await getCities();
-          console.log('All Cities API Response:', fetchedCities);
           
           if (Array.isArray(fetchedCities)) {
             setAllCities(fetchedCities);
-            console.log('Loaded All Cities:', fetchedCities.length);
           } else {
             setAllCities([]);
           }
@@ -256,13 +222,10 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const fetchAllBarangays = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all barangays from database...');
           const response = await barangayService.getAll();
-          console.log('All Barangays API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllBarangays(response.data);
-            console.log('Loaded All Barangays:', response.data.length);
           } else {
             setAllBarangays([]);
           }
@@ -280,13 +243,10 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const fetchAllLocations = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all locations from database...');
           const response = await locationDetailService.getAll();
-          console.log('All Locations API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllLocations(response.data);
-            console.log('Loaded All Locations:', response.data.length);
           } else {
             setAllLocations([]);
           }
@@ -333,12 +293,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   // Update form data when applicationData changes
   useEffect(() => {
     if (applicationData) {
-      console.log('DEBUG - Application data loaded:', applicationData);
-      console.log('DEBUG - Second contact field:', applicationData.secondary_mobile_number);
-      
       setFormData(prev => {
         const secondContact = applicationData.secondary_mobile_number || '';
-        console.log('DEBUG - Selected second contact number:', secondContact);        
         
         return {
           ...prev,
@@ -432,21 +388,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       throw new Error(`Invalid application ID: ${applicationId}`);
     }
     
-    console.log('Mapping form data to visit data:', {
-      applicationId,
-      parsedAppId: appId,
-      assignedEmail: formData.assignedEmail,
-      visitStatus: formData.status,
-      createdByEmail: currentUserEmail,
-      region: formData.region,
-      city: formData.city,
-      barangay: formData.barangay,
-      location: formData.location,
-      choosePlan: formData.choosePlan,
-      promo: formData.promo,
-      house_front_picture_url: applicationData?.house_front_picture_url
-    });
-    
     return {
       application_id: appId,
       assigned_email: formData.assignedEmail,
@@ -468,13 +409,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   };
 
   const handleSave = async () => {
-    console.log('Save button clicked!', formData);
-    
     const isValid = validateForm();
-    console.log('Form validation result:', isValid);
     
     if (!isValid) {
-      console.log('Form validation failed. Errors:', errors);
       alert('Please fill in all required fields before saving.');
       return;
     }
@@ -489,8 +426,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     try {
       const applicationId = applicationData.id;
       
-      // Step 1: Update the applications table with region, city, barangay, location, desired_plan, and promo
-      console.log('========== UPDATING APPLICATION TABLE ==========');
       const applicationUpdateData: any = {
         first_name: formData.firstName,
         middle_initial: formData.middleInitial || null,
@@ -507,40 +442,24 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         promo: formData.promo || null
       };
       
-      console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
-      
       try {
-        const applicationResponse = await updateApplication(applicationId.toString(), applicationUpdateData);
-        console.log('Application updated successfully:', applicationResponse);
+        await updateApplication(applicationId.toString(), applicationUpdateData);
       } catch (appError: any) {
-        console.error('========== APPLICATION UPDATE ERROR ==========');
         console.error('Error updating application:', appError);
-        console.error('Error response:', appError.response?.data);
-        console.error('Error message:', appError.message);
-        console.error('==============================================');
         
         const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
         alert(`Failed to update application data!\n\nError: ${errorMsg}\n\nPlease try again.`);
         setLoading(false);
         return;
       }
-      console.log('===============================================');
       
-      // Step 2: Create the application visit
-      console.log('========== CREATING APPLICATION VISIT ==========');
       const visitData = mapFormDataToVisitData(applicationId);
       
-      console.log('Final visit data being sent to API:', JSON.stringify(visitData, null, 2));
-      
       const result = await createApplicationVisit(visitData);
-      console.log('Application visit created successfully:', result);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to create application visit');
       }
-      
-      console.log('Visit created successfully with ID:', result.data?.id);
-      console.log('===============================================');
       
       alert(`Visit created successfully!\n\nApplication data has been updated with the new location and plan information.`);
       

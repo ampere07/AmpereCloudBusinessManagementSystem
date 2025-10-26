@@ -62,7 +62,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         return JSON.parse(authData);
       }
     } catch (error) {
-      console.error('Error getting current user:', error);
+      return null;
     }
     return null;
   };
@@ -125,6 +125,9 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [pendingJobOrder, setPendingJobOrder] = useState<any>(null);
   
   // Contract template state
   const [contractTemplates, setContractTemplates] = useState<ContractTemplate[]>([]);
@@ -142,12 +145,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [groups, setGroups] = useState<Group[]>([]);
 
-  // Fetch technicians from database
   useEffect(() => {
     const fetchTechnicians = async () => {
       if (isOpen) {
         try {
-          console.log('Loading technicians from database...');
           const response = await userService.getUsersByRole('technician');
           if (response.success && response.data) {
             const technicianList = response.data
@@ -163,10 +164,8 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               })
               .filter((tech: any) => tech.name && tech.email);
             setTechnicians(technicianList);
-            console.log('Loaded technicians:', technicianList.length);
           }
         } catch (error) {
-          console.error('Error fetching technicians:', error);
           setTechnicians([]);
         }
       }
@@ -175,22 +174,17 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     fetchTechnicians();
   }, [isOpen]);
 
-  // Fetch groups from database
   useEffect(() => {
     const fetchGroups = async () => {
       if (isOpen) {
         try {
-          console.log('Loading groups from database...');
           const response = await getAllGroups();
           if (response.success && Array.isArray(response.data)) {
             setGroups(response.data);
-            console.log('Loaded groups:', response.data.length);
           } else {
-            console.warn('No groups data found');
             setGroups([]);
           }
         } catch (error) {
-          console.error('Error fetching groups:', error);
           setGroups([]);
         }
       }
@@ -199,7 +193,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     fetchGroups();
   }, [isOpen]);
 
-  // Load contract templates on component mount
   useEffect(() => {
     const fetchLookupData = async () => {
       try {
@@ -207,7 +200,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         const templates = await getContractTemplates();
         setContractTemplates(templates);
       } catch (error) {
-        console.error('Failed to load contract templates:', error);
+        setLookupLoading(false);
       } finally {
         setLookupLoading(false);
       }
@@ -218,27 +211,21 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     }
   }, [isOpen]);
 
-  // Fetch plans from database
   useEffect(() => {
     const loadPlans = async () => {
       if (isOpen) {
         try {
-          console.log('Loading plans from database...');
           const response = await apiClient.get<ApiResponse<Plan[]> | Plan[]>('/plans');
           const data = response.data;
           
           if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
             setPlans(data.data);
-            console.log('Loaded plans:', data.data.length);
           } else if (Array.isArray(data)) {
             setPlans(data);
-            console.log('Loaded plans:', data.length);
           } else {
-            console.warn('No plans data found');
             setPlans([]);
           }
         } catch (error) {
-          console.error('Error loading plans:', error);
           setPlans([]);
         }
       }
@@ -247,27 +234,21 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     loadPlans();
   }, [isOpen]);
 
-  // Fetch promos from database
   useEffect(() => {
     const loadPromos = async () => {
       if (isOpen) {
         try {
-          console.log('Loading promos from database...');
           const response = await apiClient.get<ApiResponse<Promo[]> | Promo[]>('/promos');
           const data = response.data;
           
           if (data && typeof data === 'object' && 'success' in data && data.success && Array.isArray(data.data)) {
             setPromos(data.data);
-            console.log('Loaded promos:', data.data.length);
           } else if (Array.isArray(data)) {
             setPromos(data);
-            console.log('Loaded promos:', data.length);
           } else {
-            console.warn('No promos data found');
             setPromos([]);
           }
         } catch (error) {
-          console.error('Error loading promos:', error);
           setPromos([]);
         }
       }
@@ -276,29 +257,18 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     loadPromos();
   }, [isOpen]);
 
-  // Fetch regions from database
   useEffect(() => {
     const fetchRegions = async () => {
       if (isOpen) {
         try {
-          console.log('========== FETCHING REGIONS ==========');
-          console.log('Loading regions from database...');
           const fetchedRegions = await getRegions();
-          console.log('Regions API Response:', fetchedRegions);
           
           if (Array.isArray(fetchedRegions)) {
-            console.log('Regions Count:', fetchedRegions.length);
             setRegions(fetchedRegions);
-            console.log('Successfully set regions state');
           } else {
-            console.warn('Unexpected Regions response structure:', fetchedRegions);
             setRegions([]);
           }
-          console.log('======================================');
         } catch (error) {
-          console.error('========== ERROR FETCHING REGIONS ==========');
-          console.error('Error fetching Regions:', error);
-          console.error('===========================================');
           setRegions([]);
         }
       }
@@ -311,18 +281,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const fetchAllCities = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all cities from database...');
           const fetchedCities = await getCities();
-          console.log('All Cities API Response:', fetchedCities);
           
           if (Array.isArray(fetchedCities)) {
             setAllCities(fetchedCities);
-            console.log('Loaded All Cities:', fetchedCities.length);
           } else {
             setAllCities([]);
           }
         } catch (error) {
-          console.error('Error fetching Cities:', error);
           setAllCities([]);
         }
       }
@@ -335,18 +301,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const fetchAllBarangays = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all barangays from database...');
           const response = await barangayService.getAll();
-          console.log('All Barangays API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllBarangays(response.data);
-            console.log('Loaded All Barangays:', response.data.length);
           } else {
             setAllBarangays([]);
           }
         } catch (error) {
-          console.error('Error fetching Barangays:', error);
           setAllBarangays([]);
         }
       }
@@ -359,18 +321,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const fetchAllLocations = async () => {
       if (isOpen) {
         try {
-          console.log('Loading all locations from database...');
           const response = await locationDetailService.getAll();
-          console.log('All Locations API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setAllLocations(response.data);
-            console.log('Loaded All Locations:', response.data.length);
           } else {
             setAllLocations([]);
           }
         } catch (error) {
-          console.error('Error fetching Locations:', error);
           setAllLocations([]);
         }
       }
@@ -380,39 +338,24 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    console.log('JO Form Modal - useEffect triggered');
-    console.log('JO Form Modal - Full applicationData:', JSON.stringify(applicationData, null, 2));
-    
     if (applicationData && isOpen) {
-      console.log('JO Form - Application Data exists and modal is open');
-      console.log('JO Form - Referred By value:', applicationData.referred_by);
-      console.log('JO Form - First Name:', applicationData.first_name);
-      console.log('JO Form - Last Name:', applicationData.last_name);
-      
-      setFormData(prev => {
-        const newFormData = {
-          ...prev,
-          referredBy: applicationData.referred_by || '',
-          firstName: applicationData.first_name || '',
-          middleInitial: applicationData.middle_initial || '',
-          lastName: applicationData.last_name || '',
-          contactNumber: applicationData.mobile_number || '',
-          email: applicationData.email_address || '',
-          address: applicationData.installation_address || '',
-          barangay: applicationData.barangay || '',
-          city: applicationData.city || '',
-          region: applicationData.region || '',
-          location: applicationData.location || '',
-          choosePlan: applicationData.desired_plan || '',
-          promo: applicationData.promo || '',
-          installationLandmark: applicationData.landmark || ''
-        };
-        
-        console.log('JO Form - New form data to set:', JSON.stringify(newFormData, null, 2));
-        return newFormData;
-      });
-    } else {
-      console.log('JO Form - No applicationData available or modal closed');
+      setFormData(prev => ({
+        ...prev,
+        referredBy: applicationData.referred_by || '',
+        firstName: applicationData.first_name || '',
+        middleInitial: applicationData.middle_initial || '',
+        lastName: applicationData.last_name || '',
+        contactNumber: applicationData.mobile_number || '',
+        email: applicationData.email_address || '',
+        address: applicationData.installation_address || '',
+        barangay: applicationData.barangay || '',
+        city: applicationData.city || '',
+        region: applicationData.region || '',
+        location: applicationData.location || '',
+        choosePlan: applicationData.desired_plan || '',
+        promo: applicationData.promo || '',
+        installationLandmark: applicationData.landmark || ''
+      }));
     }
   }, [applicationData, isOpen]);
 
@@ -615,14 +558,13 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       contract_link: null,
       username: null,
       group_name: toNullIfEmpty(data.groupName),
+      house_front_picture_url: applicationData?.house_front_picture_url || null,
       created_by_user_email: data.modifiedBy,
       updated_by_user_email: data.modifiedBy,
     };
   };
 
   const handleSave = async () => {
-    console.log('Save button clicked - JO Assign Form', formData);
-    
     const updatedFormData = {
       ...formData,
       modifiedBy: currentUserEmail,
@@ -632,73 +574,47 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     setFormData(updatedFormData);
     
     const isValid = validateForm();
-    console.log('Form validation result:', isValid);
     
     if (!isValid) {
-      console.log('Form validation failed. Errors:', errors);
-      alert('Please fill in all required fields before saving.');
+      setSuccessMessage('Please fill in all required fields before saving.');
+      setShowSuccessModal(true);
       return;
     }
     
     if (!applicationData?.id) {
-      console.error('No application ID available');
-      alert('Missing application ID. Cannot create job order.');
+      setSuccessMessage('Missing application ID. Cannot create job order.');
+      setShowSuccessModal(true);
       return;
     }
 
     setLoading(true);
     try {
       const jobOrderData = mapFormDataToJobOrder(applicationData.id, updatedFormData);
-      
-      console.log('Final job order data being sent to API:', JSON.stringify(jobOrderData, null, 2));
-      
       const result = await createJobOrder(jobOrderData);
-      console.log('Job Order created successfully:', result);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to create job order');
       }
-      
-      console.log('Job order saved successfully with data:', result.data);
-      
-      // Update the application with the promo value
-      console.log('========== UPDATING APPLICATION PROMO ==========');
-      console.log('Application ID:', applicationData.id);
-      console.log('Promo value:', updatedFormData.promo);
       
       try {
         const applicationUpdateData: any = {
           promo: updatedFormData.promo || null
         };
         
-        console.log('Application update data:', JSON.stringify(applicationUpdateData, null, 2));
-        
-        const applicationResponse = await updateApplication(applicationData.id.toString(), applicationUpdateData);
-        
-        console.log('Application API Response:', applicationResponse);
-        console.log('Application promo updated successfully!');
-        console.log('===============================================');
+        await updateApplication(applicationData.id.toString(), applicationUpdateData);
       } catch (appError: any) {
-        console.error('========== APPLICATION UPDATE ERROR ==========');
-        console.error('Error updating application promo:', appError);
-        console.error('Error response:', appError.response?.data);
-        console.error('Error message:', appError.message);
-        console.error('==============================================');
-        
         const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
-        alert(`Warning: Job order was saved but application promo update failed!\n\nError: ${errorMsg}\n\nPlease update the promo manually in the applications table.`);
+        setSuccessMessage(`Warning: Job order was saved but application promo update failed!\n\nError: ${errorMsg}\n\nPlease update the promo manually in the applications table.`);
+        setPendingJobOrder(result.data);
+        setShowSuccessModal(true);
+        return;
       }
       
-      alert(`Job Order created successfully!`);
-      
+      setSuccessMessage('Job Order created successfully!');
+      setPendingJobOrder(result.data);
       setErrors({});
-      onSave(result.data);
-      onClose();
+      setShowSuccessModal(true);
     } catch (error: any) {
-      console.error('Error creating job order:', error);
-      console.error('Error response:', error.response);
-      console.error('Validation errors:', error.response?.data?.errors);
-      
       let errorMessage = 'Unknown error occurred';
       
       if (error.response?.data?.errors) {
@@ -720,9 +636,23 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         errorMessage = error;
       }
       
-      alert(`Failed to create job order: ${errorMessage}`);
+      setSuccessMessage(`Failed to create job order: ${errorMessage}`);
+      setShowSuccessModal(true);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSuccessModalClose = () => {
+    setShowSuccessModal(false);
+    if (successMessage.includes('successfully') && pendingJobOrder) {
+      onSave(pendingJobOrder);
+      setPendingJobOrder(null);
+      onClose();
+    } else if (successMessage.includes('Warning') && pendingJobOrder) {
+      onSave(pendingJobOrder);
+      setPendingJobOrder(null);
+      onClose();
     }
   };
 
@@ -758,7 +688,8 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
+    <>
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">JO Assign Form</h2>
@@ -1315,7 +1246,31 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
           </div>
         </div>
       </div>
-    </div>
+      </div>
+
+      {showSuccessModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-xl font-semibold text-white">
+                  {successMessage.includes('successfully') || successMessage.includes('Warning') ? 'Success' : successMessage.includes('Failed') ? 'Error' : 'Notice'}
+                </h3>
+                <button
+                  onClick={handleSuccessModalClose}
+                  className="text-gray-400 hover:text-white transition-colors"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+              <p className="text-gray-300 whitespace-pre-line">
+                {successMessage}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
