@@ -1014,20 +1014,28 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               username: string;
               password: string;
               group: string;
+              credentials_exist?: boolean;
               radius_response?: any;
             };
           }>(`/job-orders/${jobOrderId}/create-radius-account`);
           
           if (radiusResponse.data.success && radiusResponse.data.data) {
-            const { username, password } = radiusResponse.data.data;
+            const { username, password, credentials_exist } = radiusResponse.data.data;
             
-            jobOrderUpdateData.pppoe_username = username;
-            jobOrderUpdateData.pppoe_password = password;
-            
-            saveMessages.push({
-              type: 'success',
-              text: `RADIUS Account Created: Username: ${username}, Password: ${password}, Plan: ${planNameForRadius}`
-            });
+            if (credentials_exist) {
+              saveMessages.push({
+                type: 'warning',
+                text: `PPPoE credentials already exist: Username: ${username}, Password: ${password}, Plan: ${planNameForRadius}`
+              });
+            } else {
+              jobOrderUpdateData.pppoe_username = username;
+              jobOrderUpdateData.pppoe_password = password;
+              
+              saveMessages.push({
+                type: 'success',
+                text: `RADIUS Account Created: Username: ${username}, Password: ${password}, Plan: ${planNameForRadius}`
+              });
+            }
           } else {
             saveMessages.push({
               type: 'warning',

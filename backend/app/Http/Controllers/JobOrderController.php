@@ -542,6 +542,24 @@ class JobOrderController extends Controller
                 ], 400);
             }
 
+            if (!empty($jobOrder->pppoe_username) && !empty($jobOrder->pppoe_password)) {
+                Log::info('PPPoE credentials already exist in job order', [
+                    'job_order_id' => $id,
+                    'pppoe_username' => $jobOrder->pppoe_username,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'PPPoE credentials already exist',
+                    'data' => [
+                        'username' => $jobOrder->pppoe_username,
+                        'password' => $jobOrder->pppoe_password,
+                        'group' => $jobOrder->group_name,
+                        'credentials_exist' => true,
+                    ],
+                ]);
+            }
+
             $application = $jobOrder->application;
 
             $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? ''));
@@ -563,7 +581,6 @@ class JobOrderController extends Controller
                 ], 400);
             }
             
-            // Extract plan name only (e.g., "FLASH - P1299.00" becomes "FLASH")
             if (strpos($planName, ' - P') !== false) {
                 $planName = trim(explode(' - P', $planName)[0]);
             }
@@ -673,8 +690,10 @@ class JobOrderController extends Controller
                 'message' => 'RADIUS account created successfully',
                 'data' => [
                     'username' => $modifiedUsername,
+                    'password' => $password,
                     'group' => $planName,
                     'radius_response' => $response->json(),
+                    'credentials_exist' => false,
                 ],
             ]);
 
