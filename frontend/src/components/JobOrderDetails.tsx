@@ -21,10 +21,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
   const [billingStatuses, setBillingStatuses] = useState<BillingStatus[]>([]);
   const [userRole, setUserRole] = useState<string>('');
   
-  console.log('JobOrderDetails - Full jobOrder object:', jobOrder);
-  console.log('JobOrderDetails - Secondary_Mobile_Number:', jobOrder.Secondary_Mobile_Number);
-  console.log('JobOrderDetails - Second_Contact_Number:', jobOrder.Second_Contact_Number);
-  
   // Get user role from localStorage
   useEffect(() => {
     const authData = localStorage.getItem('authData');

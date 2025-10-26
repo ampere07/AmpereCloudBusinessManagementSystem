@@ -158,7 +158,6 @@ const JobOrderPage: React.FC = () => {
         setUserRole(userData.role || '');
         setUserEmail(userData.email || '');
       } catch (error) {
-        console.error('Error parsing auth data:', error);
       }
     }
   }, []);
@@ -184,7 +183,6 @@ const JobOrderPage: React.FC = () => {
               assignedEmail = userData.email;
             }
           } catch (error) {
-            console.error('Error parsing auth data:', error);
           }
         }
         
@@ -205,7 +203,6 @@ const JobOrderPage: React.FC = () => {
           setJobOrders([]);
         }
       } catch (err: any) {
-        console.error('Error fetching data:', err);
         setError(`Failed to load data: ${err.message || 'Unknown error'}`);
       } finally {
         setLoading(false);

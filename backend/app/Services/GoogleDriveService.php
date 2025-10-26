@@ -50,10 +50,54 @@ class GoogleDriveService
         return $this->parentFolderId;
     }
 
+    public function findFolder($folderName, $parentFolderId = null)
+    {
+        try {
+            $parentId = $parentFolderId ?? $this->parentFolderId;
+            
+            $query = "name='{$folderName}' and mimeType='application/vnd.google-apps.folder' and '{$parentId}' in parents and trashed=false";
+            
+            $response = $this->service->files->listFiles([
+                'q' => $query,
+                'fields' => 'files(id, name)',
+                'supportsAllDrives' => true,
+                'includeItemsFromAllDrives' => true
+            ]);
+            
+            $files = $response->getFiles();
+            
+            if (count($files) > 0) {
+                Log::info('Found existing Google Drive folder', [
+                    'folder_name' => $folderName,
+                    'folder_id' => $files[0]->id,
+                    'parent_id' => $parentId
+                ]);
+                return $files[0]->id;
+            }
+            
+            return null;
+        } catch (\Exception $e) {
+            Log::error('Failed to search for Google Drive folder', [
+                'folder_name' => $folderName,
+                'error' => $e->getMessage()
+            ]);
+            return null;
+        }
+    }
+
     public function createFolder($folderName, $parentFolderId = null)
     {
         try {
             $parentId = $parentFolderId ?? $this->parentFolderId;
+            
+            $existingFolderId = $this->findFolder($folderName, $parentId);
+            if ($existingFolderId) {
+                Log::info('Using existing Google Drive folder', [
+                    'folder_name' => $folderName,
+                    'folder_id' => $existingFolderId
+                ]);
+                return $existingFolderId;
+            }
             
             $fileMetadata = new GoogleDrive\DriveFile([
                 'name' => $folderName,
