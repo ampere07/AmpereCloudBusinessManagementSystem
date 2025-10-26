@@ -83,6 +83,26 @@ interface OrderItem {
   quantity: string;
 }
 
+const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
+  if (!url) return null;
+  
+  const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  if (fileIdMatch && fileIdMatch[1]) {
+    return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+  }
+  
+  const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (idMatch && idMatch[1]) {
+    return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+  }
+  
+  return url;
+};
+
+const isGoogleDriveUrl = (url: string | null): boolean => {
+  return url ? url.includes('drive.google.com') : false;
+};
+
 const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   isOpen,
   onClose,
@@ -176,12 +196,34 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   const [vlans, setVlans] = useState<VLAN[]>([]);
   const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
   const [statusRemarksList, setStatusRemarksList] = useState<StatusRemark[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<{
+    signedContractImage: string | null;
+    setupImage: string | null;
+    boxReadingImage: string | null;
+    routerReadingImage: string | null;
+    portLabelImage: string | null;
+    clientSignatureImage: string | null;
+    speedTestImage: string | null;
+  }>({
+    signedContractImage: null,
+    setupImage: null,
+    boxReadingImage: null,
+    routerReadingImage: null,
+    portLabelImage: null,
+    clientSignatureImage: null,
+    speedTestImage: null
+  });
 
   useEffect(() => {
     if (!isOpen) {
       setOrderItems([{ itemId: '', quantity: '' }]);
+      Object.values(imagePreviews).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, imagePreviews]);
 
   useEffect(() => {
     const fetchJobOrderItems = async () => {
@@ -581,6 +623,79 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   }, [isOpen, jobOrderData, formData.lcpnap]);
 
   useEffect(() => {
+    if (!isOpen) return;
+
+    if (jobOrderData) {
+      const isValidImageUrl = (url: any): boolean => {
+        if (!url) return false;
+        if (typeof url !== 'string') return false;
+        const trimmed = url.trim().toLowerCase();
+        return trimmed !== '' && trimmed !== 'null' && trimmed !== 'undefined';
+      };
+
+      const getImageUrl = (fieldVariations: string[]): string | null => {
+        for (const field of fieldVariations) {
+          const value = jobOrderData?.[field];
+          if (isValidImageUrl(value)) {
+            return value;
+          }
+        }
+        return null;
+      };
+
+      const clientSignatureVariations = [
+        'client_signature_image_url',
+        'Client_Signature_Image_URL',
+        'client_sig_image_url',
+        'signature_image_url',
+        'clientSignatureImageUrl',
+        'ClientSignatureImageURL',
+        'client_signature_url',
+        'clientSignatureUrl'
+      ];
+
+      const newImagePreviews = {
+        signedContractImage: convertGoogleDriveUrl(jobOrderData?.signed_contract_image_url || jobOrderData?.Signed_Contract_Image_URL),
+        setupImage: convertGoogleDriveUrl(jobOrderData?.setup_image_url || jobOrderData?.Setup_Image_URL),
+        boxReadingImage: convertGoogleDriveUrl(jobOrderData?.box_reading_image_url || jobOrderData?.Box_Reading_Image_URL),
+        routerReadingImage: convertGoogleDriveUrl(jobOrderData?.router_reading_image_url || jobOrderData?.Router_Reading_Image_URL),
+        portLabelImage: convertGoogleDriveUrl(jobOrderData?.port_label_image_url || jobOrderData?.Port_Label_Image_URL),
+        clientSignatureImage: convertGoogleDriveUrl(getImageUrl(clientSignatureVariations)),
+        speedTestImage: convertGoogleDriveUrl(jobOrderData?.speedtest_image_url || jobOrderData?.Speedtest_Image_URL)
+      };
+
+      setImagePreviews(newImagePreviews);
+
+      const errorsToClear: string[] = [];
+      if (newImagePreviews.signedContractImage) errorsToClear.push('signedContractImage');
+      if (newImagePreviews.setupImage) errorsToClear.push('setupImage');
+      if (newImagePreviews.boxReadingImage) errorsToClear.push('boxReadingImage');
+      if (newImagePreviews.routerReadingImage) errorsToClear.push('routerReadingImage');
+      if (newImagePreviews.portLabelImage) errorsToClear.push('portLabelImage');
+      if (newImagePreviews.clientSignatureImage) errorsToClear.push('clientSignatureImage');
+      if (newImagePreviews.speedTestImage) errorsToClear.push('speedTestImage');
+
+      if (errorsToClear.length > 0) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          errorsToClear.forEach(key => delete newErrors[key]);
+          return newErrors;
+        });
+      }
+    } else {
+      setImagePreviews({
+        signedContractImage: null,
+        setupImage: null,
+        boxReadingImage: null,
+        routerReadingImage: null,
+        portLabelImage: null,
+        clientSignatureImage: null,
+        speedTestImage: null
+      });
+    }
+  }, [jobOrderData, isOpen]);
+
+  useEffect(() => {
     if (jobOrderData && isOpen) {
       console.log('JobOrderEditFormModal - Received jobOrderData:', jobOrderData);
       
@@ -718,11 +833,91 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
+    
+    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreviews[field]!);
+    }
+    
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+    
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
+  };
+
+  const ImagePreview: React.FC<{
+    imageUrl: string | null;
+    label: string;
+    onUpload: (file: File) => void;
+    error?: string;
+  }> = ({ imageUrl, label, onUpload, error }) => {
+    const [imageLoadError, setImageLoadError] = useState(false);
+    const isGDrive = isGoogleDriveUrl(imageUrl);
+    const isBlobUrl = imageUrl?.startsWith('blob:');
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{label}<span className="text-red-500">*</span></label>
+        <div className="relative w-full h-48 bg-gray-800 border border-gray-700 rounded overflow-hidden cursor-pointer hover:bg-gray-750">
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onUpload(e.target.files[0]);
+                setImageLoadError(false);
+              }
+            }} 
+            className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+          />
+          {imageUrl ? (
+            <div className="relative w-full h-full">
+              {isBlobUrl || (!isGDrive && !imageLoadError) ? (
+                <img 
+                  src={imageUrl} 
+                  alt={label} 
+                  className="w-full h-full object-contain"
+                  onError={() => setImageLoadError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                  <Camera size={32} />
+                  <span className="text-sm mt-2 text-center px-4">Image stored in Google Drive</span>
+                  {imageUrl && (
+                    <a 
+                      href={imageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-orange-500 text-xs mt-2 hover:underline z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View in Drive
+                    </a>
+                  )}
+                </div>
+              )}
+              <div className="absolute bottom-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center pointer-events-none">
+                <Camera className="mr-1" size={14} />Uploaded
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              <Camera size={32} />
+              <span className="text-sm mt-2">Click to upload</span>
+            </div>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center mt-1">
+            <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+            <p className="text-orange-500 text-xs">This entry is required</p>
+          </div>
+        )}
+      </div>
+    );
   };
 
   const handleNumberChange = (field: 'contractTemplate', increment: boolean) => {
@@ -1627,95 +1822,47 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
               {formData.onsiteStatus === 'Done' && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Signed Contract Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('signedContractImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.signedContractImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.signedContractImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.signedContractImage}
+                    label="Signed Contract Image"
+                    onUpload={(file) => handleImageUpload('signedContractImage', file)}
+                    error={errors.signedContractImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Setup Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('setupImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.setupImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.setupImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.setupImage}
+                    label="Setup Image"
+                    onUpload={(file) => handleImageUpload('setupImage', file)}
+                    error={errors.setupImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Box Reading Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('boxReadingImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.boxReadingImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.boxReadingImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.boxReadingImage}
+                    label="Box Reading Image"
+                    onUpload={(file) => handleImageUpload('boxReadingImage', file)}
+                    error={errors.boxReadingImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Router Reading Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('routerReadingImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.routerReadingImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.routerReadingImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.routerReadingImage}
+                    label="Router Reading Image"
+                    onUpload={(file) => handleImageUpload('routerReadingImage', file)}
+                    error={errors.routerReadingImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('clientSignatureImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.clientSignatureImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.clientSignatureImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.clientSignatureImage}
+                    label="Client Signature Image"
+                    onUpload={(file) => handleImageUpload('clientSignatureImage', file)}
+                    error={errors.clientSignatureImage}
+                  />
+
+                  <ImagePreview
+                    imageUrl={imagePreviews.speedTestImage}
+                    label="Speed Test Image"
+                    onUpload={(file) => handleImageUpload('speedTestImage', file)}
+                    error={errors.speedTestImage}
+                  />
                 </>
               )}
             </>

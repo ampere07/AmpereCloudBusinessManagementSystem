@@ -366,12 +366,14 @@ class JobOrderController extends Controller
             
             $accountNumber = $yearPrefix . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
 
+            $installationFee = $jobOrder->installation_fee ?? 0;
+            
             $billingAccount = BillingAccount::create([
                 'customer_id' => $customer->id,
                 'account_no' => $accountNumber,
                 'date_installed' => $jobOrder->date_installed ?? now(),
                 'plan_id' => null,
-                'account_balance' => 0,
+                'account_balance' => $installationFee,
                 'balance_update_date' => now(),
                 'billing_day' => $jobOrder->billing_day,
                 'billing_status_id' => 2,
@@ -428,6 +430,8 @@ class JobOrderController extends Controller
                     'billing_account_id' => $billingAccount->id,
                     'technical_detail_id' => $technicalDetail->id,
                     'account_number' => $accountNumber,
+                    'installation_fee' => $installationFee,
+                    'account_balance' => $installationFee,
                 ]
             ]);
 
@@ -542,6 +546,24 @@ class JobOrderController extends Controller
                 ], 400);
             }
 
+            if (!empty($jobOrder->pppoe_username) && !empty($jobOrder->pppoe_password)) {
+                Log::info('PPPoE credentials already exist in job order', [
+                    'job_order_id' => $id,
+                    'pppoe_username' => $jobOrder->pppoe_username,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'PPPoE credentials already exist',
+                    'data' => [
+                        'username' => $jobOrder->pppoe_username,
+                        'password' => $jobOrder->pppoe_password,
+                        'group' => $jobOrder->group_name,
+                        'credentials_exist' => true,
+                    ],
+                ]);
+            }
+
             $application = $jobOrder->application;
 
             $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? ''));
@@ -563,7 +585,6 @@ class JobOrderController extends Controller
                 ], 400);
             }
             
-            // Extract plan name only (e.g., "FLASH - P1299.00" becomes "FLASH")
             if (strpos($planName, ' - P') !== false) {
                 $planName = trim(explode(' - P', $planName)[0]);
             }
@@ -673,8 +694,10 @@ class JobOrderController extends Controller
                 'message' => 'RADIUS account created successfully',
                 'data' => [
                     'username' => $modifiedUsername,
+                    'password' => $password,
                     'group' => $planName,
                     'radius_response' => $response->json(),
+                    'credentials_exist' => false,
                 ],
             ]);
 

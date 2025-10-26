@@ -1553,6 +1553,74 @@ Route::prefix('radius')->group(function () {
     Route::post('/create-account', [RadiusController::class, 'createAccount']);
 });
 
+// Custom Account Number Management Routes
+Route::get('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'index']);
+Route::post('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'store']);
+Route::put('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'update']);
+Route::delete('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'destroy']);
+
+// Debug endpoint for custom account number table
+Route::get('/debug/custom-account-number-table', function() {
+    try {
+        $tableExists = \Illuminate\Support\Facades\Schema::hasTable('custom_account_number');
+        
+        if (!$tableExists) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Table does not exist',
+                'table_exists' => false,
+                'migration_needed' => true
+            ]);
+        }
+        
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('custom_account_number');
+        $count = \Illuminate\Support\Facades\DB::table('custom_account_number')->count();
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Table exists',
+            'table_exists' => true,
+            'columns' => $columns,
+            'record_count' => $count
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error checking table',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
+// Test endpoint to insert a record
+Route::post('/debug/test-custom-account-number', function(\Illuminate\Http\Request $request) {
+    try {
+        \Illuminate\Support\Facades\Log::info('Test insert attempt', [
+            'request_data' => $request->all()
+        ]);
+
+        $result = \Illuminate\Support\Facades\DB::table('custom_account_number')->insert([
+            'starting_number' => 'TEST123',
+            'updated_by' => 'test@example.com',
+            'created_at' => now(),
+            'updated_at' => now()
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Test insert successful',
+            'result' => $result
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Test insert failed',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 // Location Details Management Routes - Using location table
 Route::prefix('location-details')->group(function () {
     Route::get('/', [\App\Http\Controllers\LocationDetailController::class, 'index']);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin } from 'lucide-react';
+import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
@@ -64,6 +64,7 @@ interface JobOrderDoneFormData {
   routerReadingImage: File | null;
   portLabelImage: File | null;
   clientSignatureImage: File | null;
+  speedTestImage: File | null;
   modifiedBy: string;
   modifiedDate: string;
   contractLink: string;
@@ -137,6 +138,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     routerReadingImage: null,
     portLabelImage: null,
     clientSignatureImage: null,
+    speedTestImage: null,
     modifiedBy: currentUserEmail,
     modifiedDate: new Date().toLocaleString('en-US', {
       month: '2-digit',
@@ -174,12 +176,205 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
   const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   const [orderItems, setOrderItems] = useState<OrderItem[]>([{ itemId: '', quantity: '' }]);
+  const [imagePreviews, setImagePreviews] = useState<{
+    signedContractImage: string | null;
+    setupImage: string | null;
+    boxReadingImage: string | null;
+    routerReadingImage: string | null;
+    portLabelImage: string | null;
+    clientSignatureImage: string | null;
+    speedTestImage: string | null;
+  }>({
+    signedContractImage: null,
+    setupImage: null,
+    boxReadingImage: null,
+    routerReadingImage: null,
+    portLabelImage: null,
+    clientSignatureImage: null,
+    speedTestImage: null
+  });
+
+  const [showModal, setShowModal] = useState(false);
+  const [modalContent, setModalContent] = useState<{
+    title: string;
+    messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
+  }>({ title: '', messages: [] });
+
+  const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+    }
+    
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+    }
+    
+    return url;
+  };
+
+  const isGoogleDriveUrl = (url: string | null): boolean => {
+    return url ? url.includes('drive.google.com') : false;
+  };
+
+  const ImagePreview: React.FC<{
+    imageUrl: string | null;
+    label: string;
+    onUpload: (file: File) => void;
+    error?: string;
+  }> = ({ imageUrl, label, onUpload, error }) => {
+    const [imageLoadError, setImageLoadError] = useState(false);
+    const isGDrive = isGoogleDriveUrl(imageUrl);
+    const isBlobUrl = imageUrl?.startsWith('blob:');
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{label}<span className="text-red-500">*</span></label>
+        <div className="relative w-full h-48 bg-gray-800 border border-gray-700 rounded overflow-hidden cursor-pointer hover:bg-gray-750">
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onUpload(e.target.files[0]);
+                setImageLoadError(false);
+              }
+            }} 
+            className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+          />
+          {imageUrl ? (
+            <div className="relative w-full h-full">
+              {isBlobUrl || (!isGDrive && !imageLoadError) ? (
+                <img 
+                  src={imageUrl} 
+                  alt={label} 
+                  className="w-full h-full object-contain"
+                  onError={() => setImageLoadError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                  <Camera size={32} />
+                  <span className="text-sm mt-2 text-center px-4">Image stored in Google Drive</span>
+                  {imageUrl && (
+                    <a 
+                      href={imageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-orange-500 text-xs mt-2 hover:underline z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View in Drive
+                    </a>
+                  )}
+                </div>
+              )}
+              <div className="absolute bottom-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center pointer-events-none">
+                <Camera className="mr-1" size={14} />Uploaded
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              <Camera size={32} />
+              <span className="text-sm mt-2">Click to upload</span>
+            </div>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center mt-1">
+            <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+            <p className="text-orange-500 text-xs">This entry is required</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (jobOrderData) {
+      const isValidImageUrl = (url: any): boolean => {
+        if (!url) return false;
+        if (typeof url !== 'string') return false;
+        const trimmed = url.trim().toLowerCase();
+        return trimmed !== '' && trimmed !== 'null' && trimmed !== 'undefined';
+      };
+
+      const getImageUrl = (fieldVariations: string[]): string | null => {
+        for (const field of fieldVariations) {
+          const value = jobOrderData?.[field];
+          if (isValidImageUrl(value)) {
+            return value;
+          }
+        }
+        return null;
+      };
+
+      const clientSignatureVariations = [
+        'client_signature_image_url',
+        'Client_Signature_Image_URL',
+        'client_sig_image_url',
+        'signature_image_url',
+        'clientSignatureImageUrl',
+        'ClientSignatureImageURL',
+        'client_signature_url',
+        'clientSignatureUrl'
+      ];
+
+      const newImagePreviews = {
+        signedContractImage: convertGoogleDriveUrl(jobOrderData?.signed_contract_image_url || jobOrderData?.Signed_Contract_Image_URL),
+        setupImage: convertGoogleDriveUrl(jobOrderData?.setup_image_url || jobOrderData?.Setup_Image_URL),
+        boxReadingImage: convertGoogleDriveUrl(jobOrderData?.box_reading_image_url || jobOrderData?.Box_Reading_Image_URL),
+        routerReadingImage: convertGoogleDriveUrl(jobOrderData?.router_reading_image_url || jobOrderData?.Router_Reading_Image_URL),
+        portLabelImage: convertGoogleDriveUrl(jobOrderData?.port_label_image_url || jobOrderData?.Port_Label_Image_URL),
+        clientSignatureImage: convertGoogleDriveUrl(getImageUrl(clientSignatureVariations)),
+        speedTestImage: convertGoogleDriveUrl(jobOrderData?.speedtest_image_url || jobOrderData?.Speedtest_Image_URL)
+      };
+
+      setImagePreviews(newImagePreviews);
+
+      const errorsToClear: string[] = [];
+      if (newImagePreviews.signedContractImage) errorsToClear.push('signedContractImage');
+      if (newImagePreviews.setupImage) errorsToClear.push('setupImage');
+      if (newImagePreviews.boxReadingImage) errorsToClear.push('boxReadingImage');
+      if (newImagePreviews.routerReadingImage) errorsToClear.push('routerReadingImage');
+      if (newImagePreviews.portLabelImage) errorsToClear.push('portLabelImage');
+      if (newImagePreviews.clientSignatureImage) errorsToClear.push('clientSignatureImage');
+      if (newImagePreviews.speedTestImage) errorsToClear.push('speedTestImage');
+
+      if (errorsToClear.length > 0) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          errorsToClear.forEach(key => delete newErrors[key]);
+          return newErrors;
+        });
+      }
+    } else {
+      setImagePreviews({
+        signedContractImage: null,
+        setupImage: null,
+        boxReadingImage: null,
+        routerReadingImage: null,
+        portLabelImage: null,
+        clientSignatureImage: null,
+        speedTestImage: null
+      });
+    }
+  }, [jobOrderData, isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
       setOrderItems([{ itemId: '', quantity: '' }]);
+      Object.values(imagePreviews).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
     }
-  }, [isOpen]);
+  }, [isOpen, imagePreviews]);
 
   useEffect(() => {
     const fetchJobOrderItems = async () => {
@@ -576,6 +771,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         routerReadingImage: null,
         portLabelImage: null,
         clientSignatureImage: null,
+        speedTestImage: null,
         modifiedBy: currentUserEmail,
         modifiedDate: new Date().toLocaleString('en-US', {
           month: '2-digit',
@@ -738,8 +934,16 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage', file: File) => {
+  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
     setFormData(prev => ({ ...prev, [field]: file }));
+    
+    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreviews[field]!);
+    }
+    
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+    
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));
     }
@@ -773,8 +977,20 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
   };
 
+  const showMessageModal = (title: string, messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>) => {
+    setModalContent({ title, messages });
+    setShowModal(true);
+  };
+
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
+
+    const isValidImageUrl = (url: any): boolean => {
+      if (!url) return false;
+      if (typeof url !== 'string') return false;
+      const trimmed = url.trim().toLowerCase();
+      return trimmed !== '' && trimmed !== 'null' && trimmed !== 'undefined';
+    };
 
     if (!formData.firstName.trim()) newErrors.firstName = 'First Name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last Name is required';
@@ -809,13 +1025,15 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         
         if (formData.connectionType === 'Antenna') {
           if (!formData.ip.trim()) newErrors.ip = 'IP is required';
-          if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
+          const hasPortLabelImageInDb = isValidImageUrl(jobOrderData?.port_label_image_url) || isValidImageUrl(jobOrderData?.Port_Label_Image_URL);
+          if (!formData.portLabelImage && !hasPortLabelImageInDb) newErrors.portLabelImage = 'Port Label Image is required';
         } else if (formData.connectionType === 'Fiber') {
           if (!formData.lcpnap.trim()) newErrors.lcpnap = 'LCP-NAP is required';
           if (!formData.port.trim()) newErrors.port = 'PORT is required';
           if (!formData.vlan.trim()) newErrors.vlan = 'VLAN is required';
         } else if (formData.connectionType === 'Local') {
-          if (!formData.portLabelImage) newErrors.portLabelImage = 'Port Label Image is required';
+          const hasPortLabelImageInDb = isValidImageUrl(jobOrderData?.port_label_image_url) || isValidImageUrl(jobOrderData?.Port_Label_Image_URL);
+          if (!formData.portLabelImage && !hasPortLabelImageInDb) newErrors.portLabelImage = 'Port Label Image is required';
         }
         
         const validItems = orderItems.filter(item => item.itemId && item.quantity);
@@ -833,11 +1051,29 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         }
         
         if (!formData.onsiteRemarks.trim()) newErrors.onsiteRemarks = 'Onsite Remarks is required';
-        if (!formData.signedContractImage) newErrors.signedContractImage = 'Signed Contract Image is required';
-        if (!formData.setupImage) newErrors.setupImage = 'Setup Image is required';
-        if (!formData.boxReadingImage) newErrors.boxReadingImage = 'Box Reading Image is required';
-        if (!formData.routerReadingImage) newErrors.routerReadingImage = 'Router Reading Image is required';
-        if (!formData.clientSignatureImage) newErrors.clientSignatureImage = 'Client Signature Image is required';
+        
+        const hasSignedContractImageInDb = isValidImageUrl(jobOrderData?.signed_contract_image_url) || isValidImageUrl(jobOrderData?.Signed_Contract_Image_URL);
+        const hasSetupImageInDb = isValidImageUrl(jobOrderData?.setup_image_url) || isValidImageUrl(jobOrderData?.Setup_Image_URL);
+        const hasBoxReadingImageInDb = isValidImageUrl(jobOrderData?.box_reading_image_url) || isValidImageUrl(jobOrderData?.Box_Reading_Image_URL);
+        const hasRouterReadingImageInDb = isValidImageUrl(jobOrderData?.router_reading_image_url) || isValidImageUrl(jobOrderData?.Router_Reading_Image_URL);
+        
+        const clientSignatureVariations = [
+          'client_signature_image_url',
+          'Client_Signature_Image_URL',
+          'client_sig_image_url',
+          'signature_image_url',
+          'clientSignatureImageUrl',
+          'ClientSignatureImageURL',
+          'client_signature_url',
+          'clientSignatureUrl'
+        ];
+        const hasClientSignatureImageInDb = clientSignatureVariations.some(field => isValidImageUrl(jobOrderData?.[field]));
+        
+        if (!formData.signedContractImage && !hasSignedContractImageInDb) newErrors.signedContractImage = 'Signed Contract Image is required';
+        if (!formData.setupImage && !hasSetupImageInDb) newErrors.setupImage = 'Setup Image is required';
+        if (!formData.boxReadingImage && !hasBoxReadingImageInDb) newErrors.boxReadingImage = 'Box Reading Image is required';
+        if (!formData.routerReadingImage && !hasRouterReadingImageInDb) newErrors.routerReadingImage = 'Router Reading Image is required';
+        if (!formData.clientSignatureImage && !hasClientSignatureImageInDb) newErrors.clientSignatureImage = 'Client Signature Image is required';
         if (!formData.visit_by.trim()) newErrors.visit_by = 'Visit By is required';
         if (!formData.visit_with.trim()) newErrors.visit_with = 'Visit With is required';
         if (!formData.visit_with_other.trim()) newErrors.visit_with_other = 'Visit With(Other) is required';
@@ -877,20 +1113,201 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     setFormData(updatedFormData);
     
     if (!validateForm()) {
-      alert('Please fill in all required fields before saving.');
+      showMessageModal('Validation Error', [
+        { type: 'error', text: 'Please fill in all required fields before saving.' }
+      ]);
       return;
     }
 
     if (!jobOrderData?.id && !jobOrderData?.JobOrder_ID) {
-      alert('Cannot update job order: Missing ID');
+      showMessageModal('Error', [
+        { type: 'error', text: 'Cannot update job order: Missing ID' }
+      ]);
       return;
     }
 
     setLoading(true);
+    const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
+    
     try {
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
       const applicationId = jobOrderData.Application_ID || jobOrderData.application_id;
       
+      let radiusUsername = '';
+      let radiusPassword = '';
+      let imageUrls: any = {};
+
+      if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
+        try {
+          const jobOrderResponse = await apiClient.get<{ success: boolean; data: any }>(`/job-orders/${jobOrderId}`);
+          
+          if (jobOrderResponse.data.success && jobOrderResponse.data.data) {
+            const existingUsername = jobOrderResponse.data.data.pppoe_username;
+            const existingPassword = jobOrderResponse.data.data.pppoe_password;
+            
+            if (existingUsername && existingPassword) {
+              radiusUsername = existingUsername;
+              radiusPassword = existingPassword;
+              
+              saveMessages.push({
+                type: 'warning',
+                text: `PPPoE credentials already exist: Username: ${radiusUsername}, Password: ${radiusPassword}`
+              });
+            } else {
+              const planNameForRadius = updatedFormData.choosePlan.includes(' - P') 
+                ? updatedFormData.choosePlan.split(' - P')[0].trim()
+                : updatedFormData.choosePlan;
+              
+              try {
+                const radiusResponse = await apiClient.post<{
+                  success: boolean;
+                  message: string;
+                  data?: {
+                    username: string;
+                    password: string;
+                    group: string;
+                    credentials_exist?: boolean;
+                    radius_response?: any;
+                  };
+                }>(`/job-orders/${jobOrderId}/create-radius-account`);
+                
+                if (radiusResponse.data.success && radiusResponse.data.data) {
+                  const { username, password, credentials_exist } = radiusResponse.data.data;
+                  
+                  if (credentials_exist) {
+                    radiusUsername = username;
+                    radiusPassword = password;
+                    
+                    saveMessages.push({
+                      type: 'warning',
+                      text: `PPPoE credentials already exist: Username: ${username}, Password: ${password}, Plan: ${planNameForRadius}`
+                    });
+                  } else {
+                    radiusUsername = username;
+                    radiusPassword = password;
+                    
+                    saveMessages.push({
+                      type: 'success',
+                      text: `RADIUS Account Created: Username: ${radiusUsername}, Password: ${radiusPassword}, Plan: ${planNameForRadius}`
+                    });
+                  }
+                } else {
+                  saveMessages.push({
+                    type: 'error',
+                    text: `RADIUS account creation failed: ${radiusResponse.data.message}`
+                  });
+                  setLoading(false);
+                  showMessageModal('Error', saveMessages);
+                  return;
+                }
+              } catch (radiusError: any) {
+                const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
+                saveMessages.push({
+                  type: 'error',
+                  text: `RADIUS account creation failed: ${errorMsg}`
+                });
+                setLoading(false);
+                showMessageModal('Error', saveMessages);
+                return;
+              }
+            }
+          } else {
+            saveMessages.push({
+              type: 'error',
+              text: 'Failed to retrieve job order data for RADIUS check'
+            });
+            setLoading(false);
+            showMessageModal('Error', saveMessages);
+            return;
+          }
+        } catch (fetchError: any) {
+          const errorMsg = fetchError.response?.data?.message || fetchError.message || 'Unknown error';
+          saveMessages.push({
+            type: 'error',
+            text: `Failed to check existing RADIUS credentials: ${errorMsg}`
+          });
+          setLoading(false);
+          showMessageModal('Error', saveMessages);
+          return;
+        }
+
+        const firstName = updatedFormData.firstName.trim();
+        const middleInitial = updatedFormData.middleInitial.trim();
+        const fullLastName = updatedFormData.lastName.trim();
+        const folderName = `(joborder)${firstName} ${middleInitial} ${fullLastName}`.trim();
+        
+        const imageFormData = new FormData();
+        imageFormData.append('folder_name', folderName);
+        
+        if (updatedFormData.signedContractImage) {
+          imageFormData.append('signed_contract_image', updatedFormData.signedContractImage);
+        }
+        if (updatedFormData.setupImage) {
+          imageFormData.append('setup_image', updatedFormData.setupImage);
+        }
+        if (updatedFormData.boxReadingImage) {
+          imageFormData.append('box_reading_image', updatedFormData.boxReadingImage);
+        }
+        if (updatedFormData.routerReadingImage) {
+          imageFormData.append('router_reading_image', updatedFormData.routerReadingImage);
+        }
+        if (updatedFormData.portLabelImage) {
+          imageFormData.append('port_label_image', updatedFormData.portLabelImage);
+        }
+        if (updatedFormData.clientSignatureImage) {
+          imageFormData.append('client_signature_image', updatedFormData.clientSignatureImage);
+        }
+        if (updatedFormData.speedTestImage) {
+          imageFormData.append('speed_test_image', updatedFormData.speedTestImage);
+        }
+        
+        try {
+          const uploadResponse = await apiClient.post<{
+            success: boolean;
+            message: string;
+            data?: {
+              signed_contract_image_url?: string;
+              setup_image_url?: string;
+              box_reading_image_url?: string;
+              router_reading_image_url?: string;
+              port_label_image_url?: string;
+              client_signature_image_url?: string;
+              speedtest_image_url?: string;
+            };
+            folder_id?: string;
+          }>(`/job-orders/${jobOrderId}/upload-images`, imageFormData, {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            }
+          });
+          
+          if (uploadResponse.data.success && uploadResponse.data.data) {
+            imageUrls = uploadResponse.data.data;
+            saveMessages.push({
+              type: 'success',
+              text: 'Images uploaded to Google Drive successfully'
+            });
+          } else {
+            saveMessages.push({
+              type: 'error',
+              text: `Failed to upload images: ${uploadResponse.data.message}`
+            });
+            setLoading(false);
+            showMessageModal('Error', saveMessages);
+            return;
+          }
+        } catch (uploadError: any) {
+          const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
+          saveMessages.push({
+            type: 'error',
+            text: `Failed to upload images to Google Drive: ${errorMsg}`
+          });
+          setLoading(false);
+          showMessageModal('Error', saveMessages);
+          return;
+        }
+      }
+
       const jobOrderUpdateData: any = {
         Referred_By: updatedFormData.referredBy,
         First_Name: updatedFormData.firstName,
@@ -931,6 +1348,33 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           jobOrderUpdateData.Visit_By = updatedFormData.visit_by;
           jobOrderUpdateData.Visit_With = updatedFormData.visit_with;
           jobOrderUpdateData.Visit_With_Other = updatedFormData.visit_with_other;
+
+          if (radiusUsername && radiusPassword) {
+            jobOrderUpdateData.pppoe_username = radiusUsername;
+            jobOrderUpdateData.pppoe_password = radiusPassword;
+          }
+
+          if (imageUrls.signed_contract_image_url) {
+            jobOrderUpdateData.signed_contract_image_url = imageUrls.signed_contract_image_url;
+          }
+          if (imageUrls.setup_image_url) {
+            jobOrderUpdateData.setup_image_url = imageUrls.setup_image_url;
+          }
+          if (imageUrls.box_reading_image_url) {
+            jobOrderUpdateData.box_reading_image_url = imageUrls.box_reading_image_url;
+          }
+          if (imageUrls.router_reading_image_url) {
+            jobOrderUpdateData.router_reading_image_url = imageUrls.router_reading_image_url;
+          }
+          if (imageUrls.port_label_image_url) {
+            jobOrderUpdateData.port_label_image_url = imageUrls.port_label_image_url;
+          }
+          if (imageUrls.client_signature_image_url) {
+            jobOrderUpdateData.client_signature_url = imageUrls.client_signature_image_url;
+          }
+          if (imageUrls.speedtest_image_url) {
+            jobOrderUpdateData.speedtest_image_url = imageUrls.speedtest_image_url;
+          }
         }
 
         if (updatedFormData.onsiteStatus === 'Reschedule') {
@@ -942,9 +1386,6 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         }
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
@@ -952,6 +1393,10 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       }
 
       console.log('Job order updated successfully:', jobOrderResponse);
+      saveMessages.push({
+        type: 'success',
+        text: 'Job order updated successfully'
+      });
 
       if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
         console.log('========== ITEMS BEFORE FILTERING ==========');
@@ -1024,8 +1469,12 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           } catch (itemsError: any) {
             console.error('Error creating job order items:', itemsError);
             const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
-            alert(`Job order saved but items were not saved: ${errorMsg}`);
+            saveMessages.push({
+              type: 'error',
+              text: `Failed to save items: ${errorMsg}`
+            });
             setLoading(false);
+            showMessageModal('Save Results', saveMessages);
             return;
           }
         }
@@ -1054,20 +1503,30 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
         const applicationResponse = await updateApplication(applicationId, applicationUpdateData);
         console.log('Application updated successfully:', applicationResponse);
+        saveMessages.push({
+          type: 'success',
+          text: `Application updated: Plan: ${updatedFormData.choosePlan}, Location: ${updatedFormData.region}, ${updatedFormData.city}, ${updatedFormData.barangay}, ${updatedFormData.location}`
+        });
       } else {
         console.warn('No Application_ID found, skipping application table update');
+        saveMessages.push({
+          type: 'warning',
+          text: 'Cannot update application - missing application ID'
+        });
       }
 
-      alert('Job Order updated successfully!');
       setErrors({});
+      setLoading(false);
+      showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
     } catch (error: any) {
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
-      alert(`Failed to update records: ${errorMessage}`);
-    } finally {
       setLoading(false);
+      showMessageModal('Error', [
+        { type: 'error', text: `Failed to update records: ${errorMessage}` }
+      ]);
     }
   };
 
@@ -1099,6 +1558,67 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   const filteredLocations = getFilteredLocations();
 
   return (
+    <>
+    {showModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
+        <div className="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
+          <div className="px-6 py-4 border-b border-gray-700 flex items-center justify-between">
+            <h3 className="text-lg font-semibold text-white">{modalContent.title}</h3>
+            <button
+              onClick={() => setShowModal(false)}
+              className="text-gray-400 hover:text-white transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+          <div className="px-6 py-4 overflow-y-auto flex-1">
+            <div className="space-y-3">
+              {modalContent.messages.map((message, index) => (
+                <div
+                  key={index}
+                  className={`flex items-start gap-3 p-3 rounded-lg ${
+                    message.type === 'success'
+                      ? 'bg-green-900/30 border border-green-700'
+                      : message.type === 'warning'
+                      ? 'bg-yellow-900/30 border border-yellow-700'
+                      : 'bg-red-900/30 border border-red-700'
+                  }`}
+                >
+                  {message.type === 'success' && (
+                    <CheckCircle className="text-green-500 flex-shrink-0 mt-0.5" size={20} />
+                  )}
+                  {message.type === 'warning' && (
+                    <AlertCircle className="text-yellow-500 flex-shrink-0 mt-0.5" size={20} />
+                  )}
+                  {message.type === 'error' && (
+                    <XCircle className="text-red-500 flex-shrink-0 mt-0.5" size={20} />
+                  )}
+                  <p
+                    className={`text-sm ${
+                      message.type === 'success'
+                        ? 'text-green-200'
+                        : message.type === 'warning'
+                        ? 'text-yellow-200'
+                        : 'text-red-200'
+                    }`}
+                  >
+                    {message.text}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="px-6 py-4 border-t border-gray-700 flex justify-end">
+            <button
+              onClick={() => setShowModal(false)}
+              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+            >
+              Close
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl overflow-hidden flex flex-col">
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
@@ -1417,23 +1937,12 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               )}
 
               {(formData.connectionType === 'Antenna' || formData.connectionType === 'Local') && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">Port Label Image<span className="text-red-500">*</span></label>
-                  <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                    <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('portLabelImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                    {formData.portLabelImage ? (
-                      <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                    ) : (
-                      <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                    )}
-                  </div>
-                  {errors.portLabelImage && (
-                    <div className="flex items-center mt-1">
-                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                      <p className="text-orange-500 text-xs">This entry is required</p>
-                    </div>
-                  )}
-                </div>
+                <ImagePreview
+                  imageUrl={imagePreviews.portLabelImage}
+                  label="Port Label Image"
+                  onUpload={(file) => handleImageUpload('portLabelImage', file)}
+                  error={errors.portLabelImage}
+                />
               )}
             </>
           )}
@@ -1646,95 +2155,47 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
               {formData.onsiteStatus === 'Done' && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Signed Contract Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('signedContractImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.signedContractImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.signedContractImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.signedContractImage}
+                    label="Signed Contract Image"
+                    onUpload={(file) => handleImageUpload('signedContractImage', file)}
+                    error={errors.signedContractImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Setup Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('setupImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.setupImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.setupImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.setupImage}
+                    label="Setup Image"
+                    onUpload={(file) => handleImageUpload('setupImage', file)}
+                    error={errors.setupImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Box Reading Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('boxReadingImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.boxReadingImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.boxReadingImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.boxReadingImage}
+                    label="Box Reading Image"
+                    onUpload={(file) => handleImageUpload('boxReadingImage', file)}
+                    error={errors.boxReadingImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Router Reading Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('routerReadingImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.routerReadingImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.routerReadingImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.routerReadingImage}
+                    label="Router Reading Image"
+                    onUpload={(file) => handleImageUpload('routerReadingImage', file)}
+                    error={errors.routerReadingImage}
+                  />
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">Client Signature Image<span className="text-red-500">*</span></label>
-                    <div className="relative w-full h-32 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:bg-gray-750">
-                      <input type="file" accept="image/*" onChange={(e) => e.target.files && handleImageUpload('clientSignatureImage', e.target.files[0])} className="absolute inset-0 opacity-0 cursor-pointer" />
-                      {formData.clientSignatureImage ? (
-                        <div className="text-green-500 flex items-center"><Camera className="mr-2" size={20} />Image uploaded</div>
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center"><Camera size={32} /><span className="text-sm mt-2">Click to upload</span></div>
-                      )}
-                    </div>
-                    {errors.clientSignatureImage && (
-                      <div className="flex items-center mt-1">
-                        <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                        <p className="text-orange-500 text-xs">This entry is required</p>
-                      </div>
-                    )}
-                  </div>
+                  <ImagePreview
+                    imageUrl={imagePreviews.clientSignatureImage}
+                    label="Client Signature Image"
+                    onUpload={(file) => handleImageUpload('clientSignatureImage', file)}
+                    error={errors.clientSignatureImage}
+                  />
+
+                  <ImagePreview
+                    imageUrl={imagePreviews.speedTestImage}
+                    label="Speed Test Image"
+                    onUpload={(file) => handleImageUpload('speedTestImage', file)}
+                    error={errors.speedTestImage}
+                  />
 
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-2">Items<span className="text-red-500">*</span></label>
@@ -1862,6 +2323,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         </div>
       </div>
     </div>
+    </>
   );
 };
 
