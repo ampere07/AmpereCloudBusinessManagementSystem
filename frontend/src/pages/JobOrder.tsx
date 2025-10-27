@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { FileText, Search, ChevronDown, ListFilter } from 'lucide-react';
+import { FileText, Search, ChevronDown, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import JobOrderDetails from '../components/JobOrderDetails';
 import { getJobOrders } from '../services/jobOrderService';
 import { getCities, City } from '../services/cityService';
@@ -90,8 +90,19 @@ const JobOrderPage: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -162,53 +173,53 @@ const JobOrderPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const citiesData = await getCities();
-        setCities(citiesData);
-        
-        const billingStatusesData = await getBillingStatuses();
-        setBillingStatuses(billingStatusesData);
-        
-        const authData = localStorage.getItem('authData');
-        let assignedEmail: string | undefined;
-        
-        if (authData) {
-          try {
-            const userData = JSON.parse(authData);
-            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
-              assignedEmail = userData.email;
-            }
-          } catch (error) {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const citiesData = await getCities();
+      setCities(citiesData);
+      
+      const billingStatusesData = await getBillingStatuses();
+      setBillingStatuses(billingStatusesData);
+      
+      const authData = localStorage.getItem('authData');
+      let assignedEmail: string | undefined;
+      
+      if (authData) {
+        try {
+          const userData = JSON.parse(authData);
+          if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+            assignedEmail = userData.email;
           }
+        } catch (error) {
         }
-        
-        const response = await getJobOrders(assignedEmail);
-        
-        if (response.success && Array.isArray(response.data)) {
-          const processedOrders: JobOrder[] = response.data.map((order, index) => {
-            const id = order.id || order.JobOrder_ID || String(index);
-            
-            return {
-              ...order,
-              id: id
-            };
-          });
-          
-          setJobOrders(processedOrders);
-        } else {
-          setJobOrders([]);
-        }
-      } catch (err: any) {
-        setError(`Failed to load data: ${err.message || 'Unknown error'}`);
-      } finally {
-        setLoading(false);
       }
-    };
+      
+      const response = await getJobOrders(assignedEmail);
+      
+      if (response.success && Array.isArray(response.data)) {
+        const processedOrders: JobOrder[] = response.data.map((order, index) => {
+          const id = order.id || order.JobOrder_ID || String(index);
+          
+          return {
+            ...order,
+            id: id
+          };
+        });
+        
+        setJobOrders(processedOrders);
+      } else {
+        setJobOrders([]);
+      }
+    } catch (err: any) {
+      setError(`Failed to load data: ${err.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
   
@@ -268,6 +279,58 @@ const JobOrderPage: React.FC = () => {
                          ((jobOrder.Assigned_Email || jobOrder.assigned_email) || '').toLowerCase().includes(searchQuery.toLowerCase());
     
     return matchesLocation && matchesSearch;
+  });
+
+  const sortedJobOrders = [...filteredJobOrders].sort((a, b) => {
+    if (!sortColumn) return 0;
+
+    let aValue: any = '';
+    let bValue: any = '';
+
+    const getVal = (jo: JobOrder, key: string) => {
+      switch (key) {
+        case 'timestamp': return jo.Timestamp || jo.timestamp || '';
+        case 'dateInstalled': return jo.Date_Installed || jo.date_installed || '';
+        case 'installationFee': return jo.Installation_Fee || jo.installation_fee || 0;
+        case 'billingDay': return jo.Billing_Day ?? jo.billing_day ?? 0;
+        case 'billingStatusId': return jo.billing_status_id || jo.Billing_Status_ID || '';
+        case 'modemRouterSN': return jo.Modem_Router_SN || jo.modem_router_sn || '';
+        case 'routerModel': return jo.Router_Model || jo.router_model || '';
+        case 'groupName': return jo.group_name || jo.Group_Name || '';
+        case 'lcpnap': return jo.LCPNAP || jo.lcpnap || '';
+        case 'port': return jo.PORT || jo.Port || jo.port || '';
+        case 'vlan': return jo.VLAN || jo.vlan || '';
+        case 'username': return jo.Username || jo.username || '';
+        case 'ipAddress': return jo.IP_Address || jo.ip_address || jo.IP || jo.ip || '';
+        case 'connectionType': return jo.Connection_Type || jo.connection_type || '';
+        case 'usageType': return jo.Usage_Type || jo.usage_type || '';
+        case 'usernameStatus': return jo.username_status || jo.Username_Status || '';
+        case 'visitBy': return jo.Visit_By || jo.visit_by || '';
+        case 'visitWith': return jo.Visit_With || jo.visit_with || '';
+        case 'visitWithOther': return jo.Visit_With_Other || jo.visit_with_other || '';
+        case 'onsiteStatus': return jo.Onsite_Status || jo.onsite_status || '';
+        case 'onsiteRemarks': return jo.Onsite_Remarks || jo.onsite_remarks || '';
+        case 'statusRemarks': return jo.Status_Remarks || jo.status_remarks || '';
+        case 'fullName': return getClientFullName(jo);
+        case 'address': return getClientFullAddress(jo);
+        case 'assignedEmail': return jo.Assigned_Email || jo.assigned_email || '';
+        case 'createdAt': return jo.created_at || jo.Created_At || '';
+        case 'updatedAt': return jo.updated_at || jo.Updated_At || '';
+        default: return '';
+      }
+    };
+
+    aValue = getVal(a, sortColumn);
+    bValue = getVal(b, sortColumn);
+
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      aValue = aValue.toLowerCase();
+      bValue = bValue.toLowerCase();
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
 
   const StatusText = ({ status, type }: { status?: string | null, type: 'onsite' | 'billing' }) => {
@@ -335,7 +398,110 @@ const JobOrderPage: React.FC = () => {
     setVisibleColumns([]);
   };
 
-  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection('asc');
+      } else {
+        setSortDirection('desc');
+      }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const filteredColumns = allColumns
+    .filter(col => visibleColumns.includes(col.key))
+    .sort((a, b) => {
+      const indexA = columnOrder.indexOf(a.key);
+      const indexB = columnOrder.indexOf(b.key);
+      return indexA - indexB;
+    });
+
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedColumn && draggedColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || draggedColumn === targetColumnKey) {
+      setDraggedColumn(null);
+      setDragOverColumn(null);
+      return;
+    }
+
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedColumn);
+    const targetIndex = newOrder.indexOf(targetColumnKey);
+
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedColumn);
+
+    setColumnOrder(newOrder);
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleMouseDownResize = (e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnKey);
+    startXRef.current = e.clientX;
+    
+    const th = (e.target as HTMLElement).closest('th');
+    if (th) {
+      startWidthRef.current = th.offsetWidth;
+    }
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumn) return;
+      
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.max(100, startWidthRef.current + diff);
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingColumn]);
 
   const getValue = (value: any): string => {
     if (value === null || value === undefined || value === '') return '-';
@@ -343,7 +509,7 @@ const JobOrderPage: React.FC = () => {
     return value;
   };
 
-  const renderCellValue = (jobOrder: JobOrder, columnKey: string) => {
+  const renderCellValue = (jobOrder: JobOrder, columnKey: string): string => {
     switch (columnKey) {
       case 'timestamp':
         return formatDate(jobOrder.Timestamp || jobOrder.timestamp);
@@ -388,7 +554,7 @@ const JobOrderPage: React.FC = () => {
       case 'visitWithOther':
         return getValue(jobOrder.Visit_With_Other || jobOrder.visit_with_other);
       case 'onsiteStatus':
-        return <StatusText status={jobOrder.Onsite_Status || jobOrder.onsite_status} type="onsite" />;
+        return jobOrder.Onsite_Status || jobOrder.onsite_status || '-';
       case 'onsiteRemarks':
         return getValue(jobOrder.Onsite_Remarks || jobOrder.onsite_remarks);
       case 'statusRemarks':
@@ -718,15 +884,48 @@ const JobOrderPage: React.FC = () => {
                 )
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                  <table ref={tableRef} className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
                         {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, column.key)}
+                            onDragOver={(e) => handleDragOver(e, column.key)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, column.key)}
+                            onDragEnd={handleDragEnd}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group cursor-move ${
+                              draggedColumn === column.key ? 'opacity-50' : ''
+                            } ${
+                              dragOverColumn === column.key ? 'bg-orange-500 bg-opacity-20' : ''
+                            }`}
+                            style={{ width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined }}
+                            onMouseEnter={() => setHoveredColumn(column.key)}
+                            onMouseLeave={() => setHoveredColumn(null)}
                           >
-                            {column.label}
+                            <div className="flex items-center justify-between">
+                              <span>{column.label}</span>
+                              {(hoveredColumn === column.key || sortColumn === column.key) && (
+                                <button
+                                  onClick={() => handleSort(column.key)}
+                                  className="ml-2 transition-colors"
+                                >
+                                  {sortColumn === column.key && sortDirection === 'desc' ? (
+                                    <ArrowDown className="h-4 w-4 text-orange-400" />
+                                  ) : (
+                                    <ArrowUp className="h-4 w-4 text-gray-400 hover:text-orange-400" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {index < filteredColumns.length - 1 && (
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 group-hover:bg-gray-600"
+                                onMouseDown={(e) => handleMouseDownResize(e, column.key)}
+                              />
+                            )}
                           </th>
                         ))}
                       </tr>
@@ -742,9 +941,15 @@ const JobOrderPage: React.FC = () => {
                             {filteredColumns.map((column, index) => (
                               <td 
                                 key={column.key}
-                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                className={`py-4 px-3 text-white ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                style={{ 
+                                  width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined,
+                                  maxWidth: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined
+                                }}
                               >
-                                {renderCellValue(jobOrder, column.key)}
+                                <div className="truncate" title={renderCellValue(jobOrder, column.key)}>
+                                  {renderCellValue(jobOrder, column.key)}
+                                </div>
                               </td>
                             ))}
                           </tr>
@@ -772,6 +977,7 @@ const JobOrderPage: React.FC = () => {
           <JobOrderDetails 
             jobOrder={selectedJobOrder} 
             onClose={() => setSelectedJobOrder(null)}
+            onRefresh={fetchData}
           />
         </div>
       )}

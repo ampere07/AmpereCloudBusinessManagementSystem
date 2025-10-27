@@ -35,6 +35,15 @@ interface ApplicationVisitStatusModalProps {
   };
 }
 
+interface ModalConfig {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'warning' | 'confirm';
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
 interface StatusFormData {
   firstName: string;
   middleInitial: string;
@@ -73,9 +82,14 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   visitData
 }) => {
   const [userRole, setUserRole] = useState<string>('');
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [pendingUpdate, setPendingUpdate] = useState<any>(null);
+  
+  const [modal, setModal] = useState<ModalConfig>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
   
   useEffect(() => {
     const authData = localStorage.getItem('authData');
@@ -446,14 +460,22 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     const isValid = validateForm();
     
     if (!isValid) {
-      setSuccessMessage('Please fill in all required fields before saving.');
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields before saving.'
+      });
       return;
     }
     
     if (!visitData?.id) {
-      setSuccessMessage('Missing visit ID. Cannot update status.');
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Missing visit ID. Cannot update status.'
+      });
       return;
     }
 
@@ -482,23 +504,55 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           );
           
           if (uploadResult.success) {
-            setSuccessMessage(`Visit details updated and images uploaded successfully!\n\nCustomer: ${visitData.first_name} ${visitData.last_name}`);
+            const updatedVisit = { ...visitData, ...updateData };
+            setPendingUpdate(updatedVisit);
+            setModal({
+              isOpen: true,
+              type: 'success',
+              title: 'Success',
+              message: `Visit details updated and images uploaded successfully!\n\nCustomer: ${visitData.first_name} ${visitData.last_name}`,
+              onConfirm: () => {
+                setErrors({});
+                onSave(pendingUpdate!);
+                setPendingUpdate(null);
+                onClose();
+                setModal({ ...modal, isOpen: false });
+              }
+            });
           } else {
-            setSuccessMessage(`Visit details updated, but image upload failed: ${uploadResult.message}`);
+            setModal({
+              isOpen: true,
+              type: 'warning',
+              title: 'Partial Success',
+              message: `Visit details updated, but image upload failed: ${uploadResult.message}`
+            });
           }
         } catch (uploadError: any) {
           const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
-          setSuccessMessage(`Visit details updated, but image upload failed: ${errorMsg}`);
+          setModal({
+            isOpen: true,
+            type: 'warning',
+            title: 'Partial Success',
+            message: `Visit details updated, but image upload failed: ${errorMsg}`
+          });
         }
       } else {
-        setSuccessMessage(`Visit details updated successfully!\n\nCustomer: ${formData.firstName} ${formData.lastName}`);
+        const updatedVisit = { ...visitData, ...updateData };
+        setPendingUpdate(updatedVisit);
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Success',
+          message: `Visit details updated successfully!\n\nCustomer: ${formData.firstName} ${formData.lastName}`,
+          onConfirm: () => {
+            setErrors({});
+            onSave(pendingUpdate!);
+            setPendingUpdate(null);
+            onClose();
+            setModal({ ...modal, isOpen: false });
+          }
+        });
       }
-      
-      setErrors({});
-      
-      const updatedVisit = { ...visitData, ...updateData };
-      setPendingUpdate(updatedVisit);
-      setShowSuccessModal(true);
     } catch (error: any) {
       let errorMessage = 'Unknown error occurred';
       
@@ -512,8 +566,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         errorMessage = error;
       }
       
-      setSuccessMessage(`Failed to update visit details: ${errorMessage}`);
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Update',
+        message: `Failed to update visit details: ${errorMessage}`
+      });
     } finally {
       setLoading(false);
     }
@@ -521,15 +579,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
   const handleCancel = () => {
     onClose();
-  };
-
-  const handleSuccessModalClose = () => {
-    setShowSuccessModal(false);
-    if (successMessage.includes('successfully') && pendingUpdate) {
-      onSave(pendingUpdate);
-      setPendingUpdate(null);
-      onClose();
-    }
   };
 
   const getFullName = () => {
@@ -1078,24 +1127,41 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         </div>
       </div>
 
-      {showSuccessModal && (
+      {modal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">
-                  {successMessage.includes('successfully') ? 'Success' : 'Notice'}
-                </h3>
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+            <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+            <div className="flex items-center justify-end gap-3">
+              {modal.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={modal.onCancel}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={modal.onConfirm}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                  >
+                    Confirm
+                  </button>
+                </>
+              ) : (
                 <button
-                  onClick={handleSuccessModalClose}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  onClick={() => {
+                    if (modal.onConfirm) {
+                      modal.onConfirm();
+                    } else {
+                      setModal({ ...modal, isOpen: false });
+                    }
+                  }}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
                 >
-                  <X size={20} />
+                  OK
                 </button>
-              </div>
-              <p className="text-gray-300 whitespace-pre-line">
-                {successMessage}
-              </p>
+              )}
             </div>
           </div>
         </div>

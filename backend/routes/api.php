@@ -1556,8 +1556,8 @@ Route::prefix('radius')->group(function () {
 // Custom Account Number Management Routes
 Route::get('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'index']);
 Route::post('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'store']);
-Route::put('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'update']);
-Route::delete('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'destroy']);
+Route::put('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'update']);
+Route::delete('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'destroy']);
 
 // Debug endpoint for custom account number table
 Route::get('/debug/custom-account-number-table', function() {
@@ -1630,3 +1630,9 @@ Route::prefix('location-details')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'destroy']);
     Route::get('/barangay/{barangayId}', [\App\Http\Controllers\LocationDetailController::class, 'getByBarangay']);
 });
+
+// Billing Configuration Management Routes
+Route::get('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'index']);
+Route::post('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'store']);
+Route::put('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'update']);
+Route::delete('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'destroy']);

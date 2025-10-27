@@ -35,8 +35,10 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'invoice', label: 'Invoice', icon: Receipt, allowedRoles: ['administrator'] },
         { id: 'overdue', label: 'Overdue', icon: Clock, allowedRoles: ['administrator'] },
         { id: 'dc-notice', label: 'DC Notice', icon: AlertTriangle, allowedRoles: ['administrator'] },
-        { id: 'mass-rebate', label: 'Mass Rebate', icon: DollarSign, allowedRoles: ['administrator'] },
-        { id: 'staggered-payment', label: 'Staggered Payment', icon: Calendar, allowedRoles: ['administrator'] }
+        { id: 'mass-rebate', label: 'Rebates', icon: DollarSign, allowedRoles: ['administrator'] },
+        { id: 'staggered-payment', label: 'Staggered', icon: Calendar, allowedRoles: ['administrator'] },
+        { id: 'discounts', label: 'Discounts', icon: Tag, allowedRoles: ['administrator'] },
+        { id: 'billing-config', label: 'Billing Configurations', icon: Receipt, allowedRoles: ['administrator'] }
       ]
     },
     {
@@ -105,19 +107,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       ]
     },
     {
-      id: 'configuration',
-      label: 'Configuration',
-      icon: Settings,
-      allowedRoles: ['administrator', 'technician'],
-      children: [
-        { id: 'router-models', label: 'Router Models', icon: Router, allowedRoles: ['administrator'] },
-        { id: 'ports', label: 'Ports', icon: Network, allowedRoles: ['administrator'] },
-        { id: 'logs', label: 'Logs', icon: FileText, allowedRoles: ['administrator'] },
-        { id: 'soa-generation', label: 'SOA Generation', icon: FileBarChart, allowedRoles: ['administrator'] },
-        { id: 'invoice-generation', label: 'Invoice Generation', icon: Receipt, allowedRoles: ['administrator'] }
-      ]
-    },
-    {
       id: 'users',
       label: 'Users',
       icon: Users,
@@ -128,10 +117,20 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
         { id: 'group-management', label: 'Group Management', icon: Shield, allowedRoles: ['administrator'] }
       ]
     },
-    { id: 'expenses-log', label: 'Expenses Log', icon: FileBarChart, allowedRoles: ['administrator'] },
-    { id: 'discounts', label: 'Discounts', icon: Tag, allowedRoles: ['administrator'] },
-    { id: 'disconnected-logs', label: 'Disconnected Logs', icon: AlertTriangle, allowedRoles: ['administrator'] },
-    { id: 'reconnection-logs', label: 'Reconnection Logs', icon: FileBarChart, allowedRoles: ['administrator'] },
+    {
+      id: 'logs',
+      label: 'logs',
+      icon: Users,
+      allowedRoles: ['administrator'],
+      children: [
+        { id: 'expenses-log', label: 'Expenses Log', icon: FileBarChart, allowedRoles: ['administrator'] },
+        { id: 'disconnected-logs', label: 'Disconnected Logs', icon: AlertTriangle, allowedRoles: ['administrator'] },
+        { id: 'reconnection-logs', label: 'Reconnection Logs', icon: FileBarChart, allowedRoles: ['administrator'] },
+        { id: 'logs', label: 'System Logs', icon: FileText, allowedRoles: ['administrator'] },
+        { id: 'soa-generation', label: 'SOA Generation', icon: FileBarChart, allowedRoles: ['administrator'] },
+        { id: 'invoice-generation', label: 'Invoice Generation', icon: Receipt, allowedRoles: ['administrator'] }
+      ]
+    },
     { id: 'settings', label: 'Settings', icon: Settings, allowedRoles: ['administrator', 'technician'] },
   ];
 

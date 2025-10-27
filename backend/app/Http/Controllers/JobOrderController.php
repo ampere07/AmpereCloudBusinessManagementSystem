@@ -350,21 +350,26 @@ class JobOrderController extends Controller
                 'updated_by' => $defaultUserId,
             ]);
 
-            $currentYear = date('Y');
-            $yearPrefix = $currentYear;
+            $customAccountNumber = DB::table('custom_account_number')->first();
             
-            $latestAccount = BillingAccount::where('account_no', 'LIKE', $yearPrefix . '%')
+            if (!$customAccountNumber) {
+                throw new \Exception('Custom account number not configured. Please set up the starting number in settings.');
+            }
+            
+            $startingNumber = $customAccountNumber->starting_number;
+            
+            $latestAccount = BillingAccount::where('account_no', 'LIKE', $startingNumber . '%')
                 ->orderBy('account_no', 'desc')
                 ->first();
             
             if ($latestAccount) {
-                $lastNumber = (int) substr($latestAccount->account_no, 4);
-                $nextNumber = $lastNumber + 1;
+                $lastSequence = (int) substr($latestAccount->account_no, strlen($startingNumber));
+                $nextSequence = $lastSequence + 1;
             } else {
-                $nextNumber = 1;
+                $nextSequence = 1;
             }
             
-            $accountNumber = $yearPrefix . str_pad($nextNumber, 6, '0', STR_PAD_LEFT);
+            $accountNumber = $startingNumber . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
 
             $installationFee = $jobOrder->installation_fee ?? 0;
             

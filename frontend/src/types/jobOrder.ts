@@ -119,6 +119,7 @@ export type JobOrderData = JobOrder;
 export interface JobOrderDetailsProps {
   jobOrder: JobOrder;
   onClose: () => void;
+  onRefresh?: () => void;
 }
 
 // Create status type definitions
