@@ -11,6 +11,12 @@ class CustomAccountNumber extends Model
 
     protected $table = 'custom_account_number';
 
+    protected $primaryKey = 'starting_number';
+
+    public $incrementing = false;
+
+    protected $keyType = 'string';
+
     public $timestamps = true;
 
     protected $fillable = [

@@ -1556,8 +1556,8 @@ Route::prefix('radius')->group(function () {
 // Custom Account Number Management Routes
 Route::get('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'index']);
 Route::post('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'store']);
-Route::put('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'update']);
-Route::delete('/custom-account-number/{id}', [\App\Http\Controllers\CustomAccountNumberController::class, 'destroy']);
+Route::put('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'update']);
+Route::delete('/custom-account-number', [\App\Http\Controllers\CustomAccountNumberController::class, 'destroy']);
 
 // Debug endpoint for custom account number table
 Route::get('/debug/custom-account-number-table', function() {

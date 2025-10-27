@@ -1,7 +1,6 @@
 import apiClient from '../config/api';
 
 export interface CustomAccountNumber {
-  id: number;
   starting_number: string;
   created_at: string;
   updated_at: string;
@@ -51,7 +50,7 @@ export const customAccountNumberService = {
     }
   },
 
-  update: async (id: number, startingNumber: string): Promise<ApiResponse<CustomAccountNumber>> => {
+  update: async (startingNumber: string): Promise<ApiResponse<CustomAccountNumber>> => {
     try {
       const authData = localStorage.getItem('authData');
       let userEmail = 'unknown@user.com';
@@ -65,7 +64,7 @@ export const customAccountNumberService = {
         }
       }
 
-      const response = await apiClient.put<ApiResponse<CustomAccountNumber>>(`/custom-account-number/${id}`, {
+      const response = await apiClient.put<ApiResponse<CustomAccountNumber>>('/custom-account-number', {
         starting_number: startingNumber,
         user_email: userEmail
       });
@@ -76,9 +75,9 @@ export const customAccountNumberService = {
     }
   },
 
-  delete: async (id: number): Promise<ApiResponse<null>> => {
+  delete: async (): Promise<ApiResponse<null>> => {
     try {
-      const response = await apiClient.delete<ApiResponse<null>>(`/custom-account-number/${id}`);
+      const response = await apiClient.delete<ApiResponse<null>>('/custom-account-number');
       return response.data;
     } catch (error) {
       console.error('Error deleting custom account number:', error);

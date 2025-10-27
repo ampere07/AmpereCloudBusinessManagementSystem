@@ -134,7 +134,7 @@ const Settings: React.FC = () => {
     try {
       setLoadingAccountNumber(true);
       if (customAccountNumber) {
-        await customAccountNumberService.update(customAccountNumber.id, accountNumberInput.trim());
+        await customAccountNumberService.update(accountNumberInput.trim());
         alert('Starting account number updated successfully');
       } else {
         await customAccountNumberService.create(accountNumberInput.trim());
@@ -160,7 +160,7 @@ const Settings: React.FC = () => {
 
     try {
       setLoadingAccountNumber(true);
-      await customAccountNumberService.delete(customAccountNumber.id);
+      await customAccountNumberService.delete();
       alert('Starting account number deleted successfully');
       setCustomAccountNumber(null);
       setAccountNumberInput('');

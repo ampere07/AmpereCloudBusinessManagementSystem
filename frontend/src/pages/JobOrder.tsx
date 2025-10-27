@@ -162,53 +162,53 @@ const JobOrderPage: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        
-        const citiesData = await getCities();
-        setCities(citiesData);
-        
-        const billingStatusesData = await getBillingStatuses();
-        setBillingStatuses(billingStatusesData);
-        
-        const authData = localStorage.getItem('authData');
-        let assignedEmail: string | undefined;
-        
-        if (authData) {
-          try {
-            const userData = JSON.parse(authData);
-            if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
-              assignedEmail = userData.email;
-            }
-          } catch (error) {
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      
+      const citiesData = await getCities();
+      setCities(citiesData);
+      
+      const billingStatusesData = await getBillingStatuses();
+      setBillingStatuses(billingStatusesData);
+      
+      const authData = localStorage.getItem('authData');
+      let assignedEmail: string | undefined;
+      
+      if (authData) {
+        try {
+          const userData = JSON.parse(authData);
+          if (userData.role && userData.role.toLowerCase() === 'technician' && userData.email) {
+            assignedEmail = userData.email;
           }
+        } catch (error) {
         }
-        
-        const response = await getJobOrders(assignedEmail);
-        
-        if (response.success && Array.isArray(response.data)) {
-          const processedOrders: JobOrder[] = response.data.map((order, index) => {
-            const id = order.id || order.JobOrder_ID || String(index);
-            
-            return {
-              ...order,
-              id: id
-            };
-          });
-          
-          setJobOrders(processedOrders);
-        } else {
-          setJobOrders([]);
-        }
-      } catch (err: any) {
-        setError(`Failed to load data: ${err.message || 'Unknown error'}`);
-      } finally {
-        setLoading(false);
       }
-    };
+      
+      const response = await getJobOrders(assignedEmail);
+      
+      if (response.success && Array.isArray(response.data)) {
+        const processedOrders: JobOrder[] = response.data.map((order, index) => {
+          const id = order.id || order.JobOrder_ID || String(index);
+          
+          return {
+            ...order,
+            id: id
+          };
+        });
+        
+        setJobOrders(processedOrders);
+      } else {
+        setJobOrders([]);
+      }
+    } catch (err: any) {
+      setError(`Failed to load data: ${err.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchData();
   }, []);
   
@@ -772,6 +772,7 @@ const JobOrderPage: React.FC = () => {
           <JobOrderDetails 
             jobOrder={selectedJobOrder} 
             onClose={() => setSelectedJobOrder(null)}
+            onRefresh={fetchData}
           />
         </div>
       )}

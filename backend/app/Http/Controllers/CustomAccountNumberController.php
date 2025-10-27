@@ -109,9 +109,18 @@ class CustomAccountNumberController extends Controller
         }
     }
 
-    public function update(Request $request, $id): JsonResponse
+    public function update(Request $request): JsonResponse
     {
         try {
+            $customNumber = CustomAccountNumber::first();
+            
+            if (!$customNumber) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Custom account number not found'
+                ], 404);
+            }
+
             $validator = Validator::make($request->all(), [
                 'starting_number' => [
                     'required',
@@ -136,37 +145,31 @@ class CustomAccountNumberController extends Controller
                 ], 422);
             }
 
-            $customNumber = CustomAccountNumber::find($id);
-            if (!$customNumber) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Custom account number not found'
-                ], 404);
-            }
-
             $userEmail = $request->input('user_email', 'unknown@user.com');
+            $newStartingNumber = $request->input('starting_number');
 
             Log::info('Updating custom account number', [
-                'id' => $id,
-                'starting_number' => $request->input('starting_number'),
+                'old_starting_number' => $customNumber->starting_number,
+                'new_starting_number' => $newStartingNumber,
                 'updated_by' => $userEmail
             ]);
 
-            $customNumber->update([
-                'starting_number' => $request->input('starting_number'),
+            $customNumber->delete();
+
+            $updatedNumber = CustomAccountNumber::create([
+                'starting_number' => $newStartingNumber,
                 'updated_by' => $userEmail
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Custom account number updated successfully',
-                'data' => $customNumber->fresh()
+                'data' => $updatedNumber
             ]);
         } catch (\Exception $e) {
             Log::error('Error updating custom account number', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
-                'id' => $id,
                 'request_data' => $request->all()
             ]);
             
@@ -178,10 +181,11 @@ class CustomAccountNumberController extends Controller
         }
     }
 
-    public function destroy($id): JsonResponse
+    public function destroy(): JsonResponse
     {
         try {
-            $customNumber = CustomAccountNumber::find($id);
+            $customNumber = CustomAccountNumber::first();
+            
             if (!$customNumber) {
                 return response()->json([
                     'success' => false,
@@ -190,7 +194,6 @@ class CustomAccountNumberController extends Controller
             }
 
             Log::info('Deleting custom account number', [
-                'id' => $id,
                 'starting_number' => $customNumber->starting_number
             ]);
 
@@ -204,8 +207,7 @@ class CustomAccountNumberController extends Controller
         } catch (\Exception $e) {
             Log::error('Error deleting custom account number', [
                 'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString(),
-                'id' => $id
+                'trace' => $e->getTraceAsString()
             ]);
             
             return response()->json([

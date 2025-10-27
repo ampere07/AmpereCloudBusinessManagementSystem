@@ -11,7 +11,7 @@ import JobOrderDoneFormTechModal from '../modals/JobOrderDoneFormTechModal';
 import JobOrderEditFormModal from '../modals/JobOrderEditFormModal';
 import ApprovalConfirmationModal from '../modals/ApprovalConfirmationModal';
 
-const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) => {
+const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose, onRefresh }) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isDoneModalOpen, setIsDoneModalOpen] = useState(false);
@@ -258,7 +258,11 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
       
       if (response.success) {
         alert('Job Order approved successfully! Customer, billing account, and technical details have been created.');
-        window.location.reload();
+        setIsApprovalModalOpen(false);
+        if (onRefresh) {
+          onRefresh();
+        }
+        onClose();
       } else {
         throw new Error(response.message || 'Failed to approve job order');
       }
@@ -267,7 +271,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose }) 
       console.error('Approve error:', err);
     } finally {
       setLoading(false);
-      setIsApprovalModalOpen(false);
     }
   };
   
