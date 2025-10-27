@@ -81,8 +81,16 @@ const ApplicationManagement: React.FC = () => {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -404,7 +412,96 @@ const ApplicationManagement: React.FC = () => {
     }
   };
 
-  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+  const filteredColumns = allColumns
+    .filter(col => visibleColumns.includes(col.key))
+    .sort((a, b) => {
+      const indexA = columnOrder.indexOf(a.key);
+      const indexB = columnOrder.indexOf(b.key);
+      return indexA - indexB;
+    });
+
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedColumn && draggedColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || draggedColumn === targetColumnKey) {
+      setDraggedColumn(null);
+      setDragOverColumn(null);
+      return;
+    }
+
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedColumn);
+    const targetIndex = newOrder.indexOf(targetColumnKey);
+
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedColumn);
+
+    setColumnOrder(newOrder);
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleMouseDownResize = (e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnKey);
+    startXRef.current = e.clientX;
+    
+    const th = (e.target as HTMLElement).closest('th');
+    if (th) {
+      startWidthRef.current = th.offsetWidth;
+    }
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumn) return;
+      
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.max(100, startWidthRef.current + diff);
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingColumn]);
 
   const renderCellValue = (application: Application, columnKey: string) => {
     switch (columnKey) {
@@ -445,21 +542,7 @@ const ApplicationManagement: React.FC = () => {
       case 'referredBy':
         return application.referred_by || '-';
       case 'status':
-        return (
-          <span className={`text-xs px-2 py-1 ${
-            application.status?.toLowerCase() === 'schedule' ? 'text-green-400' :
-            application.status?.toLowerCase() === 'no facility' ? 'text-red-400' :
-            application.status?.toLowerCase() === 'cancelled' ? 'text-red-500' :
-            application.status?.toLowerCase() === 'no slot' ? 'text-yellow-400' :
-            application.status?.toLowerCase() === 'duplicate' ? 'text-yellow-500' :
-            application.status?.toLowerCase() === 'in progress' ? 'text-blue-400' :
-            application.status?.toLowerCase() === 'completed' ? 'text-green-400' :
-            application.status?.toLowerCase() === 'pending' ? 'text-orange-400' :
-            'text-gray-400'
-          }`}>
-            {application.status || '-'}
-          </span>
-        );
+        return application.status || '-';
       case 'createDate':
         return application.create_date || '-';
       case 'createTime':
@@ -467,6 +550,28 @@ const ApplicationManagement: React.FC = () => {
       default:
         return '-';
     }
+  };
+
+  const renderCellDisplay = (application: Application, columnKey: string) => {
+    if (columnKey === 'status') {
+      const status = application.status || '-';
+      return (
+        <span className={`text-xs px-2 py-1 ${
+          status.toLowerCase() === 'schedule' ? 'text-green-400' :
+          status.toLowerCase() === 'no facility' ? 'text-red-400' :
+          status.toLowerCase() === 'cancelled' ? 'text-red-500' :
+          status.toLowerCase() === 'no slot' ? 'text-yellow-400' :
+          status.toLowerCase() === 'duplicate' ? 'text-yellow-500' :
+          status.toLowerCase() === 'in progress' ? 'text-blue-400' :
+          status.toLowerCase() === 'completed' ? 'text-green-400' :
+          status.toLowerCase() === 'pending' ? 'text-orange-400' :
+          'text-gray-400'
+        }`}>
+          {status}
+        </span>
+      );
+    }
+    return renderCellValue(application, columnKey);
   };
 
   return (
@@ -696,13 +801,24 @@ const ApplicationManagement: React.FC = () => {
                 )
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                  <table ref={tableRef} className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
                         {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, column.key)}
+                            onDragOver={(e) => handleDragOver(e, column.key)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, column.key)}
+                            onDragEnd={handleDragEnd}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group cursor-move ${
+                              draggedColumn === column.key ? 'opacity-50' : ''
+                            } ${
+                              dragOverColumn === column.key ? 'bg-orange-500 bg-opacity-20' : ''
+                            }`}
+                            style={{ width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined }}
                             onMouseEnter={() => setHoveredColumn(column.key)}
                             onMouseLeave={() => setHoveredColumn(null)}
                           >
@@ -721,6 +837,12 @@ const ApplicationManagement: React.FC = () => {
                                 </button>
                               )}
                             </div>
+                            {index < filteredColumns.length - 1 && (
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 group-hover:bg-gray-600"
+                                onMouseDown={(e) => handleMouseDownResize(e, column.key)}
+                              />
+                            )}
                           </th>
                         ))}
                       </tr>
@@ -736,9 +858,15 @@ const ApplicationManagement: React.FC = () => {
                             {filteredColumns.map((column, index) => (
                               <td 
                                 key={column.key}
-                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                className={`py-4 px-3 text-white ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                style={{ 
+                                  width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined,
+                                  maxWidth: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined
+                                }}
                               >
-                                {renderCellValue(application, column.key)}
+                                <div className="truncate" title={String(renderCellValue(application, column.key))}>
+                                  {renderCellDisplay(application, column.key)}
+                                </div>
                               </td>
                             ))}
                           </tr>
