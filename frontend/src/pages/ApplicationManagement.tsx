@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { FileText, Search, ListFilter, ChevronDown } from 'lucide-react';
+import { FileText, Search, ListFilter, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
 import { getApplications } from '../services/applicationService';
 import { getCities, City } from '../services/cityService';
@@ -78,6 +78,9 @@ const ApplicationManagement: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
 
@@ -247,7 +250,7 @@ const ApplicationManagement: React.FC = () => {
 
   // Filter applications based on location and search query
   const filteredApplications = useMemo(() => {
-    return applications.filter(application => {
+    let filtered = applications.filter(application => {
       const matchesLocation = selectedLocation === 'all' || 
                              (application.city && application.city.toLowerCase() === selectedLocation) ||  
                              selectedLocation === (application.city || '').toLowerCase();
@@ -259,7 +262,111 @@ const ApplicationManagement: React.FC = () => {
       
       return matchesLocation && matchesSearch;
     });
-  }, [applications, selectedLocation, searchQuery]);
+
+    // Apply sorting
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: any = '';
+        let bValue: any = '';
+
+        switch (sortColumn) {
+          case 'timestamp':
+            aValue = a.create_date && a.create_time ? `${a.create_date} ${a.create_time}` : a.timestamp || '';
+            bValue = b.create_date && b.create_time ? `${b.create_date} ${b.create_time}` : b.timestamp || '';
+            break;
+          case 'customerName':
+            aValue = a.customerName || '';
+            bValue = b.customerName || '';
+            break;
+          case 'firstName':
+            aValue = a.first_name || '';
+            bValue = b.first_name || '';
+            break;
+          case 'middleInitial':
+            aValue = a.middle_initial || '';
+            bValue = b.middle_initial || '';
+            break;
+          case 'lastName':
+            aValue = a.last_name || '';
+            bValue = b.last_name || '';
+            break;
+          case 'emailAddress':
+            aValue = a.email_address || '';
+            bValue = b.email_address || '';
+            break;
+          case 'mobileNumber':
+            aValue = a.mobile_number || '';
+            bValue = b.mobile_number || '';
+            break;
+          case 'secondaryMobileNumber':
+            aValue = a.secondary_mobile_number || '';
+            bValue = b.secondary_mobile_number || '';
+            break;
+          case 'installationAddress':
+            aValue = a.installation_address || a.address || '';
+            bValue = b.installation_address || b.address || '';
+            break;
+          case 'landmark':
+            aValue = a.landmark || '';
+            bValue = b.landmark || '';
+            break;
+          case 'region':
+            aValue = a.region || '';
+            bValue = b.region || '';
+            break;
+          case 'city':
+            aValue = a.city || '';
+            bValue = b.city || '';
+            break;
+          case 'barangay':
+            aValue = a.barangay || '';
+            bValue = b.barangay || '';
+            break;
+          case 'location':
+            aValue = a.location || '';
+            bValue = b.location || '';
+            break;
+          case 'desiredPlan':
+            aValue = a.desired_plan || '';
+            bValue = b.desired_plan || '';
+            break;
+          case 'promo':
+            aValue = a.promo || '';
+            bValue = b.promo || '';
+            break;
+          case 'referredBy':
+            aValue = a.referred_by || '';
+            bValue = b.referred_by || '';
+            break;
+          case 'status':
+            aValue = a.status || '';
+            bValue = b.status || '';
+            break;
+          case 'createDate':
+            aValue = a.create_date || '';
+            bValue = b.create_date || '';
+            break;
+          case 'createTime':
+            aValue = a.create_time || '';
+            bValue = b.create_time || '';
+            break;
+          default:
+            return 0;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [applications, selectedLocation, searchQuery, sortColumn, sortDirection]);
 
   const handleRowClick = (application: Application) => {
     setSelectedApplication(application);
@@ -281,6 +388,20 @@ const ApplicationManagement: React.FC = () => {
 
   const handleDeselectAllColumns = () => {
     setVisibleColumns([]);
+  };
+
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection('asc');
+      } else {
+        setSortDirection('desc');
+      }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
   };
 
   const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
@@ -581,9 +702,25 @@ const ApplicationManagement: React.FC = () => {
                         {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group`}
+                            onMouseEnter={() => setHoveredColumn(column.key)}
+                            onMouseLeave={() => setHoveredColumn(null)}
                           >
-                            {column.label}
+                            <div className="flex items-center justify-between">
+                              <span>{column.label}</span>
+                              {(hoveredColumn === column.key || sortColumn === column.key) && (
+                                <button
+                                  onClick={() => handleSort(column.key)}
+                                  className="ml-2 transition-colors"
+                                >
+                                  {sortColumn === column.key && sortDirection === 'desc' ? (
+                                    <ArrowDown className="h-4 w-4 text-orange-400" />
+                                  ) : (
+                                    <ArrowUp className="h-4 w-4 text-gray-400 hover:text-orange-400" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </th>
                         ))}
                       </tr>

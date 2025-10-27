@@ -17,6 +17,15 @@ interface ApplicationVisitFormModalProps {
   applicationData?: any;
 }
 
+interface ModalConfig {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'warning' | 'confirm';
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
 // Form interface for UI handling
 interface VisitFormData {
   firstName: string;
@@ -104,6 +113,14 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
+  
+  const [modal, setModal] = useState<ModalConfig>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
   interface Region {
     id: number;
     name: string;
@@ -412,13 +429,23 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     const isValid = validateForm();
     
     if (!isValid) {
-      alert('Please fill in all required fields before saving.');
+      setModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields before saving.'
+      });
       return;
     }
     
     if (!applicationData?.id) {
       console.error('No application ID available');
-      alert('Missing application ID. Cannot save visit.');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Missing application ID. Cannot save visit.'
+      });
       return;
     }
 
@@ -448,7 +475,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         console.error('Error updating application:', appError);
         
         const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
-        alert(`Failed to update application data!\n\nError: ${errorMsg}\n\nPlease try again.`);
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Error',
+          message: `Failed to update application data!\n\nError: ${errorMsg}\n\nPlease try again.`
+        });
         setLoading(false);
         return;
       }
@@ -461,12 +493,18 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         throw new Error(result.message || 'Failed to create application visit');
       }
       
-      alert(`Visit created successfully!\n\nApplication data has been updated with the new location and plan information.`);
-      
-      setErrors({});
-      
-      onSave(visitData);
-      onClose();
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Visit created successfully!\n\nApplication data has been updated with the new location and plan information.',
+        onConfirm: () => {
+          setErrors({});
+          onSave(visitData);
+          onClose();
+          setModal({ ...modal, isOpen: false });
+        }
+      });
     } catch (error: any) {
       console.error('Error creating application visit:', error);
       
@@ -494,7 +532,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         ? `${errorMessage}\n\nDetails:\n${errorDetails}` 
         : errorMessage;
       
-      alert(`Failed to schedule visit:\n\n${fullErrorMessage}`);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Schedule Visit',
+        message: fullErrorMessage
+      });
     } finally {
       setLoading(false);
     }
@@ -851,6 +894,46 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
           </div>
         </div>
       </div>
+
+      {modal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+            <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+            <div className="flex items-center justify-end gap-3">
+              {modal.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={modal.onCancel}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={modal.onConfirm}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                  >
+                    Confirm
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (modal.onConfirm) {
+                      modal.onConfirm();
+                    } else {
+                      setModal({ ...modal, isOpen: false });
+                    }
+                  }}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

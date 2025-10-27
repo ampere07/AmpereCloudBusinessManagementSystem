@@ -31,6 +31,15 @@ interface JobOrderEditFormModalProps {
   jobOrderData?: any;
 }
 
+interface ModalConfig {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'warning' | 'confirm';
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
 interface JobOrderEditFormData {
   referredBy: string;
   dateInstalled: string;
@@ -196,6 +205,14 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   const [vlans, setVlans] = useState<VLAN[]>([]);
   const [usageTypes, setUsageTypes] = useState<UsageType[]>([]);
   const [statusRemarksList, setStatusRemarksList] = useState<StatusRemark[]>([]);
+  
+  const [modal, setModal] = useState<ModalConfig>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
   const [imagePreviews, setImagePreviews] = useState<{
     signedContractImage: string | null;
     setupImage: string | null;
@@ -231,16 +248,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
         if (jobOrderId) {
           try {
-            console.log('========== FETCHING JOB ORDER ITEMS ==========');
-            console.log('Fetching job order items for job order:', jobOrderId);
             const response = await apiClient.get(`/job-order-items?job_order_id=${jobOrderId}`);
             const data = response.data as { success: boolean; data: any[] };
             
-            console.log('Job Order Items Response:', data);
-            
             if (data.success && Array.isArray(data.data)) {
               const items = data.data;
-              console.log('Loaded job order items from API:', items);
               
               if (items.length > 0) {
                 const uniqueItems = new Map();
@@ -264,14 +276,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
                 const formattedItems = Array.from(uniqueItems.values());
                 formattedItems.push({ itemId: '', quantity: '' });
                 
-                console.log('Formatted unique items:', formattedItems);
                 setOrderItems(formattedItems);
-                console.log('Set order items to:', formattedItems);
               } else {
                 setOrderItems([{ itemId: '', quantity: '' }]);
               }
             }
-            console.log('============================================');
           } catch (error) {
             console.error('Error fetching job order items:', error);
             setOrderItems([{ itemId: '', quantity: '' }]);
@@ -287,15 +296,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchInventoryItems = async () => {
       if (isOpen) {
         try {
-          console.log('Loading inventory items from database...');
           const response = await getAllInventoryItems();
-          console.log('Inventory Items API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setInventoryItems(response.data);
-            console.log('Loaded Inventory Items:', response.data.length);
           } else {
-            console.warn('Unexpected Inventory Items response structure:', response);
             setInventoryItems([]);
           }
         } catch (error) {
@@ -312,15 +317,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchPlans = async () => {
       if (isOpen) {
         try {
-          console.log('Loading plans from database...');
           const response = await planService.getAllPlans();
-          console.log('Plans API Response:', response);
           
           if (Array.isArray(response)) {
             setPlans(response);
-            console.log('Loaded Plans:', response.length);
           } else {
-            console.warn('Unexpected Plans response structure:', response);
             setPlans([]);
           }
         } catch (error) {
@@ -337,15 +338,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchGroups = async () => {
       if (isOpen) {
         try {
-          console.log('Loading groups from database...');
           const response = await getAllGroups();
-          console.log('Groups API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setGroups(response.data);
-            console.log('Loaded Groups:', response.data.length);
           } else {
-            console.warn('Unexpected Groups response structure:', response);
             setGroups([]);
           }
         } catch (error) {
@@ -362,11 +359,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchRouterModels = async () => {
       if (isOpen) {
         try {
-          console.log('Loading router models from database...');
           const fetchedRouterModels = await routerModelService.getAllRouterModels();
-          console.log('Router Models API Response:', fetchedRouterModels);
           setRouterModels(fetchedRouterModels);
-          console.log('Loaded Router Models:', fetchedRouterModels.length);
         } catch (error) {
           console.error('Error fetching Router Models:', error);
           setRouterModels([]);
@@ -381,15 +375,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchVlans = async () => {
       if (isOpen) {
         try {
-          console.log('Loading VLANs from database...');
           const response = await getAllVLANs();
-          console.log('VLAN API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setVlans(response.data);
-            console.log('Loaded VLANs:', response.data.length);
           } else {
-            console.warn('Unexpected VLAN response structure:', response);
             setVlans([]);
           }
         } catch (error) {
@@ -406,15 +396,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchUsageTypes = async () => {
       if (isOpen) {
         try {
-          console.log('Loading usage types from database...');
           const response = await getAllUsageTypes();
-          console.log('Usage Type API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setUsageTypes(response.data);
-            console.log('Loaded Usage Types:', response.data.length);
           } else {
-            console.warn('Unexpected Usage Type response structure:', response);
             setUsageTypes([]);
           }
         } catch (error) {
@@ -431,15 +417,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchStatusRemarks = async () => {
       if (isOpen) {
         try {
-          console.log('Loading status remarks from database...');
           const response = await statusRemarksService.getAllStatusRemarks();
-          console.log('Status Remarks API Response:', response);
           
           if (Array.isArray(response)) {
             setStatusRemarksList(response);
-            console.log('Loaded Status Remarks:', response.length);
           } else {
-            console.warn('Unexpected Status Remarks response structure:', response);
             setStatusRemarksList([]);
           }
         } catch (error) {
@@ -565,22 +547,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Fetching LCPNAP data from database...');
           const response = await getAllLCPNAPs();
-          console.log('LCPNAP API Response:', response);
-          console.log('LCPNAP Data:', response.data);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Successfully loaded LCPNAP records:', response.data.length);
-            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
-            console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
           console.error('Error fetching LCPNAP records:', error);
-          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }
@@ -593,22 +568,12 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     const fetchPorts = async () => {
       if (isOpen && formData.lcpnap) {
         try {
-          console.log('Loading Ports from database for LCPNAP:', formData.lcpnap);
           const jobOrderId = jobOrderData?.id || jobOrderData?.JobOrder_ID;
-          console.log('Fetching ports with params:', {
-            lcpnap: formData.lcpnap,
-            excludeUsed: true,
-            currentJobOrderId: jobOrderId
-          });
           const response = await getAllPorts(formData.lcpnap, 1, 100, true, jobOrderId);
-          console.log('Port API Response:', response);
           
           if (response.success && Array.isArray(response.data)) {
             setPorts(response.data);
-            console.log('Loaded Available Ports for', formData.lcpnap, ':', response.data.length);
-            console.log('Port Labels:', response.data.map(p => p.Label));
           } else {
-            console.warn('Unexpected Port response structure:', response);
             setPorts([]);
           }
         } catch (error) {
@@ -697,8 +662,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
   useEffect(() => {
     if (jobOrderData && isOpen) {
-      console.log('JobOrderEditFormModal - Received jobOrderData:', jobOrderData);
-      
       const loadedStatus = jobOrderData.Status || jobOrderData.status || 'Confirmed';
       const loadedOnsiteStatus = jobOrderData.Onsite_Status || jobOrderData.onsite_status || 'In Progress';
       
@@ -706,11 +669,9 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         try {
           const applicationId = jobOrderData.application_id || jobOrderData.Application_ID;
           if (applicationId) {
-            console.log('Fetching application data for ID:', applicationId);
             const appResponse = await apiClient.get<{ success: boolean; application: any }>(`/applications/${applicationId}`);
             if (appResponse.data.success && appResponse.data.application) {
               const appData = appResponse.data.application;
-              console.log('Loaded application data:', appData);
               
               setFormData(prev => ({
                 ...prev,
@@ -753,7 +714,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               }));
             }
           } else {
-            console.warn('No application_id found, using jobOrderData for location');
             loadDefaultFormData();
           }
         } catch (error) {
@@ -1052,12 +1012,22 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     setFormData(updatedFormData);
     
     if (!validateForm()) {
-      alert('Please fill in all required fields before saving.');
+      setModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields before saving.'
+      });
       return;
     }
 
     if (!jobOrderData?.id && !jobOrderData?.JobOrder_ID) {
-      alert('Cannot update job order: Missing ID');
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Cannot update job order: Missing ID'
+      });
       return;
     }
 
@@ -1118,66 +1088,36 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       }
 
-      console.log('Updating job order with ID:', jobOrderId);
-      console.log('Job order update data:', jobOrderUpdateData);
-
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
 
-      console.log('Job order updated successfully:', jobOrderResponse);
-
       if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
-        console.log('========== ITEMS BEFORE FILTERING ==========');
-        console.log('Total order items count:', orderItems.length);
-        orderItems.forEach((item, index) => {
-          console.log(`Item ${index + 1}:`, {
-            itemId: item.itemId,
-            quantity: item.quantity,
-            quantity_parsed: parseInt(item.quantity)
-          });
-        });
-        console.log('==========================================');
-
         const validItems = orderItems.filter(item => {
           const quantity = parseInt(item.quantity);
-          const isValid = item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
-          console.log(`Validating item - itemId: "${item.itemId}", quantity: "${item.quantity}", isValid: ${isValid}`);
-          return isValid;
+          return item.itemId && item.itemId.trim() !== '' && !isNaN(quantity) && quantity > 0;
         });
 
-        console.log('Filtered valid items:', validItems);
-
         if (validItems.length > 0) {
-          console.log('========== DELETING EXISTING ITEMS ==========');
           try {
-            console.log('Fetching existing items for job order:', jobOrderId);
             const existingItemsResponse = await apiClient.get<{ success: boolean; data: any[] }>(`/job-order-items?job_order_id=${jobOrderId}`);
             
             if (existingItemsResponse.data.success && existingItemsResponse.data.data.length > 0) {
               const existingItems = existingItemsResponse.data.data;
-              console.log('Found', existingItems.length, 'existing items to delete');
               
               for (const item of existingItems) {
                 try {
                   await apiClient.delete(`/job-order-items/${item.id}`);
-                  console.log('Deleted item ID:', item.id);
                 } catch (deleteErr) {
-                  console.warn('Failed to delete item ID:', item.id, deleteErr);
+                  console.warn('Failed to delete item ID:', item.id);
                 }
               }
-              
-              console.log('All existing items deleted successfully');
-            } else {
-              console.log('No existing items to delete');
             }
           } catch (deleteError: any) {
             console.error('Error deleting existing items:', deleteError);
-            console.warn('Continuing with item creation despite delete error');
           }
-          console.log('============================================');
 
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
             return {
@@ -1186,8 +1126,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
               quantity: parseInt(item.quantity)
             };
           });
-
-          console.log('Sending job order items to API:', jobOrderItems);
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
@@ -1195,12 +1133,15 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             if (!itemsResponse.success) {
               throw new Error(itemsResponse.message || 'Failed to create job order items');
             }
-            
-            console.log('Job order items created successfully:', itemsResponse);
           } catch (itemsError: any) {
             console.error('Error creating job order items:', itemsError);
             const errorMsg = itemsError.response?.data?.message || itemsError.message || 'Unknown error';
-            alert(`Job order saved but items were not saved: ${errorMsg}`);
+            setModal({
+              isOpen: true,
+              type: 'error',
+              title: 'Error',
+              message: `Job order saved but items were not saved: ${errorMsg}`
+            });
             setLoading(false);
             return;
           }
@@ -1225,23 +1166,30 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           status: updatedFormData.status
         };
 
-        console.log('Updating application with ID:', applicationId);
-        console.log('Application update data:', applicationUpdateData);
-
-        const applicationResponse = await updateApplication(applicationId, applicationUpdateData);
-        console.log('Application updated successfully:', applicationResponse);
-      } else {
-        console.warn('No Application_ID found, skipping application table update');
+        await updateApplication(applicationId, applicationUpdateData);
       }
 
-      alert('Job Order and Application updated successfully!');
-      setErrors({});
-      onSave(updatedFormData);
-      onClose();
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Job Order and Application updated successfully!',
+        onConfirm: () => {
+          setErrors({});
+          onSave(updatedFormData);
+          onClose();
+          setModal({ ...modal, isOpen: false });
+        }
+      });
     } catch (error: any) {
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
-      alert(`Failed to update records: ${errorMessage}`);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Update',
+        message: `Failed to update records: ${errorMessage}`
+      });
     } finally {
       setLoading(false);
     }
@@ -2006,6 +1954,46 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           )}
         </div>
       </div>
+
+      {modal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+            <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+            <div className="flex items-center justify-end gap-3">
+              {modal.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={modal.onCancel}
+                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={modal.onConfirm}
+                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                  >
+                    Confirm
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (modal.onConfirm) {
+                      modal.onConfirm();
+                    } else {
+                      setModal({ ...modal, isOpen: false });
+                    }
+                  }}
+                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                >
+                  OK
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
