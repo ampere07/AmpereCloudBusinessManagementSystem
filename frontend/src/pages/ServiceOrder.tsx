@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { FileText, Search, Circle, X, ListFilter } from 'lucide-react';
+import { FileText, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import ServiceOrderDetails from '../components/ServiceOrderDetails';
 import { getServiceOrders, ServiceOrderData } from '../services/serviceOrderService';
 import { getCities, City } from '../services/cityService';
@@ -104,8 +104,19 @@ const ServiceOrder: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   // Format date function
   const formatDate = (dateStr?: string): string => {
@@ -305,9 +316,9 @@ const ServiceOrder: React.FC = () => {
     return items;
   }, [cities, serviceOrders]);
   
-  // Filter service orders based on location and search query
+  // Filter and sort service orders based on location, search query, and sorting
   const filteredServiceOrders = useMemo(() => {
-    return serviceOrders.filter(serviceOrder => {
+    let filtered = serviceOrders.filter(serviceOrder => {
       const matchesLocation = selectedLocation === 'all' || 
                              serviceOrder.fullAddress.toLowerCase().includes(selectedLocation.toLowerCase());
       
@@ -318,7 +329,166 @@ const ServiceOrder: React.FC = () => {
       
       return matchesLocation && matchesSearch;
     });
-  }, [serviceOrders, selectedLocation, searchQuery]);
+
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: any = '';
+        let bValue: any = '';
+
+        switch (sortColumn) {
+          case 'ticketId':
+            aValue = a.ticketId || '';
+            bValue = b.ticketId || '';
+            break;
+          case 'timestamp':
+            aValue = a.timestamp || '';
+            bValue = b.timestamp || '';
+            break;
+          case 'accountNumber':
+            aValue = a.accountNumber || '';
+            bValue = b.accountNumber || '';
+            break;
+          case 'fullName':
+            aValue = a.fullName || '';
+            bValue = b.fullName || '';
+            break;
+          case 'contactAddress':
+            aValue = a.contactAddress || '';
+            bValue = b.contactAddress || '';
+            break;
+          case 'dateInstalled':
+            aValue = a.dateInstalled || '';
+            bValue = b.dateInstalled || '';
+            break;
+          case 'contactNumber':
+            aValue = a.contactNumber || '';
+            bValue = b.contactNumber || '';
+            break;
+          case 'fullAddress':
+            aValue = a.fullAddress || '';
+            bValue = b.fullAddress || '';
+            break;
+          case 'emailAddress':
+            aValue = a.emailAddress || '';
+            bValue = b.emailAddress || '';
+            break;
+          case 'plan':
+            aValue = a.plan || '';
+            bValue = b.plan || '';
+            break;
+          case 'provider':
+            aValue = a.provider || '';
+            bValue = b.provider || '';
+            break;
+          case 'username':
+            aValue = a.username || '';
+            bValue = b.username || '';
+            break;
+          case 'connectionType':
+            aValue = a.connectionType || '';
+            bValue = b.connectionType || '';
+            break;
+          case 'routerModemSN':
+            aValue = a.routerModemSN || '';
+            bValue = b.routerModemSN || '';
+            break;
+          case 'lcp':
+            aValue = a.lcp || '';
+            bValue = b.lcp || '';
+            break;
+          case 'nap':
+            aValue = a.nap || '';
+            bValue = b.nap || '';
+            break;
+          case 'port':
+            aValue = a.port || '';
+            bValue = b.port || '';
+            break;
+          case 'vlan':
+            aValue = a.vlan || '';
+            bValue = b.vlan || '';
+            break;
+          case 'concern':
+            aValue = a.concern || '';
+            bValue = b.concern || '';
+            break;
+          case 'concernRemarks':
+            aValue = a.concernRemarks || '';
+            bValue = b.concernRemarks || '';
+            break;
+          case 'visitStatus':
+            aValue = a.visitStatus || '';
+            bValue = b.visitStatus || '';
+            break;
+          case 'visitBy':
+            aValue = a.visitBy || '';
+            bValue = b.visitBy || '';
+            break;
+          case 'visitWith':
+            aValue = a.visitWith || '';
+            bValue = b.visitWith || '';
+            break;
+          case 'visitWithOther':
+            aValue = a.visitWithOther || '';
+            bValue = b.visitWithOther || '';
+            break;
+          case 'visitRemarks':
+            aValue = a.visitRemarks || '';
+            bValue = b.visitRemarks || '';
+            break;
+          case 'modifiedBy':
+            aValue = a.modifiedBy || '';
+            bValue = b.modifiedBy || '';
+            break;
+          case 'modifiedDate':
+            aValue = a.modifiedDate || '';
+            bValue = b.modifiedDate || '';
+            break;
+          case 'userEmail':
+            aValue = a.userEmail || '';
+            bValue = b.userEmail || '';
+            break;
+          case 'requestedBy':
+            aValue = a.requestedBy || '';
+            bValue = b.requestedBy || '';
+            break;
+          case 'assignedEmail':
+            aValue = a.assignedEmail || '';
+            bValue = b.assignedEmail || '';
+            break;
+          case 'supportRemarks':
+            aValue = a.supportRemarks || '';
+            bValue = b.supportRemarks || '';
+            break;
+          case 'serviceCharge':
+            aValue = a.serviceCharge || '';
+            bValue = b.serviceCharge || '';
+            break;
+          case 'repairCategory':
+            aValue = a.repairCategory || '';
+            bValue = b.repairCategory || '';
+            break;
+          case 'supportStatus':
+            aValue = a.supportStatus || '';
+            bValue = b.supportStatus || '';
+            break;
+          default:
+            return 0;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [serviceOrders, selectedLocation, searchQuery, sortColumn, sortDirection]);
   
   // Status text color component
   const StatusText = ({ status, type }: { status?: string, type: 'support' | 'visit' }) => {
@@ -463,7 +633,110 @@ const ServiceOrder: React.FC = () => {
     setVisibleColumns([]);
   };
 
-  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection('asc');
+      } else {
+        setSortDirection('desc');
+      }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedColumn && draggedColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || draggedColumn === targetColumnKey) {
+      setDraggedColumn(null);
+      setDragOverColumn(null);
+      return;
+    }
+
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedColumn);
+    const targetIndex = newOrder.indexOf(targetColumnKey);
+
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedColumn);
+
+    setColumnOrder(newOrder);
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleMouseDownResize = (e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnKey);
+    startXRef.current = e.clientX;
+    
+    const th = (e.target as HTMLElement).closest('th');
+    if (th) {
+      startWidthRef.current = th.offsetWidth;
+    }
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumn) return;
+      
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.max(100, startWidthRef.current + diff);
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingColumn]);
+
+  const filteredColumns = allColumns
+    .filter(col => visibleColumns.includes(col.key))
+    .sort((a, b) => {
+      const indexA = columnOrder.indexOf(a.key);
+      const indexB = columnOrder.indexOf(b.key);
+      return indexA - indexB;
+    });
 
   const renderCellValue = (serviceOrder: ServiceOrder, columnKey: string) => {
     switch (columnKey) {
@@ -764,15 +1037,48 @@ const ServiceOrder: React.FC = () => {
                 )
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                  <table ref={tableRef} className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
                         {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, column.key)}
+                            onDragOver={(e) => handleDragOver(e, column.key)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, column.key)}
+                            onDragEnd={handleDragEnd}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group cursor-move ${
+                              draggedColumn === column.key ? 'opacity-50' : ''
+                            } ${
+                              dragOverColumn === column.key ? 'bg-orange-500 bg-opacity-20' : ''
+                            }`}
+                            style={{ width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined }}
+                            onMouseEnter={() => setHoveredColumn(column.key)}
+                            onMouseLeave={() => setHoveredColumn(null)}
                           >
-                            {column.label}
+                            <div className="flex items-center justify-between">
+                              <span>{column.label}</span>
+                              {(hoveredColumn === column.key || sortColumn === column.key) && (
+                                <button
+                                  onClick={() => handleSort(column.key)}
+                                  className="ml-2 transition-colors"
+                                >
+                                  {sortColumn === column.key && sortDirection === 'desc' ? (
+                                    <ArrowDown className="h-4 w-4 text-orange-400" />
+                                  ) : (
+                                    <ArrowUp className="h-4 w-4 text-gray-400 hover:text-orange-400" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {index < filteredColumns.length - 1 && (
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 group-hover:bg-gray-600"
+                                onMouseDown={(e) => handleMouseDownResize(e, column.key)}
+                              />
+                            )}
                           </th>
                         ))}
                       </tr>
@@ -788,9 +1094,15 @@ const ServiceOrder: React.FC = () => {
                             {filteredColumns.map((column, index) => (
                               <td 
                                 key={column.key}
-                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                className={`py-4 px-3 text-white ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                style={{ 
+                                  width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined,
+                                  maxWidth: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined
+                                }}
                               >
-                                {renderCellValue(serviceOrder, column.key)}
+                                <div className="truncate">
+                                  {renderCellValue(serviceOrder, column.key)}
+                                </div>
                               </td>
                             ))}
                           </tr>

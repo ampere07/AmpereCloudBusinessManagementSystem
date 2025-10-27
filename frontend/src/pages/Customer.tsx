@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { CreditCard, Search, Circle, X, ListFilter } from 'lucide-react';
+import { CreditCard, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import BillingDetails from '../components/CustomerDetails';
 import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
@@ -95,8 +95,19 @@ const Customer: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<string[]>(allColumns.map(col => col.key));
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+  const [hoveredColumn, setHoveredColumn] = useState<string | null>(null);
+  const [resizingColumn, setResizingColumn] = useState<string | null>(null);
+  const [columnWidths, setColumnWidths] = useState<Record<string, number>>({});
+  const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   // Fetch location data
   // Handle click outside to close dropdowns
@@ -188,9 +199,9 @@ const Customer: React.FC = () => {
     return items;
   }, [cities, billingRecords]);
 
-  // Memoize filtered records for performance
+  // Memoize filtered and sorted records for performance
   const filteredBillingRecords = useMemo(() => {
-    return billingRecords.filter(record => {
+    let filtered = billingRecords.filter(record => {
       const matchesLocation = selectedLocation === 'all' || 
                              record.cityId === Number(selectedLocation);
       
@@ -201,7 +212,139 @@ const Customer: React.FC = () => {
       
       return matchesLocation && matchesSearch;
     });
-  }, [billingRecords, selectedLocation, searchQuery]);
+
+    if (sortColumn) {
+      filtered = [...filtered].sort((a, b) => {
+        let aValue: any = '';
+        let bValue: any = '';
+
+        switch (sortColumn) {
+          case 'status':
+          case 'onlineStatus':
+            aValue = a.onlineStatus || '';
+            bValue = b.onlineStatus || '';
+            break;
+          case 'billingStatus':
+            aValue = a.billingStatus || 'Active';
+            bValue = b.billingStatus || 'Active';
+            break;
+          case 'accountNo':
+            aValue = a.applicationId || '';
+            bValue = b.applicationId || '';
+            break;
+          case 'dateInstalled':
+            aValue = a.dateInstalled || '';
+            bValue = b.dateInstalled || '';
+            break;
+          case 'customerName':
+            aValue = a.customerName || '';
+            bValue = b.customerName || '';
+            break;
+          case 'address':
+            aValue = a.address || '';
+            bValue = b.address || '';
+            break;
+          case 'contactNumber':
+            aValue = a.contactNumber || '';
+            bValue = b.contactNumber || '';
+            break;
+          case 'emailAddress':
+            aValue = a.emailAddress || '';
+            bValue = b.emailAddress || '';
+            break;
+          case 'plan':
+            aValue = a.plan || '';
+            bValue = b.plan || '';
+            break;
+          case 'balance':
+            aValue = a.balance || 0;
+            bValue = b.balance || 0;
+            break;
+          case 'username':
+            aValue = a.username || '';
+            bValue = b.username || '';
+            break;
+          case 'connectionType':
+            aValue = a.connectionType || '';
+            bValue = b.connectionType || '';
+            break;
+          case 'routerModel':
+            aValue = a.routerModel || '';
+            bValue = b.routerModel || '';
+            break;
+          case 'routerModemSN':
+            aValue = a.routerModemSN || '';
+            bValue = b.routerModemSN || '';
+            break;
+          case 'lcpnap':
+            aValue = a.lcpnap || '';
+            bValue = b.lcpnap || '';
+            break;
+          case 'port':
+            aValue = a.port || '';
+            bValue = b.port || '';
+            break;
+          case 'vlan':
+            aValue = a.vlan || '';
+            bValue = b.vlan || '';
+            break;
+          case 'billingDay':
+            aValue = a.billingDay || 0;
+            bValue = b.billingDay || 0;
+            break;
+          case 'totalPaid':
+            aValue = a.totalPaid || 0;
+            bValue = b.totalPaid || 0;
+            break;
+          case 'provider':
+            aValue = a.provider || '';
+            bValue = b.provider || '';
+            break;
+          case 'lcp':
+            aValue = a.lcp || '';
+            bValue = b.lcp || '';
+            break;
+          case 'nap':
+            aValue = a.nap || '';
+            bValue = b.nap || '';
+            break;
+          case 'modifiedBy':
+            aValue = a.modifiedBy || '';
+            bValue = b.modifiedBy || '';
+            break;
+          case 'modifiedDate':
+            aValue = a.modifiedDate || '';
+            bValue = b.modifiedDate || '';
+            break;
+          case 'barangay':
+            aValue = a.barangay || '';
+            bValue = b.barangay || '';
+            break;
+          case 'city':
+            aValue = a.city || '';
+            bValue = b.city || '';
+            break;
+          case 'region':
+            aValue = a.region || '';
+            bValue = b.region || '';
+            break;
+          default:
+            return 0;
+        }
+
+        if (typeof aValue === 'string' && typeof bValue === 'string') {
+          aValue = aValue.toLowerCase();
+          bValue = bValue.toLowerCase();
+        }
+
+        if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+        if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return filtered;
+  }, [billingRecords, selectedLocation, searchQuery, sortColumn, sortDirection]);
 
   const handleRecordClick = (record: BillingRecord) => {
     setSelectedBilling(record);
@@ -382,7 +525,110 @@ const Customer: React.FC = () => {
     setVisibleColumns([]);
   };
 
-  const filteredColumns = allColumns.filter(col => visibleColumns.includes(col.key));
+  const handleSort = (columnKey: string) => {
+    if (sortColumn === columnKey) {
+      if (sortDirection === 'desc') {
+        setSortColumn(null);
+        setSortDirection('asc');
+      } else {
+        setSortDirection('desc');
+      }
+    } else {
+      setSortColumn(columnKey);
+      setSortDirection('asc');
+    }
+  };
+
+  const handleDragStart = (e: React.DragEvent, columnKey: string) => {
+    setDraggedColumn(columnKey);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e: React.DragEvent, columnKey: string) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    if (draggedColumn && draggedColumn !== columnKey) {
+      setDragOverColumn(columnKey);
+    }
+  };
+
+  const handleDragLeave = () => {
+    setDragOverColumn(null);
+  };
+
+  const handleDrop = (e: React.DragEvent, targetColumnKey: string) => {
+    e.preventDefault();
+    
+    if (!draggedColumn || draggedColumn === targetColumnKey) {
+      setDraggedColumn(null);
+      setDragOverColumn(null);
+      return;
+    }
+
+    const newOrder = [...columnOrder];
+    const draggedIndex = newOrder.indexOf(draggedColumn);
+    const targetIndex = newOrder.indexOf(targetColumnKey);
+
+    newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, draggedColumn);
+
+    setColumnOrder(newOrder);
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleDragEnd = () => {
+    setDraggedColumn(null);
+    setDragOverColumn(null);
+  };
+
+  const handleMouseDownResize = (e: React.MouseEvent, columnKey: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setResizingColumn(columnKey);
+    startXRef.current = e.clientX;
+    
+    const th = (e.target as HTMLElement).closest('th');
+    if (th) {
+      startWidthRef.current = th.offsetWidth;
+    }
+  };
+
+  useEffect(() => {
+    if (!resizingColumn) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!resizingColumn) return;
+      
+      const diff = e.clientX - startXRef.current;
+      const newWidth = Math.max(100, startWidthRef.current + diff);
+      
+      setColumnWidths(prev => ({
+        ...prev,
+        [resizingColumn]: newWidth
+      }));
+    };
+
+    const handleMouseUp = () => {
+      setResizingColumn(null);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [resizingColumn]);
+
+  const filteredColumns = allColumns
+    .filter(col => visibleColumns.includes(col.key))
+    .sort((a, b) => {
+      const indexA = columnOrder.indexOf(a.key);
+      const indexB = columnOrder.indexOf(b.key);
+      return indexA - indexB;
+    });
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
@@ -584,15 +830,48 @@ const Customer: React.FC = () => {
                 )
               ) : (
                 <div className="overflow-x-auto overflow-y-hidden">
-                  <table className="w-max min-w-full text-sm border-separate border-spacing-0">
+                  <table ref={tableRef} className="w-max min-w-full text-sm border-separate border-spacing-0">
                     <thead>
                       <tr className="border-b border-gray-700 bg-gray-800 sticky top-0 z-10">
                         {filteredColumns.map((column, index) => (
                           <th
                             key={column.key}
-                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''}`}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, column.key)}
+                            onDragOver={(e) => handleDragOver(e, column.key)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={(e) => handleDrop(e, column.key)}
+                            onDragEnd={handleDragEnd}
+                            className={`text-left py-3 px-3 text-gray-400 font-normal bg-gray-800 ${column.width} whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-700' : ''} relative group cursor-move ${
+                              draggedColumn === column.key ? 'opacity-50' : ''
+                            } ${
+                              dragOverColumn === column.key ? 'bg-orange-500 bg-opacity-20' : ''
+                            }`}
+                            style={{ width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined }}
+                            onMouseEnter={() => setHoveredColumn(column.key)}
+                            onMouseLeave={() => setHoveredColumn(null)}
                           >
-                            {column.label}
+                            <div className="flex items-center justify-between">
+                              <span>{column.label}</span>
+                              {(hoveredColumn === column.key || sortColumn === column.key) && (
+                                <button
+                                  onClick={() => handleSort(column.key)}
+                                  className="ml-2 transition-colors"
+                                >
+                                  {sortColumn === column.key && sortDirection === 'desc' ? (
+                                    <ArrowDown className="h-4 w-4 text-orange-400" />
+                                  ) : (
+                                    <ArrowUp className="h-4 w-4 text-gray-400 hover:text-orange-400" />
+                                  )}
+                                </button>
+                              )}
+                            </div>
+                            {index < filteredColumns.length - 1 && (
+                              <div
+                                className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 group-hover:bg-gray-600"
+                                onMouseDown={(e) => handleMouseDownResize(e, column.key)}
+                              />
+                            )}
                           </th>
                         ))}
                       </tr>
@@ -608,9 +887,15 @@ const Customer: React.FC = () => {
                             {filteredColumns.map((column, index) => (
                               <td 
                                 key={column.key}
-                                className={`py-4 px-3 text-white whitespace-nowrap ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                className={`py-4 px-3 text-white ${index < filteredColumns.length - 1 ? 'border-r border-gray-800' : ''}`}
+                                style={{ 
+                                  width: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined,
+                                  maxWidth: columnWidths[column.key] ? `${columnWidths[column.key]}px` : undefined
+                                }}
                               >
-                                {renderCellValue(record, column.key)}
+                                <div className="truncate">
+                                  {renderCellValue(record, column.key)}
+                                </div>
                               </td>
                             ))}
                           </tr>
