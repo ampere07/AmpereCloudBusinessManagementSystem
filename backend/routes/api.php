@@ -1630,3 +1630,9 @@ Route::prefix('location-details')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\LocationDetailController::class, 'destroy']);
     Route::get('/barangay/{barangayId}', [\App\Http\Controllers\LocationDetailController::class, 'getByBarangay']);
 });
+
+// Billing Configuration Management Routes
+Route::get('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'index']);
+Route::post('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'store']);
+Route::put('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'update']);
+Route::delete('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'destroy']);

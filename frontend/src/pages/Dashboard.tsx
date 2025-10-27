@@ -41,6 +41,7 @@ import Ports from './Ports';
 import StatusRemarksList from './StatusRemarksList';
 import Settings from './Settings';
 import LcpNapLocation from './LcpNapLocation';
+import BillingConfig from './BillingConfig';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -83,6 +84,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <DCNotice />;
       case 'discounts':
         return <Discounts />;
+      case 'billing-config':
+        return <BillingConfig />;
 
 
       case 'staggered-payment':

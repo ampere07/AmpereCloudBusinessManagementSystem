@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Palette, Sun, Moon, Plus, Hash, Edit2, Trash2, Save, X } from 'lucide-react';
+import { Palette, Sun, Moon, Plus } from 'lucide-react';
 import AddColorPaletteModal from '../modals/AddColorPaletteModal';
-import { customAccountNumberService, CustomAccountNumber } from '../services/customAccountNumberService';
 
 interface ColorPalette {
   id: string;
@@ -16,11 +15,6 @@ const Settings: React.FC = () => {
   const [selectedPalette, setSelectedPalette] = useState<string>('default');
   const [showAddPaletteModal, setShowAddPaletteModal] = useState<boolean>(false);
   const [customPalettes, setCustomPalettes] = useState<ColorPalette[]>([]);
-  const [userRole, setUserRole] = useState<string>('');
-  const [customAccountNumber, setCustomAccountNumber] = useState<CustomAccountNumber | null>(null);
-  const [isEditingAccountNumber, setIsEditingAccountNumber] = useState<boolean>(false);
-  const [accountNumberInput, setAccountNumberInput] = useState<string>('');
-  const [loadingAccountNumber, setLoadingAccountNumber] = useState<boolean>(false);
 
   const colorPalettes: ColorPalette[] = [
     {
@@ -38,24 +32,6 @@ const Settings: React.FC = () => {
       accent: '#60a5fa'
     }
   ];
-
-  const fetchCustomAccountNumber = async () => {
-    try {
-      setLoadingAccountNumber(true);
-      const response = await customAccountNumberService.get();
-      if (response.success && response.data) {
-        setCustomAccountNumber(response.data);
-        setAccountNumberInput(response.data.starting_number);
-      } else {
-        setCustomAccountNumber(null);
-        setAccountNumberInput('');
-      }
-    } catch (error) {
-      console.error('Error fetching custom account number:', error);
-    } finally {
-      setLoadingAccountNumber(false);
-    }
-  };
 
   useEffect(() => {
     const savedTheme = localStorage.getItem('theme');
@@ -75,21 +51,6 @@ const Settings: React.FC = () => {
         setCustomPalettes(JSON.parse(savedCustomPalettes));
       } catch (error) {
         console.error('Failed to parse custom palettes:', error);
-      }
-    }
-
-    const authData = localStorage.getItem('authData');
-    if (authData) {
-      try {
-        const userData = JSON.parse(authData);
-        const role = userData.role?.toLowerCase() || '';
-        setUserRole(role);
-        
-        if (role === 'administrator') {
-          fetchCustomAccountNumber();
-        }
-      } catch (error) {
-        console.error('Error parsing auth data:', error);
       }
     }
   }, []);
@@ -117,69 +78,6 @@ const Settings: React.FC = () => {
       document.documentElement.style.setProperty('--color-secondary', palette.secondary);
       document.documentElement.style.setProperty('--color-accent', palette.accent);
     }
-  };
-
-  const handleSaveAccountNumber = async () => {
-    if (!accountNumberInput.trim()) {
-      alert('Please enter a starting number');
-      return;
-    }
-
-    const alphanumericRegex = /^[A-Za-z0-9]{6,9}$/;
-    if (!alphanumericRegex.test(accountNumberInput.trim())) {
-      alert('Starting number must be 6-9 characters long and contain only letters and numbers');
-      return;
-    }
-
-    try {
-      setLoadingAccountNumber(true);
-      if (customAccountNumber) {
-        await customAccountNumberService.update(accountNumberInput.trim());
-        alert('Starting account number updated successfully');
-      } else {
-        await customAccountNumberService.create(accountNumberInput.trim());
-        alert('Starting account number created successfully');
-      }
-      await fetchCustomAccountNumber();
-      setIsEditingAccountNumber(false);
-    } catch (error: any) {
-      console.error('Error saving custom account number:', error);
-      const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error occurred';
-      alert(`Failed to save: ${errorMessage}`);
-    } finally {
-      setLoadingAccountNumber(false);
-    }
-  };
-
-  const handleDeleteAccountNumber = async () => {
-    if (!customAccountNumber) return;
-
-    if (!window.confirm('Are you sure you want to delete the starting account number?')) {
-      return;
-    }
-
-    try {
-      setLoadingAccountNumber(true);
-      await customAccountNumberService.delete();
-      alert('Starting account number deleted successfully');
-      setCustomAccountNumber(null);
-      setAccountNumberInput('');
-      setIsEditingAccountNumber(false);
-    } catch (error: any) {
-      console.error('Error deleting custom account number:', error);
-      alert(`Failed to delete: ${error.response?.data?.message || error.message}`);
-    } finally {
-      setLoadingAccountNumber(false);
-    }
-  };
-
-  const handleCancelEdit = () => {
-    if (customAccountNumber) {
-      setAccountNumberInput(customAccountNumber.starting_number);
-    } else {
-      setAccountNumberInput('');
-    }
-    setIsEditingAccountNumber(false);
   };
 
   const handleAddPalette = (newPalette: ColorPalette) => {
@@ -210,100 +108,6 @@ const Settings: React.FC = () => {
       </div>
 
       <div className="space-y-6">
-        {userRole === 'administrator' && (
-          <div className="pb-6 border-b border-gray-700">
-            <div className="flex items-center gap-3 mb-4">
-              <Hash className="h-5 w-5 text-orange-400" />
-              <h3 className="text-lg font-semibold text-white">
-                Starting Account Number
-              </h3>
-            </div>
-            
-            <div className="space-y-4">
-              <p className="text-gray-400 text-sm">
-                Set a custom starting number for new billing accounts. This can only be created once. You can edit or delete it after creation.
-              </p>
-
-              {loadingAccountNumber ? (
-                <div className="flex items-center justify-center py-8">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
-                </div>
-              ) : customAccountNumber && !isEditingAccountNumber ? (
-                <div className="flex items-center justify-between py-2">
-                  <div className="flex items-center gap-3">
-                    <div className="h-10 w-10 rounded-full bg-orange-500 bg-opacity-20 flex items-center justify-center">
-                      <Hash className="h-5 w-5 text-orange-400" />
-                    </div>
-                    <div>
-                      <p className="text-white font-medium text-lg">{customAccountNumber.starting_number}</p>
-                      <p className="text-gray-400 text-xs">Current starting number</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIsEditingAccountNumber(true)}
-                      className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={handleDeleteAccountNumber}
-                      className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Starting Number
-                    </label>
-                    <input
-                      type="text"
-                      value={accountNumberInput}
-                      onChange={(e) => {
-                        const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 9);
-                        setAccountNumberInput(value);
-                      }}
-                      placeholder="e.g., ABC12345"
-                      maxLength={9}
-                      className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 uppercase"
-                      disabled={loadingAccountNumber}
-                    />
-                    <p className="text-gray-500 text-xs mt-2">
-                      Enter 6-9 alphanumeric characters (letters and numbers only) for the starting account number.
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={handleSaveAccountNumber}
-                      disabled={loadingAccountNumber}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
-                    >
-                      <Save size={18} />
-                      <span>{customAccountNumber ? 'Update' : 'Create'}</span>
-                    </button>
-                    {customAccountNumber && (
-                      <button
-                        onClick={handleCancelEdit}
-                        disabled={loadingAccountNumber}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
-                      >
-                        <X size={18} />
-                        <span>Cancel</span>
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
         <div className="pb-6 border-b border-gray-700">
           <div className="flex items-center gap-3 mb-4">
             <Sun className="h-5 w-5 text-orange-400" />
