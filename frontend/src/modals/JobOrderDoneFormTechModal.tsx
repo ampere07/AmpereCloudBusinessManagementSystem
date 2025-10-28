@@ -1681,14 +1681,38 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
                     <div className="relative">
                       <select value={formData.port} onChange={(e) => handleInputChange('port', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.port ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
                         <option value="">Select PORT</option>
-                        {formData.port && !ports.some(p => p.Label === formData.port) && (
-                          <option value={formData.port}>{formData.port}</option>
-                        )}
-                        {ports.map((port) => (
-                          <option key={port.id} value={port.Label}>
-                            {port.Label}
-                          </option>
-                        ))}
+                        <option value="PORT 001">PORT 001</option>
+                        <option value="PORT 002">PORT 002</option>
+                        <option value="PORT 003">PORT 003</option>
+                        <option value="PORT 004">PORT 004</option>
+                        <option value="PORT 005">PORT 005</option>
+                        <option value="PORT 006">PORT 006</option>
+                        <option value="PORT 007">PORT 007</option>
+                        <option value="PORT 008">PORT 008</option>
+                        <option value="PORT 009">PORT 009</option>
+                        <option value="PORT 010">PORT 010</option>
+                        <option value="PORT 011">PORT 011</option>
+                        <option value="PORT 012">PORT 012</option>
+                        <option value="PORT 013">PORT 013</option>
+                        <option value="PORT 014">PORT 014</option>
+                        <option value="PORT 015">PORT 015</option>
+                        <option value="PORT 016">PORT 016</option>
+                        <option value="PORT 017">PORT 017</option>
+                        <option value="PORT 018">PORT 018</option>
+                        <option value="PORT 019">PORT 019</option>
+                        <option value="PORT 020">PORT 020</option>
+                        <option value="PORT 021">PORT 021</option>
+                        <option value="PORT 022">PORT 022</option>
+                        <option value="PORT 023">PORT 023</option>
+                        <option value="PORT 024">PORT 024</option>
+                        <option value="PORT 025">PORT 025</option>
+                        <option value="PORT 026">PORT 026</option>
+                        <option value="PORT 027">PORT 027</option>
+                        <option value="PORT 028">PORT 028</option>
+                        <option value="PORT 029">PORT 029</option>
+                        <option value="PORT 030">PORT 030</option>
+                        <option value="PORT 032">PORT 032</option>
+                        <option value="PORT 032">PORT 032</option>
                       </select>
                       <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                     </div>

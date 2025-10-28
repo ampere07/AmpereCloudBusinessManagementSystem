@@ -91,27 +91,6 @@ const BillingConfig: React.FC = () => {
   }, []);
 
   const handleSaveAccountNumber = async () => {
-    if (!accountNumberInput.trim()) {
-      setModal({
-        isOpen: true,
-        type: 'warning',
-        title: 'Validation Error',
-        message: 'Please enter a starting number'
-      });
-      return;
-    }
-
-    const alphanumericRegex = /^[A-Za-z0-9]{6,9}$/;
-    if (!alphanumericRegex.test(accountNumberInput.trim())) {
-      setModal({
-        isOpen: true,
-        type: 'warning',
-        title: 'Validation Error',
-        message: 'Starting number must be 6-9 characters long and contain only letters and numbers'
-      });
-      return;
-    }
-
     try {
       setLoadingAccountNumber(true);
       if (customAccountNumber) {
@@ -408,17 +387,13 @@ const BillingConfig: React.FC = () => {
                   <input
                     type="text"
                     value={accountNumberInput}
-                    onChange={(e) => {
-                      const value = e.target.value.replace(/[^A-Za-z0-9]/g, '').slice(0, 9);
-                      setAccountNumberInput(value);
-                    }}
+                    onChange={(e) => setAccountNumberInput(e.target.value)}
                     placeholder="e.g., ABC12345"
-                    maxLength={9}
                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 uppercase"
                     disabled={loadingAccountNumber}
                   />
                   <p className="text-gray-500 text-xs mt-2">
-                    Enter 6-9 alphanumeric characters (letters and numbers only) for the starting account number.
+                    Enter any combination of letters and numbers for the starting account number.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">

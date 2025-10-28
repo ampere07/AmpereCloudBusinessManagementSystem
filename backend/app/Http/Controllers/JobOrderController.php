@@ -97,6 +97,7 @@ class JobOrderController extends Controller
                     'router_reading_image_url' => $jobOrder->router_reading_image_url,
                     'port_label_image_url' => $jobOrder->port_label_image_url,
                     'house_front_picture_url' => $jobOrder->house_front_picture_url,
+                    'installation_landmark' => $jobOrder->installation_landmark,
                     
                     // Timestamps
                     'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
@@ -158,6 +159,7 @@ class JobOrderController extends Controller
                 'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'group_name' => 'nullable|string|max:255',
+                'installation_landmark' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',
             ]);
@@ -242,6 +244,7 @@ class JobOrderController extends Controller
                 'address_coordinates' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'group_name' => 'nullable|string|max:255',
+                'installation_landmark' => 'nullable|string|max:255',
                 'pppoe_username' => 'nullable|string|max:255',
                 'pppoe_password' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',

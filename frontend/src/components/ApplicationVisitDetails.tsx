@@ -501,13 +501,14 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           email_address: applicationDetails?.email_address,
           mobile_number: applicationDetails?.mobile_number,
           secondary_mobile_number: applicationDetails?.secondary_mobile_number,
-          installation_address: applicationDetails?.installation_address,
+          installation_address: applicationDetails?.installation_address || currentVisitData.full_address?.split(',')[0]?.trim() || '',
           barangay: applicationDetails?.barangay,
           city: applicationDetails?.city,
           region: applicationDetails?.region,
           location: applicationDetails?.location,
           desired_plan: applicationDetails?.desired_plan,
           landmark: applicationDetails?.landmark,
+          house_front_picture_url: currentVisitData.house_front_picture_url || applicationDetails?.house_front_picture_url,
         }}
       />
 
@@ -537,7 +538,10 @@ const ApplicationVisitDetails: React.FC<ApplicationVisitDetailsProps> = ({ appli
           visit_with: currentVisitData.visit_with || '',
           visit_with_other: currentVisitData.visit_with_other || '',
           application_status: currentVisitData.application_status || '',
-          visit_status: currentVisitData.visit_status || ''
+          visit_status: currentVisitData.visit_status || '',
+          image1_url: currentVisitData.image1_url || '',
+          image2_url: currentVisitData.image2_url || '',
+          image3_url: currentVisitData.image3_url || ''
         }}
       />
     </div>

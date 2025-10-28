@@ -545,7 +545,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         isOpen={showJOAssignForm}
         onClose={() => setShowJOAssignForm(false)}
         onSave={handleSaveJOForm}
-        applicationData={detailedApplication}
+        applicationData={{
+          ...detailedApplication,
+          installation_address: detailedApplication?.installation_address || application.address,
+        }}
       />
 
       {/* Visit Exists Confirmation Modal */}

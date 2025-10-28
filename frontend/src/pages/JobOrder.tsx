@@ -853,9 +853,9 @@ const JobOrderPage: React.FC = () => {
           <div className="flex-1 overflow-hidden">
             <div className="h-full overflow-y-auto">
               {displayMode === 'card' ? (
-                filteredJobOrders.length > 0 ? (
+                sortedJobOrders.length > 0 ? (
                   <div className="space-y-0">
-                    {filteredJobOrders.map((jobOrder) => (
+                    {sortedJobOrders.map((jobOrder) => (
                       <div
                         key={jobOrder.id}
                         onClick={() => handleRowClick(jobOrder)}
@@ -931,8 +931,8 @@ const JobOrderPage: React.FC = () => {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredJobOrders.length > 0 ? (
-                        filteredJobOrders.map((jobOrder) => (
+                      {sortedJobOrders.length > 0 ? (
+                        sortedJobOrders.map((jobOrder) => (
                           <tr 
                             key={jobOrder.id} 
                             className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedJobOrder?.id === jobOrder.id ? 'bg-gray-800' : ''}`}

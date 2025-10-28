@@ -45,6 +45,7 @@ class JobOrder extends Model
         'router_reading_image_url',
         'port_label_image_url',
         'house_front_picture_url',
+        'installation_landmark',
         'pppoe_username',
         'pppoe_password',
         'created_by_user_id',

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown, Camera } from 'lucide-react';
 import { updateApplicationVisit, uploadApplicationVisitImages } from '../services/applicationVisitService';
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
@@ -92,6 +92,46 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   });
   
   useEffect(() => {
+    if (!isOpen) return;
+
+    if (visitData) {
+      const isValidImageUrl = (url: any): boolean => {
+        if (!url) return false;
+        if (typeof url !== 'string') return false;
+        const trimmed = url.trim().toLowerCase();
+        return trimmed !== '' && trimmed !== 'null' && trimmed !== 'undefined';
+      };
+
+      const newImagePreviews = {
+        image1: convertGoogleDriveUrl(visitData?.image1_url || visitData?.image_1_url),
+        image2: convertGoogleDriveUrl(visitData?.image2_url || visitData?.image_2_url),
+        image3: convertGoogleDriveUrl(visitData?.image3_url || visitData?.image_3_url)
+      };
+
+      setImagePreviews(newImagePreviews);
+
+      const errorsToClear: string[] = [];
+      if (newImagePreviews.image1) errorsToClear.push('image1');
+      if (newImagePreviews.image2) errorsToClear.push('image2');
+      if (newImagePreviews.image3) errorsToClear.push('image3');
+
+      if (errorsToClear.length > 0) {
+        setErrors(prev => {
+          const newErrors = { ...prev };
+          errorsToClear.forEach(key => delete newErrors[key]);
+          return newErrors;
+        });
+      }
+    } else {
+      setImagePreviews({
+        image1: null,
+        image2: null,
+        image3: null
+      });
+    }
+  }, [visitData, isOpen]);
+
+  useEffect(() => {
     const authData = localStorage.getItem('authData');
     if (authData) {
       try {
@@ -141,6 +181,35 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
+  const [imagePreviews, setImagePreviews] = useState<{
+    image1: string | null;
+    image2: string | null;
+    image3: string | null;
+  }>({
+    image1: null,
+    image2: null,
+    image3: null
+  });
+
+  const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
+    if (!url) return null;
+    
+    const fileIdMatch = url.match(/\/d\/([a-zA-Z0-9_-]+)/);
+    if (fileIdMatch && fileIdMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${fileIdMatch[1]}`;
+    }
+    
+    const idMatch = url.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+    if (idMatch && idMatch[1]) {
+      return `https://drive.google.com/uc?export=view&id=${idMatch[1]}`;
+    }
+    
+    return url;
+  };
+
+  const isGoogleDriveUrl = (url: string | null): boolean => {
+    return url ? url.includes('drive.google.com') : false;
+  };
   
   const [regions, setRegions] = useState<Region[]>([]);
   const [allCities, setAllCities] = useState<City[]>([]);
@@ -394,11 +463,30 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
   };
 
-  const handleImageChange = (field: 'image1' | 'image2' | 'image3', e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      handleTechnicianInputChange(field, e.target.files[0]);
+  const handleImageChange = (field: 'image1' | 'image2' | 'image3', file: File) => {
+    handleTechnicianInputChange(field, file);
+    
+    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreviews[field]!);
+    }
+    
+    const previewUrl = URL.createObjectURL(file);
+    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+    
+    if (errors[field]) {
+      setErrors(prev => ({ ...prev, [field]: '' }));
     }
   };
+
+  useEffect(() => {
+    if (!isOpen) {
+      Object.values(imagePreviews).forEach(url => {
+        if (url && url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    }
+  }, [isOpen, imagePreviews]);
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
@@ -610,6 +698,78 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
   const filteredBarangays = getFilteredBarangays();
   const filteredLocations = getFilteredLocations();
 
+  const ImagePreview: React.FC<{
+    imageUrl: string | null;
+    label: string;
+    onUpload: (file: File) => void;
+    error?: string;
+  }> = ({ imageUrl, label, onUpload, error }) => {
+    const [imageLoadError, setImageLoadError] = useState(false);
+    const isGDrive = isGoogleDriveUrl(imageUrl);
+    const isBlobUrl = imageUrl?.startsWith('blob:');
+
+    return (
+      <div>
+        <label className="block text-sm font-medium text-gray-300 mb-2">{label}{label === 'Image 1' && <span className="text-red-500">*</span>}</label>
+        <div className="relative w-full h-48 bg-gray-800 border border-gray-700 rounded overflow-hidden cursor-pointer hover:bg-gray-750">
+          <input 
+            type="file" 
+            accept="image/*" 
+            onChange={(e) => {
+              if (e.target.files && e.target.files[0]) {
+                onUpload(e.target.files[0]);
+                setImageLoadError(false);
+              }
+            }} 
+            className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+          />
+          {imageUrl ? (
+            <div className="relative w-full h-full">
+              {isBlobUrl || (!isGDrive && !imageLoadError) ? (
+                <img 
+                  src={imageUrl} 
+                  alt={label} 
+                  className="w-full h-full object-contain"
+                  onError={() => setImageLoadError(true)}
+                />
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                  <Camera size={32} />
+                  <span className="text-sm mt-2 text-center px-4">Image stored in Google Drive</span>
+                  {imageUrl && (
+                    <a 
+                      href={imageUrl} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className="text-orange-500 text-xs mt-2 hover:underline z-20"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      View in Drive
+                    </a>
+                  )}
+                </div>
+              )}
+              <div className="absolute bottom-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center pointer-events-none">
+                <Camera className="mr-1" size={14} />Uploaded
+              </div>
+            </div>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+              <Camera size={32} />
+              <span className="text-sm mt-2">Click to upload</span>
+            </div>
+          )}
+        </div>
+        {error && (
+          <div className="flex items-center mt-1">
+            <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+            <p className="text-orange-500 text-xs">This entry is required</p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -663,84 +823,27 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Image 1<span className="text-red-500">*</span>
-                  </label>
-                  <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={(e) => handleImageChange('image1', e)}
-                      className="hidden"
-                      id="image-upload-1"
-                    />
-                    <label htmlFor="image-upload-1" className="cursor-pointer flex flex-col items-center">
-                      <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                      </svg>
-                      {technicianFormData.image1 ? (
-                        <span className="text-sm text-gray-300">{technicianFormData.image1.name}</span>
-                      ) : (
-                        <span className="text-sm text-gray-500">Click to upload image</span>
-                      )}
-                    </label>
-                  </div>
-                  {errors.image1 && <p className="text-red-500 text-xs mt-1 flex items-center"><span className="mr-1">⚠</span>{errors.image1}</p>}
-                </div>
+                <ImagePreview
+                  imageUrl={imagePreviews.image1}
+                  label="Image 1"
+                  onUpload={(file) => handleImageChange('image1', file)}
+                  error={errors.image1}
+                />
 
-                {technicianFormData.image1 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Image 2
-                    </label>
-                    <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange('image2', e)}
-                        className="hidden"
-                        id="image-upload-2"
-                      />
-                      <label htmlFor="image-upload-2" className="cursor-pointer flex flex-col items-center">
-                        <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                        </svg>
-                        {technicianFormData.image2 ? (
-                          <span className="text-sm text-gray-300">{technicianFormData.image2.name}</span>
-                        ) : (
-                          <span className="text-sm text-gray-500">Click to upload image</span>
-                        )}
-                      </label>
-                    </div>
-                  </div>
+                {(technicianFormData.image1 || imagePreviews.image1) && (
+                  <ImagePreview
+                    imageUrl={imagePreviews.image2}
+                    label="Image 2"
+                    onUpload={(file) => handleImageChange('image2', file)}
+                  />
                 )}
 
-                {technicianFormData.image1 && technicianFormData.image2 && (
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Image 3
-                    </label>
-                    <div className="w-full px-3 py-12 bg-gray-800 border border-gray-700 rounded flex items-center justify-center cursor-pointer hover:border-orange-500 transition-colors">
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => handleImageChange('image3', e)}
-                        className="hidden"
-                        id="image-upload-3"
-                      />
-                      <label htmlFor="image-upload-3" className="cursor-pointer flex flex-col items-center">
-                        <svg className="w-12 h-12 text-gray-500 mb-2" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-                        </svg>
-                        {technicianFormData.image3 ? (
-                          <span className="text-sm text-gray-300">{technicianFormData.image3.name}</span>
-                        ) : (
-                          <span className="text-sm text-gray-500">Click to upload image</span>
-                        )}
-                      </label>
-                    </div>
-                  </div>
+                {(technicianFormData.image1 || imagePreviews.image1) && (technicianFormData.image2 || imagePreviews.image2) && (
+                  <ImagePreview
+                    imageUrl={imagePreviews.image3}
+                    label="Image 3"
+                    onUpload={(file) => handleImageChange('image3', file)}
+                  />
                 )}
 
                 <div>

@@ -516,6 +516,51 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose, on
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Modem/Router SN:</div>
+              <div className="text-white flex-1">{jobOrder.Modem_Router_SN || jobOrder.modem_router_sn || jobOrder.Modem_SN || jobOrder.modem_sn || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Router Model:</div>
+              <div className="text-white flex-1">{jobOrder.Router_Model || jobOrder.router_model || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Group Name:</div>
+              <div className="text-white flex-1">{jobOrder.group_name || jobOrder.Group_Name || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">LCPNAP:</div>
+              <div className="text-white flex-1">{jobOrder.LCPNAP || jobOrder.lcpnap || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">PORT:</div>
+              <div className="text-white flex-1">{jobOrder.PORT || jobOrder.Port || jobOrder.port || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">VLAN:</div>
+              <div className="text-white flex-1">{jobOrder.VLAN || jobOrder.vlan || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Username:</div>
+              <div className="text-white flex-1">{jobOrder.Username || jobOrder.username || 'Not provided'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">IP Address:</div>
+              <div className="text-white flex-1">{jobOrder.IP_Address || jobOrder.ip_address || jobOrder.IP || jobOrder.ip || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
+              <div className="w-40 text-gray-400 text-sm">Usage Type:</div>
+              <div className="text-white flex-1">{jobOrder.Usage_Type || jobOrder.usage_type || 'Not specified'}</div>
+            </div>
+            
+            <div className="flex border-b border-gray-800 pb-4">
               <div className="w-40 text-gray-400 text-sm">Date Installed:</div>
               <div className="text-white flex-1">
                 {jobOrder.Date_Installed || jobOrder.date_installed 
@@ -561,11 +606,6 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose, on
                   </button>
                 )}
               </div>
-            </div>
-            
-            <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Username:</div>
-              <div className="text-white flex-1">{jobOrder.Username || 'Not provided'}</div>
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
