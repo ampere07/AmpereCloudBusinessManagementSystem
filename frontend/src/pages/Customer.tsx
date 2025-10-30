@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import BillingDetails from '../components/CustomerDetails';
-import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
@@ -960,18 +959,11 @@ const Customer: React.FC = () => {
 
       {selectedBilling && (
         <div className="flex-shrink-0 overflow-hidden">
-          {displayMode === 'card' ? (
-            <BillingDetails
-              billingRecord={selectedBilling}
-              onlineStatusRecords={[]}
-              onClose={handleCloseDetails}
-            />
-          ) : (
-            <BillingListViewDetails
-              billingRecord={selectedBilling}
-              onlineStatusRecords={[]}
-            />
-          )}
+          <BillingDetails
+            billingRecord={selectedBilling}
+            onlineStatusRecords={[]}
+            onClose={handleCloseDetails}
+          />
         </div>
       )}
     </div>

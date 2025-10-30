@@ -91,6 +91,12 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
     startWidthRef.current = detailsWidth;
   };
 
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
+  };
+
   const handleTransactClick = () => {
     setShowTransactModal(true);
   };
@@ -168,7 +174,7 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
             <Maximize2 size={18} />
           </button>
           <button 
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
           >
             <X size={18} />

@@ -199,6 +199,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     title: string;
     messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
   }>({ title: '', messages: [] });
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -1127,6 +1128,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
 
     setLoading(true);
+    setShowLoadingModal(true);
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
     try {
@@ -1193,32 +1195,35 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                   }
                 } else {
                   saveMessages.push({
-                    type: 'error',
-                    text: `RADIUS account creation failed: ${radiusResponse.data.message}`
+                  type: 'error',
+                  text: `RADIUS account creation failed: ${radiusResponse.data.message}`
                   });
                   setLoading(false);
+                  setShowLoadingModal(false);
                   showMessageModal('Error', saveMessages);
-                  return;
+                return;
                 }
               } catch (radiusError: any) {
                 const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
                 saveMessages.push({
-                  type: 'error',
-                  text: `RADIUS account creation failed: ${errorMsg}`
+                type: 'error',
+                text: `RADIUS account creation failed: ${errorMsg}`
                 });
                 setLoading(false);
+                setShowLoadingModal(false);
                 showMessageModal('Error', saveMessages);
-                return;
+              return;
               }
             }
           } else {
             saveMessages.push({
-              type: 'error',
-              text: 'Failed to retrieve job order data for RADIUS check'
+            type: 'error',
+            text: 'Failed to retrieve job order data for RADIUS check'
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Error', saveMessages);
-            return;
+          return;
           }
         } catch (fetchError: any) {
           const errorMsg = fetchError.response?.data?.message || fetchError.message || 'Unknown error';
@@ -1227,6 +1232,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
             text: `Failed to check existing RADIUS credentials: ${errorMsg}`
           });
           setLoading(false);
+          setShowLoadingModal(false);
           showMessageModal('Error', saveMessages);
           return;
         }
@@ -1293,6 +1299,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               text: `Failed to upload images: ${uploadResponse.data.message}`
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Error', saveMessages);
             return;
           }
@@ -1303,6 +1310,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
             text: `Failed to upload images to Google Drive: ${errorMsg}`
           });
           setLoading(false);
+          setShowLoadingModal(false);
           showMessageModal('Error', saveMessages);
           return;
         }
@@ -1474,6 +1482,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               text: `Failed to save items: ${errorMsg}`
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Save Results', saveMessages);
             return;
           }
@@ -1517,6 +1526,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
       setErrors({});
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
@@ -1524,6 +1534,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Error', [
         { type: 'error', text: `Failed to update records: ${errorMessage}` }
       ]);
@@ -1559,6 +1570,17 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
   return (
     <>
+    {showLoadingModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
+        <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
+            <h3 className="text-xl font-semibold text-white">Saving...</h3>
+            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+          </div>
+        </div>
+      </div>
+    )}
     {showModal && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
         <div className="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">

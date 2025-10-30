@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle } from 'lucide-react';
-import BillingListViewDetails from '../components/BillingListViewDetails';
+import BillingDetails from '../components/CustomerDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
@@ -425,7 +425,7 @@ const BillingListView: React.FC = () => {
 
       {selectedBilling && (
         <div className="flex-shrink-0 overflow-hidden">
-          <BillingListViewDetails
+          <BillingDetails
             billingRecord={selectedBilling}
             onlineStatusRecords={[]}
             onClose={handleCloseDetails}

@@ -19,14 +19,13 @@ interface ApplicationVisitFormModalProps {
 
 interface ModalConfig {
   isOpen: boolean;
-  type: 'success' | 'error' | 'warning' | 'confirm';
+  type: 'success' | 'error' | 'warning' | 'confirm' | 'loading';
   title: string;
   message: string;
   onConfirm?: () => void;
   onCancel?: () => void;
 }
 
-// Form interface for UI handling
 interface VisitFormData {
   firstName: string;
   middleInitial: string;
@@ -145,7 +144,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   const [plans, setPlans] = useState<Plan[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
 
-  // Fetch plans from database
   useEffect(() => {
     const fetchPlans = async () => {
       if (isOpen) {
@@ -167,7 +165,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     fetchPlans();
   }, [isOpen]);
 
-  // Fetch promos from database
   useEffect(() => {
     const loadPromos = async () => {
       if (isOpen) {
@@ -192,7 +189,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     loadPromos();
   }, [isOpen]);
 
-  // Fetch regions from database
   useEffect(() => {
     const fetchRegions = async () => {
       if (isOpen) {
@@ -277,7 +273,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     fetchAllLocations();
   }, [isOpen]);
 
-  // Fetch technicians
   useEffect(() => {
     const fetchTechnicians = async () => {
       if (isOpen) {
@@ -307,7 +302,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     fetchTechnicians();
   }, [isOpen]);
 
-  // Update form data when applicationData changes
   useEffect(() => {
     if (applicationData) {
       setFormData(prev => {
@@ -337,12 +331,10 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     setFormData(prev => {
       const newFormData = { ...prev, [field]: value };
       
-      // If assignedEmail is updated, also update visit_by
       if (field === 'assignedEmail') {
         newFormData.visit_by = value;
       }
       
-      // Handle cascading dropdowns
       if (field === 'region') {
         newFormData.city = '';
         newFormData.barangay = '';
@@ -450,6 +442,13 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     }
 
     setLoading(true);
+    setModal({
+      isOpen: true,
+      type: 'loading',
+      title: 'Submitting',
+      message: 'Please wait while we process your request...'
+    });
+    
     try {
       const applicationId = applicationData.id;
       
@@ -552,7 +551,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
-        {/* Header */}
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
           <h2 className="text-xl font-semibold text-white">Application Form Visit</h2>
           <div className="flex items-center space-x-3">
@@ -585,11 +583,8 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
           </div>
         </div>
 
-        {/* Form Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          {/* Basic Information */}
           <div className="space-y-4">
-            {/* First Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 First Name<span className="text-red-500">*</span>
@@ -603,7 +598,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.firstName && <p className="text-red-500 text-xs mt-1">{errors.firstName}</p>}
             </div>
 
-            {/* Middle Initial */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Middle Initial
@@ -617,7 +611,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               />
             </div>
 
-            {/* Last Name */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Last Name<span className="text-red-500">*</span>
@@ -631,7 +624,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.lastName && <p className="text-red-500 text-xs mt-1">{errors.lastName}</p>}
             </div>
 
-            {/* Contact Number */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Contact Number<span className="text-red-500">*</span>
@@ -645,7 +637,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.contactNumber && <p className="text-red-500 text-xs mt-1">{errors.contactNumber}</p>}
             </div>
 
-            {/* Second Contact Number */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Second Contact Number
@@ -658,7 +649,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               />
             </div>
 
-            {/* Applicant Email Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Applicant Email Address<span className="text-red-500">*</span>
@@ -672,7 +662,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
 
-            {/* Address */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Address<span className="text-red-500">*</span>
@@ -686,7 +675,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.address && <p className="text-red-500 text-xs mt-1">{errors.address}</p>}
             </div>
 
-            {/* Region */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Region<span className="text-red-500">*</span>
@@ -712,7 +700,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.region && <p className="text-red-500 text-xs mt-1">{errors.region}</p>}
             </div>
 
-            {/* City */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 City<span className="text-red-500">*</span>
@@ -739,7 +726,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.city && <p className="text-red-500 text-xs mt-1">{errors.city}</p>}
             </div>
 
-            {/* Barangay */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Barangay<span className="text-red-500">*</span>
@@ -766,7 +752,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.barangay && <p className="text-red-500 text-xs mt-1">{errors.barangay}</p>}
             </div>
 
-            {/* Location */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Location<span className="text-red-500">*</span>
@@ -793,7 +778,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.location && <p className="text-red-500 text-xs mt-1">{errors.location}</p>}
             </div>
 
-            {/* Choose Plan */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Choose Plan<span className="text-red-500">*</span>
@@ -825,7 +809,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
             </div>
 
-            {/* Promo */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Promo
@@ -851,7 +834,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               </div>
             </div>
 
-            {/* Remarks */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Remarks
@@ -864,7 +846,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               />
             </div>
 
-            {/* Assigned Email */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Assigned Email<span className="text-red-500">*</span>
@@ -885,9 +866,6 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
               {errors.assignedEmail && <p className="text-red-500 text-xs mt-1">{errors.assignedEmail}</p>}
             </div>
 
-
-
-            {/* Hidden fields for form completion */}
             <input type="hidden" value={formData.visit_by || formData.assignedEmail} />
             <input type="hidden" value={formData.visitType} />
             <input type="hidden" value={formData.status} />
@@ -896,41 +874,53 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       </div>
 
       {modal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
-            <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
-            <div className="flex items-center justify-end gap-3">
-              {modal.type === 'confirm' ? (
-                <>
-                  <button
-                    onClick={modal.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={modal.onConfirm}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
-                  >
-                    Confirm
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (modal.onConfirm) {
-                      modal.onConfirm();
-                    } else {
-                      setModal({ ...modal, isOpen: false });
-                    }
-                  }}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
-                >
-                  OK
-                </button>
-              )}
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
+            {modal.type === 'loading' ? (
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
+                <p className="text-gray-400 text-sm">{modal.message}</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+                <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+                <div className="flex items-center justify-end gap-3">
+                  {modal.type === 'confirm' ? (
+                    <>
+                      <button
+                        onClick={modal.onCancel}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={modal.onConfirm}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                      >
+                        Confirm
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (modal.onConfirm) {
+                          modal.onConfirm();
+                        } else {
+                          setModal({ ...modal, isOpen: false });
+                        }
+                      }}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                    >
+                      OK
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

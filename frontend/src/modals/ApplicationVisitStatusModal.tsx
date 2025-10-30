@@ -37,7 +37,7 @@ interface ApplicationVisitStatusModalProps {
 
 interface ModalConfig {
   isOpen: boolean;
-  type: 'success' | 'error' | 'warning' | 'confirm';
+  type: 'success' | 'error' | 'warning' | 'confirm' | 'loading';
   title: string;
   message: string;
   onConfirm?: () => void;
@@ -568,6 +568,13 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
 
     setLoading(true);
+    setModal({
+      isOpen: true,
+      type: 'loading',
+      title: 'Updating',
+      message: 'Please wait while we process your request...'
+    });
+    
     try {
       const updateData = mapFormDataToUpdateData();
       
@@ -1231,41 +1238,53 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       </div>
 
       {modal.isOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
-            <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
-            <div className="flex items-center justify-end gap-3">
-              {modal.type === 'confirm' ? (
-                <>
-                  <button
-                    onClick={modal.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={modal.onConfirm}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
-                  >
-                    Confirm
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (modal.onConfirm) {
-                      modal.onConfirm();
-                    } else {
-                      setModal({ ...modal, isOpen: false });
-                    }
-                  }}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
-                >
-                  OK
-                </button>
-              )}
-            </div>
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
+            {modal.type === 'loading' ? (
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
+                <p className="text-gray-400 text-sm">{modal.message}</p>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+                <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+                <div className="flex items-center justify-end gap-3">
+                  {modal.type === 'confirm' ? (
+                    <>
+                      <button
+                        onClick={modal.onCancel}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={modal.onConfirm}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                      >
+                        Confirm
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (modal.onConfirm) {
+                          modal.onConfirm();
+                        } else {
+                          setModal({ ...modal, isOpen: false });
+                        }
+                      }}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                    >
+                      OK
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

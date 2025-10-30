@@ -174,6 +174,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     title: string;
     messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
   }>({ title: '', messages: [] });
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -966,6 +967,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
 
     setLoading(true);
+    setShowLoadingModal(true);
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
     try {
@@ -1265,6 +1267,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
               text: `Failed to save items: ${errorMsg}`
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Save Results', saveMessages);
             return;
           }
@@ -1273,12 +1276,14 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
       setErrors({});
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
     } catch (error: any) {
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Error', [
         { type: 'error', text: `Failed to update records: ${errorMessage}` }
       ]);
@@ -1316,6 +1321,17 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
   return (
     <>
+    {showLoadingModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
+        <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
+            <h3 className="text-xl font-semibold text-white">Saving...</h3>
+            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+          </div>
+        </div>
+      </div>
+    )}
     {showModal && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
         <div className="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
