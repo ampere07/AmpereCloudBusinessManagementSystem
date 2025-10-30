@@ -71,20 +71,20 @@ const GroupManagement: React.FC = () => {
 
   const handleGroupCreated = (newGroup: Group) => {
     if (!newGroup) {
-      console.error('Received invalid group from creation');
-      alert('Warning: Failed to receive group data. Please refresh the page.');
+      console.error('Received invalid Affiliate from creation');
+      alert('Warning: Failed to receive Affiliate data. Please refresh the page.');
       return;
     }
     
-    console.log('Group created successfully:', newGroup);
+    console.log('Affiliate created successfully:', newGroup);
     setGroups(prev => [...prev, newGroup]);
     setShowAddForm(false);
   };
 
   const handleEdit = (group: Group) => {
     if (!group) {
-      console.error('Cannot edit group: No group data');
-      alert('Cannot edit group: No group data');
+      console.error('Cannot edit Affiliate: No Affiliate data');
+      alert('Cannot edit Affiliate: No Affiliate data');
       return;
     }
     
@@ -120,12 +120,12 @@ const GroupManagement: React.FC = () => {
         setGroups(prev => prev.filter(group => group.group_id !== deletingGroup.group_id));
         setDeletingGroup(null);
       } else {
-        const errorMessage = response.message || 'Failed to delete group';
+        const errorMessage = response.message || 'Failed to delete Affiliate';
         alert(errorMessage);
       }
     } catch (error: any) {
-      console.error('Failed to delete group:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete group';
+      console.error('Failed to delete Affiliate:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to delete Affiliate';
       alert(errorMessage);
     }
   };
@@ -141,23 +141,23 @@ const GroupManagement: React.FC = () => {
   return (
     <div className="p-6">
       <Breadcrumb items={[
-        { label: 'Groups' }
+        { label: 'Affiliates' }
       ]} />
       <div className="bg-gray-800 rounded-lg border border-gray-600 overflow-hidden text-white">
         <div className="p-6">
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-2">
-              Group Management
+              Affiliate Management
             </h2>
             <p className="text-gray-400 text-sm">
-              Manage user groups and their settings
+              Manage user Affiliate and their settings
             </p>
           </div>
 
           <div className="flex justify-between items-center mb-8">
             <input
               type="text"
-              placeholder="Search groups by name, company, or email..."
+              placeholder="Search Affiliates by name, company, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-100 w-80"
@@ -166,13 +166,13 @@ const GroupManagement: React.FC = () => {
               onClick={handleAddNew}
               className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-medium"
             >
-              Add New Group
+              Add New Affiliate
             </button>
           </div>
 
           {loading ? (
             <div className="text-center py-8">
-              <p className="text-gray-400">Loading groups...</p>
+              <p className="text-gray-400">Loading Affiliates...</p>
             </div>
           ) : (
             <div className="bg-gray-800 rounded border border-gray-600 overflow-hidden">
@@ -180,7 +180,7 @@ const GroupManagement: React.FC = () => {
                 <table className="w-full">
                   <thead>
                     <tr className="">
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Group Name</th>
+                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Affiliate Name</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Company Name</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
                       <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Hotline</th>
@@ -192,7 +192,7 @@ const GroupManagement: React.FC = () => {
                     {currentGroups.length === 0 ? (
                       <tr>
                         <td colSpan={6} className="px-6 py-8 text-center text-gray-400">
-                          No groups found
+                          No Affiliate found
                         </td>
                       </tr>
                     ) : (
@@ -218,7 +218,7 @@ const GroupManagement: React.FC = () => {
                               <button 
                                 onClick={() => handleEdit(group)}
                                 className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
-                                title="Edit group"
+                                title="Edit Affiliate"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -227,7 +227,7 @@ const GroupManagement: React.FC = () => {
                               <button 
                                 onClick={() => handleDeleteClick(group)}
                                 className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
-                                title="Delete group"
+                                title="Delete Affiliate"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
