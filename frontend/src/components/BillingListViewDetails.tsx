@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, OctagonX, HandCoins, BaggageClaim, Edit, ChevronLeft, ChevronRight as ChevronRightNav, Maximize2, X, Paperclip, Calendar, ExternalLink } from 'lucide-react';
 import TransactConfirmationModal from '../modals/TransactConfirmationModal';
 import TransactionFormModal from '../modals/TransactionFormModal';
@@ -16,11 +16,13 @@ interface OnlineStatusRecord {
 interface BillingListViewDetailsProps {
   billingRecord: BillingDetailRecord;
   onlineStatusRecords?: OnlineStatusRecord[];
+  onClose?: () => void;
 }
 
 const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
   billingRecord,
-  onlineStatusRecords = []
+  onlineStatusRecords = [],
+  onClose
 }) => {
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     invoices: false,
@@ -45,12 +47,54 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
   });
   const [showTransactModal, setShowTransactModal] = useState(false);
   const [showTransactionFormModal, setShowTransactionFormModal] = useState(false);
+  const [detailsWidth, setDetailsWidth] = useState<number>(600);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   const toggleSection = (section: string) => {
     setExpandedSections(prev => ({
       ...prev,
       [section]: !prev[section]
     }));
+  };
+
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const diff = startXRef.current - e.clientX;
+      const newWidth = Math.max(600, Math.min(1200, startWidthRef.current + diff));
+      
+      setDetailsWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = detailsWidth;
+  };
+
+  const handleClose = () => {
+    if (onClose) {
+      onClose();
+    }
   };
 
   const handleTransactClick = () => {
@@ -91,7 +135,11 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
   ];
 
   return (
-    <div className="bg-gray-900 text-white h-full flex flex-col">
+    <div className="bg-gray-900 text-white h-full flex flex-col border-l border-white border-opacity-30 relative" style={{ width: `${detailsWidth}px` }}>
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-50"
+        onMouseDown={handleMouseDownResize}
+      />
       {/* Header with Customer Name and Actions */}
       <div className="bg-gray-800 px-4 py-3 flex items-center justify-between border-b border-gray-700">
         <h1 className="text-lg font-semibold text-white truncate pr-4 min-w-0 flex-1">
@@ -125,7 +173,10 @@ const BillingListViewDetails: React.FC<BillingListViewDetailsProps> = ({
           <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors">
             <Maximize2 size={18} />
           </button>
-          <button className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors">
+          <button 
+            onClick={handleClose}
+            className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded transition-colors"
+          >
             <X size={18} />
           </button>
         </div>
