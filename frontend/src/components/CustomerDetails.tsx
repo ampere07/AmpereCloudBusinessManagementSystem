@@ -351,7 +351,7 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
 
         {/* Group */}
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Group</span>
+          <span className="text-gray-400 text-sm">Affiliate</span>
           <span className="text-white font-medium">{billingRecord.groupName || ''}</span>
         </div>
 
@@ -529,7 +529,7 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
                       <th className="text-left py-2 text-gray-400 font-medium">Status</th>
                       <th className="text-left py-2 text-gray-400 font-medium">Account No.</th>
                       <th className="text-left py-2 text-gray-400 font-medium">Username</th>
-                      <th className="text-left py-2 text-gray-400 font-medium">Group</th>
+                      <th className="text-left py-2 text-gray-400 font-medium">Affiliate</th>
                       <th className="text-left py-2 text-gray-400 font-medium">SPLYNX ID</th>
                     </tr>
                   </thead>

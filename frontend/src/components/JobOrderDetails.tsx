@@ -566,7 +566,7 @@ const JobOrderDetails: React.FC<JobOrderDetailsProps> = ({ jobOrder, onClose, on
             </div>
             
             <div className="flex border-b border-gray-800 pb-4">
-              <div className="w-40 text-gray-400 text-sm">Group Name:</div>
+              <div className="w-40 text-gray-400 text-sm">Affiliate Name:</div>
               <div className="text-white flex-1">{jobOrder.group_name || jobOrder.Group_Name || 'Not specified'}</div>
             </div>
             

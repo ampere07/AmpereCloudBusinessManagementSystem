@@ -744,7 +744,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Group<span className="text-red-500">*</span>
+                Affiliate<span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -752,7 +752,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   onChange={(e) => handleInputChange('groupName', e.target.value)}
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
-                  <option value="">Select Group</option>
+                  <option value="">Select Affiliate</option>
                   {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
                     <option value={formData.groupName}>{formData.groupName}</option>
                   )}

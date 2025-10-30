@@ -63,13 +63,13 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
     return (
       <div className="p-6">
         <div className="bg-red-900 border border-red-600 rounded p-4 text-red-200">
-          <h3 className="text-lg font-semibold mb-2">Invalid Group Data</h3>
+          <h3 className="text-lg font-semibold mb-2">Invalid Affiliate Data</h3>
           <p>Cannot edit group: No group data provided.</p>
           <button 
             onClick={onCancel}
             className="mt-4 px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700"
           >
-            Back to Groups
+            Back to Affiliates
           </button>
         </div>
       </div>
@@ -101,7 +101,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
     const newErrors: Record<string, string> = {};
 
     if (!formData.group_name?.trim()) {
-      newErrors.group_name = 'Group name is required';
+      newErrors.group_name = 'Affiliate name is required';
     }
 
     if (formData.email && formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -176,10 +176,10 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
         onGroupUpdated(response.data);
         onCancel();
       } else {
-        setErrors({ general: response.message || 'Failed to update group' });
+        setErrors({ general: response.message || 'Failed to update Affiliate' });
       }
     } catch (error: any) {
-      console.error('Update group error:', error);
+      console.error('Update Affiliate error:', error);
       
       if (error.response?.status === 422) {
         if (error.response?.data?.errors) {
@@ -202,7 +202,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
         }
       } else {
         setErrors({ 
-          general: error.response?.data?.message || error.message || 'Failed to update group'
+          general: error.response?.data?.message || error.message || 'Failed to update Affiliate'
         });
       }
     } finally {
@@ -214,16 +214,16 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
     <div className="p-6">
       <Breadcrumb items={[
         { label: 'Groups', onClick: onCancel },
-        { label: 'Edit Group' }
+        { label: 'Edit Affiliate' }
       ]} />
       <div className="bg-gray-800 rounded-lg border border-gray-600 overflow-hidden text-white">
         <div className="p-6">
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-2">
-              Edit Group
+              Edit Affiliate
             </h2>
             <p className="text-gray-400 text-sm">
-              Update group information
+              Update Affiliate information
             </p>
           </div>
 
@@ -237,7 +237,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Group Name *
+                  Affiliate Name *
                 </label>
                 <input
                   type="text"
@@ -247,7 +247,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
                     errors.group_name ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter group name"
+                  placeholder="Enter Affiliate name"
                   required
                 />
                 {errors.group_name && (
@@ -421,7 +421,7 @@ const EditGroupForm: React.FC<EditGroupFormProps> = ({ group, onCancel, onGroupU
                 disabled={loading}
                 className="px-6 py-3 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors text-sm font-medium disabled:opacity-50"
               >
-                {loading ? 'Updating...' : 'Update Group'}
+                {loading ? 'Updating...' : 'Update Affiliate'}
               </button>
             </div>
           </div>

@@ -62,8 +62,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       allowedRoles: ['administrator', 'technician'],
       children: [
         { id: 'job-order', label: 'Job Order', icon: Wrench, allowedRoles: ['administrator', 'technician'] },
-        { id: 'lcp', label: 'LCP', icon: Network, allowedRoles: ['administrator', 'technician'] },
-        { id: 'nap', label: 'NAP', icon: Network, allowedRoles: ['administrator', 'technician'] },
+        { id: 'lcp', label: 'LCP', icon: Network, allowedRoles: ['administrator'] },
+        { id: 'nap', label: 'NAP', icon: Network, allowedRoles: ['administrator'] },
         { id: 'usage-type', label: 'Usage Type', icon: Activity, allowedRoles: ['administrator'] }
       ]
     },
@@ -114,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
       children: [
         { id: 'user-management', label: 'Users Management', icon: User, allowedRoles: ['administrator'] },
         { id: 'organization-management', label: 'Organization Management', icon: Building2, allowedRoles: ['administrator'] },
-        { id: 'group-management', label: 'Group Management', icon: Shield, allowedRoles: ['administrator'] }
+        { id: 'group-management', label: 'Affiliate', icon: Shield, allowedRoles: ['administrator'] }
       ]
     },
     {

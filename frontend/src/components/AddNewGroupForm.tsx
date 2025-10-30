@@ -65,7 +65,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
     const newErrors: Record<string, string> = {};
 
     if (!formData.group_name?.trim()) {
-      newErrors.group_name = 'Group name is required';
+      newErrors.group_name = 'Affiliate name is required';
     }
 
     if (formData.email && formData.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
@@ -98,21 +98,21 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
       const response = await groupService.createGroup(dataToSend);
       
       if (response.success && response.data) {
-        console.log('Group creation response:', response.data);
+        console.log('Affiliate creation response:', response.data);
         
         if (!response.data || typeof response.data !== 'object') {
           console.error('Invalid response data:', response.data);
-          setErrors({ general: 'Failed to create group. Please try again.' });
+          setErrors({ general: 'Failed to create Affiliate. Please try again.' });
           return;
         }
         
         onGroupCreated(response.data);
         onCancel();
       } else {
-        setErrors({ general: response.message || 'Failed to create group' });
+        setErrors({ general: response.message || 'Failed to create Affiliate' });
       }
     } catch (error: any) {
-      console.error('Create group error:', error);
+      console.error('Create Affiliate error:', error);
       
       if (error.response?.status === 422) {
         if (error.response?.data?.errors) {
@@ -135,7 +135,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
         }
       } else {
         setErrors({ 
-          general: error.response?.data?.message || error.message || 'Failed to create group'
+          general: error.response?.data?.message || error.message || 'Failed to create Affiliate'
         });
       }
     } finally {
@@ -146,17 +146,17 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
   return (
     <div className="p-6">
       <Breadcrumb items={[
-        { label: 'Groups', onClick: onCancel },
-        { label: 'Add Group' }
+        { label: 'Affiliate', onClick: onCancel },
+        { label: 'Add Affiliate' }
       ]} />
       <div className="bg-gray-800 rounded-lg border border-gray-600 overflow-hidden text-white">
         <div className="p-6">
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-white mb-2">
-              Add New Group
+              Add New Affiliate
             </h2>
             <p className="text-gray-400 text-sm">
-              Create a new group in the system
+              Create a new Affiliate in the system
             </p>
           </div>
 
@@ -170,7 +170,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Group Name *
+                  Affiliate Name *
                 </label>
                 <input
                   type="text"
@@ -180,7 +180,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
                   className={`w-full px-4 py-3 bg-gray-900 border rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-400 ${
                     errors.group_name ? 'border-red-600' : 'border-gray-600'
                   }`}
-                  placeholder="Enter group name"
+                  placeholder="Enter Affiliate name"
                   required
                 />
                 {errors.group_name && (
@@ -354,7 +354,7 @@ const AddNewGroupForm: React.FC<AddNewGroupFormProps> = ({ onCancel, onGroupCrea
                 disabled={loading}
                 className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-medium disabled:opacity-50"
               >
-                {loading ? 'Creating...' : 'Create Group'}
+                {loading ? 'Creating...' : 'Create Affiliate'}
               </button>
             </div>
           </div>
