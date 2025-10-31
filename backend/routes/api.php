@@ -1221,6 +1221,16 @@ Route::prefix('usage-types')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'destroy']);
 });
 
+// LCP NAP Locations Management Routes - For map view
+Route::prefix('lcp-nap-locations')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'destroy']);
+});
+
 // LCP NAP List Management Routes - Using lcpnap table
 Route::prefix('lcp-nap-list')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'index']);

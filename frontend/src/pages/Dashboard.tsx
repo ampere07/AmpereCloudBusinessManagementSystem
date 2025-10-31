@@ -28,7 +28,6 @@ import PromoList from './PromoList';
 import RouterModelList from './RouterModelList';
 import LcpList from './LcpList';
 import NapList from './NapList';
-import LcpNapList from './LcpNapList';
 import Inventory from './Inventory';
 import ExpensesLog from './ExpensesLog';
 import Logs from './Logs';
@@ -142,8 +141,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <LcpList />;
       case 'nap':
         return <NapList />;
-      case 'lcp-nap-list':
-        return <LcpNapList />;
       case 'lcp-nap-location':
         return <LcpNapLocation />;
       case 'usage-type':
