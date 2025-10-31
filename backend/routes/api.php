@@ -1643,3 +1643,20 @@ Route::get('/radius-config', [\App\Http\Controllers\RadiusConfigController::clas
 Route::post('/radius-config', [\App\Http\Controllers\RadiusConfigController::class, 'store']);
 Route::put('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'update']);
 Route::delete('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'destroy']);
+
+// Settings Image Size Management Routes
+Route::prefix('settings-image-size')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SettingsImageSizeController::class, 'index']);
+    Route::get('/active', [\App\Http\Controllers\SettingsImageSizeController::class, 'getActive']);
+    Route::put('/{id}/status', [\App\Http\Controllers\SettingsImageSizeController::class, 'updateStatus']);
+});
+
+// Settings Color Palette Management Routes
+Route::prefix('settings-color-palette')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'index']);
+    Route::get('/active', [\App\Http\Controllers\SettingsColorPaletteController::class, 'getActive']);
+    Route::post('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'update']);
+    Route::put('/{id}/status', [\App\Http\Controllers\SettingsColorPaletteController::class, 'updateStatus']);
+    Route::delete('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'destroy']);
+});
