@@ -215,46 +215,46 @@ const RadiusConfig: React.FC = () => {
   const canCreateNew = radiusConfigs.length < 2;
 
   return (
-    <div className="p-6 bg-gray-950 min-h-full">
-      <div className="mb-6 pb-6 border-b border-gray-700">
+    <div className="p-4 bg-gray-950 min-h-full">
+      <div className="mb-4 pb-3 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-white mb-2">
+            <h2 className="text-xl font-semibold text-white mb-1">
               RADIUS Configuration
             </h2>
           </div>
           {canCreateNew && !isCreating && editingId === null && (
             <button
               onClick={handleStartCreate}
-              className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+              className="px-3 py-1.5 bg-orange-600 hover:bg-orange-700 text-white text-sm rounded transition-colors"
             >
-              <span>Create New</span>
+              Create New
             </button>
           )}
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-3">
         {loading && radiusConfigs.length === 0 && !isCreating ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
+          <div className="flex items-center justify-center py-6">
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-orange-500"></div>
           </div>
         ) : (
           <>
             {radiusConfigs.map((config) => (
-              <div key={config.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+              <div key={config.id} className="bg-gray-800 rounded p-4 border border-gray-700">
                 {editingId === config.id ? (
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-semibold text-white mb-4">Edit Configuration #{config.id}</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-3">
+                    <h3 className="text-base font-semibold text-white mb-2">Edit Configuration #{config.id}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
                           SSL Type
                         </label>
                         <select
                           value={formData.ssl_type}
                           onChange={(e) => handleInputChange('ssl_type', e.target.value)}
-                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         >
                           <option value="">Select SSL Type</option>
@@ -264,7 +264,7 @@ const RadiusConfig: React.FC = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
                           IP Address
                         </label>
                         <input
@@ -272,13 +272,13 @@ const RadiusConfig: React.FC = () => {
                           value={formData.ip}
                           onChange={(e) => handleInputChange('ip', e.target.value)}
                           placeholder="e.g., 192.168.1.1"
-                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
                           Port
                         </label>
                         <input
@@ -286,13 +286,13 @@ const RadiusConfig: React.FC = () => {
                           value={formData.port}
                           onChange={(e) => handleInputChange('port', e.target.value)}
                           placeholder="e.g., 1812"
-                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
                           Username
                         </label>
                         <input
@@ -300,13 +300,13 @@ const RadiusConfig: React.FC = () => {
                           value={formData.username}
                           onChange={(e) => handleInputChange('username', e.target.value)}
                           placeholder="Enter username"
-                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         />
                       </div>
 
                       <div className="md:col-span-2">
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                        <label className="block text-xs font-medium text-gray-300 mb-1">
                           Password
                         </label>
                         <div className="relative">
@@ -315,13 +315,13 @@ const RadiusConfig: React.FC = () => {
                             value={formData.password}
                             onChange={(e) => handleInputChange('password', e.target.value)}
                             placeholder="Enter password"
-                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                            className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                             disabled={loading}
                           />
                           <button
                             type="button"
                             onClick={() => togglePasswordVisibility(config.id)}
-                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                            className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 text-xs"
                           >
                             {showPassword[config.id] ? 'Hide' : 'Show'}
                           </button>
@@ -329,74 +329,74 @@ const RadiusConfig: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 pt-2">
+                    <div className="flex items-center gap-2 pt-1">
                       <button
                         onClick={handleSave}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
+                        className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
                       >
-                        <span>Update</span>
+                        Update
                       </button>
                       <button
                         onClick={handleCancel}
                         disabled={loading}
-                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
+                        className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
                       >
-                        <span>Cancel</span>
+                        Cancel
                       </button>
                     </div>
                   </div>
                 ) : (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold text-white">Configuration #{config.id}</h3>
+                  <div>
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-base font-semibold text-white">Configuration #{config.id}</h3>
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => handleStartEdit(config)}
-                          className="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
+                          className="px-3 py-1 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
                         >
-                          <span>Edit</span>
+                          Edit
                         </button>
                         <button
                           onClick={() => handleDelete(config.id)}
-                          className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
+                          className="px-3 py-1 text-sm text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
                         >
-                          <span>Delete</span>
+                          Delete
                         </button>
                       </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">SSL Type</p>
-                        <p className="text-white font-medium text-lg uppercase">{config.ssl_type || 'Not set'}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">SSL Type</p>
+                        <p className="text-white font-medium text-sm uppercase">{config.ssl_type || 'Not set'}</p>
                       </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">IP Address</p>
-                        <p className="text-white font-medium text-lg">{config.ip || 'Not set'}</p>
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">IP Address</p>
+                        <p className="text-white font-medium text-sm">{config.ip || 'Not set'}</p>
                       </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">Port</p>
-                        <p className="text-white font-medium text-lg">{config.port || 'Not set'}</p>
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">Port</p>
+                        <p className="text-white font-medium text-sm">{config.port || 'Not set'}</p>
                       </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">Username</p>
-                        <p className="text-white font-medium text-lg">{config.username || 'Not set'}</p>
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">Username</p>
+                        <p className="text-white font-medium text-sm">{config.username || 'Not set'}</p>
                       </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">Password</p>
-                        <p className="text-white font-medium text-lg">
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">Password</p>
+                        <p className="text-white font-medium text-sm">
                           {showPassword[config.id] ? config.password : '••••••••'}
                         </p>
                         <button
                           onClick={() => togglePasswordVisibility(config.id)}
-                          className="text-orange-400 hover:text-orange-300 text-xs mt-1"
+                          className="text-orange-400 hover:text-orange-300 text-xs"
                         >
                           {showPassword[config.id] ? 'Hide' : 'Show'}
                         </button>
                       </div>
-                      <div className="bg-gray-700 p-4 rounded">
-                        <p className="text-gray-400 text-xs mb-1">Last Updated By</p>
-                        <p className="text-white font-medium text-lg">{config.updated_by || 'Unknown'}</p>
+                      <div className="bg-gray-700 p-2.5 rounded">
+                        <p className="text-gray-400 text-xs mb-0.5">Last Updated By</p>
+                        <p className="text-white font-medium text-sm">{config.updated_by || 'Unknown'}</p>
                       </div>
                     </div>
                   </div>
@@ -405,18 +405,18 @@ const RadiusConfig: React.FC = () => {
             ))}
 
             {isCreating && (
-              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                <h3 className="text-lg font-semibold text-white mb-4">Create New Configuration</h3>
-                <div className="space-y-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-gray-800 rounded p-4 border border-gray-700">
+                <h3 className="text-base font-semibold text-white mb-2">Create New Configuration</h3>
+                <div className="space-y-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
                         SSL Type
                       </label>
                       <select
                         value={formData.ssl_type}
                         onChange={(e) => handleInputChange('ssl_type', e.target.value)}
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                         disabled={loading}
                       >
                         <option value="">Select SSL Type</option>
@@ -426,7 +426,7 @@ const RadiusConfig: React.FC = () => {
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
                         IP Address
                       </label>
                       <input
@@ -434,13 +434,13 @@ const RadiusConfig: React.FC = () => {
                         value={formData.ip}
                         onChange={(e) => handleInputChange('ip', e.target.value)}
                         placeholder="e.g., 192.168.1.1"
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                         disabled={loading}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
                         Port
                       </label>
                       <input
@@ -448,13 +448,13 @@ const RadiusConfig: React.FC = () => {
                         value={formData.port}
                         onChange={(e) => handleInputChange('port', e.target.value)}
                         placeholder="e.g., 1812"
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                         disabled={loading}
                       />
                     </div>
 
                     <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
                         Username
                       </label>
                       <input
@@ -462,13 +462,13 @@ const RadiusConfig: React.FC = () => {
                         value={formData.username}
                         onChange={(e) => handleInputChange('username', e.target.value)}
                         placeholder="Enter username"
-                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                         disabled={loading}
                       />
                     </div>
 
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                      <label className="block text-xs font-medium text-gray-300 mb-1">
                         Password
                       </label>
                       <div className="relative">
@@ -477,13 +477,13 @@ const RadiusConfig: React.FC = () => {
                           value={formData.password}
                           onChange={(e) => handleInputChange('password', e.target.value)}
                           placeholder="Enter password"
-                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         />
                         <button
                           type="button"
                           onClick={() => togglePasswordVisibility(0)}
-                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300 text-xs"
                         >
                           {showPassword[0] ? 'Hide' : 'Show'}
                         </button>
@@ -495,16 +495,16 @@ const RadiusConfig: React.FC = () => {
                     <button
                       onClick={handleSave}
                       disabled={loading}
-                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
+                      className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
                     >
-                      <span>Create</span>
+                      Create
                     </button>
                     <button
                       onClick={handleCancel}
                       disabled={loading}
-                      className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
+                      className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
                     >
-                      <span>Cancel</span>
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -512,8 +512,8 @@ const RadiusConfig: React.FC = () => {
             )}
 
             {radiusConfigs.length === 0 && !isCreating && (
-              <div className="text-center py-12 text-gray-400">
-                <p className="text-lg mb-2">No RADIUS configurations found</p>
+              <div className="text-center py-8 text-gray-400">
+                <p className="text-base mb-1">No RADIUS configurations found</p>
               </div>
             )}
           </>
@@ -522,21 +522,21 @@ const RadiusConfig: React.FC = () => {
 
       {modal.isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
-            <p className="text-gray-300 mb-6">{modal.message}</p>
-            <div className="flex items-center justify-end gap-3">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 max-w-md w-full mx-4">
+            <h3 className="text-base font-semibold text-white mb-3">{modal.title}</h3>
+            <p className="text-gray-300 text-sm mb-4">{modal.message}</p>
+            <div className="flex items-center justify-end gap-2">
               {modal.type === 'confirm' ? (
                 <>
                   <button
                     onClick={modal.onCancel}
-                    className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                    className="px-3 py-1.5 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
                   >
                     Cancel
                   </button>
                   <button
                     onClick={modal.onConfirm}
-                    className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                    className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
                   >
                     Confirm
                   </button>
@@ -544,7 +544,7 @@ const RadiusConfig: React.FC = () => {
               ) : (
                 <button
                   onClick={() => setModal({ ...modal, isOpen: false })}
-                  className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                  className="px-3 py-1.5 text-sm bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
                 >
                   OK
                 </button>
