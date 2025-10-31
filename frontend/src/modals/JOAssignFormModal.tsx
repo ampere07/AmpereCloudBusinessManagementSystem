@@ -18,7 +18,15 @@ interface JOAssignFormModalProps {
   applicationData?: any;
 }
 
-// Form interface for UI handling
+interface ModalConfig {
+  isOpen: boolean;
+  type: 'success' | 'error' | 'warning' | 'confirm' | 'loading';
+  title: string;
+  message: string;
+  onConfirm?: () => void;
+  onCancel?: () => void;
+}
+
 interface JOFormData {
   timestamp: string;
   groupName: string;
@@ -54,7 +62,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   onSave,
   applicationData
 }) => {
-  // Get current logged-in user
   const getCurrentUser = (): UserData | null => {
     try {
       const authData = localStorage.getItem('authData');
@@ -125,21 +132,23 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
-  const [successMessage, setSuccessMessage] = useState('');
   const [pendingJobOrder, setPendingJobOrder] = useState<any>(null);
   
-  // Contract template state
+  const [modal, setModal] = useState<ModalConfig>({
+    isOpen: false,
+    type: 'success',
+    title: '',
+    message: ''
+  });
+  
   const [contractTemplates, setContractTemplates] = useState<ContractTemplate[]>([]);
   const [lookupLoading, setLookupLoading] = useState(true);
   
-  // Location state
   const [regions, setRegions] = useState<Region[]>([]);
   const [allCities, setAllCities] = useState<City[]>([]);
   const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
   const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   
-  // Plans state
   const [plans, setPlans] = useState<Plan[]>([]);
   const [promos, setPromos] = useState<Promo[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
@@ -367,7 +376,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         newData.billingDay = '0';
       }
       
-      // Handle cascading dropdowns
       if (field === 'region') {
         newData.city = '';
         newData.barangay = '';
@@ -428,22 +436,18 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Required timestamp
     if (!formData.timestamp.trim()) {
       newErrors.timestamp = 'Timestamp is required';
     }
 
-    // Required group
     if (!formData.groupName.trim()) {
       newErrors.groupName = 'Group is required';
     }
 
-    // Required status
     if (!formData.status.trim()) {
       newErrors.status = 'Status is required';
     }
 
-    // Required personal information
     if (!formData.firstName.trim()) {
       newErrors.firstName = 'First Name is required';
     }
@@ -464,7 +468,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       newErrors.email = 'Please enter a valid email address';
     }
     
-    // Required address information
     if (!formData.address.trim()) {
       newErrors.address = 'Address is required';
     }
@@ -485,22 +488,18 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       newErrors.location = 'Location is required';
     }
 
-    // Required plan
     if (!formData.choosePlan.trim()) {
       newErrors.choosePlan = 'Choose Plan is required';
     }
     
-    // Validate installation fee (must be non-negative)
     if (formData.installationFee < 0) {
       newErrors.installationFee = 'Installation fee cannot be negative';
     }
 
-    // Required contract template
     if (!formData.contractTemplate.trim()) {
       newErrors.contractTemplate = 'Contract Template is required';
     }
     
-    // Validate billing day
     const billingDayNum = parseInt(formData.billingDay);
     if (!formData.isLastDayOfMonth) {
       if (isNaN(billingDayNum) || billingDayNum < 1) {
@@ -510,7 +509,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       }
     }
 
-    // Conditional required fields when status is 'Confirmed'
     if (formData.status === 'Confirmed') {
       if (!formData.onsiteStatus.trim()) {
         newErrors.onsiteStatus = 'Onsite Status is required when status is Confirmed';
@@ -559,6 +557,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       username: null,
       group_name: toNullIfEmpty(data.groupName),
       house_front_picture_url: applicationData?.house_front_picture_url || null,
+      installation_landmark: toNullIfEmpty(data.installationLandmark),
       created_by_user_email: data.modifiedBy,
       updated_by_user_email: data.modifiedBy,
     };
@@ -576,18 +575,33 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     const isValid = validateForm();
     
     if (!isValid) {
-      setSuccessMessage('Please fill in all required fields before saving.');
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'warning',
+        title: 'Validation Error',
+        message: 'Please fill in all required fields before saving.'
+      });
       return;
     }
     
     if (!applicationData?.id) {
-      setSuccessMessage('Missing application ID. Cannot create job order.');
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: 'Missing application ID. Cannot create job order.'
+      });
       return;
     }
 
     setLoading(true);
+    setModal({
+      isOpen: true,
+      type: 'loading',
+      title: 'Creating Job Order',
+      message: 'Please wait while we process your request...'
+    });
+    
     try {
       const jobOrderData = mapFormDataToJobOrder(applicationData.id, updatedFormData);
       const result = await createJobOrder(jobOrderData);
@@ -604,16 +618,37 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         await updateApplication(applicationData.id.toString(), applicationUpdateData);
       } catch (appError: any) {
         const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
-        setSuccessMessage(`Warning: Job order was saved but application promo update failed!\n\nError: ${errorMsg}\n\nPlease update the promo manually in the applications table.`);
         setPendingJobOrder(result.data);
-        setShowSuccessModal(true);
+        setModal({
+          isOpen: true,
+          type: 'warning',
+          title: 'Partial Success',
+          message: `Warning: Job order was saved but application promo update failed!\n\nError: ${errorMsg}\n\nPlease update the promo manually in the applications table.`,
+          onConfirm: () => {
+            onSave(pendingJobOrder!);
+            setPendingJobOrder(null);
+            onClose();
+            setModal({ ...modal, isOpen: false });
+          }
+        });
+        setLoading(false);
         return;
       }
       
-      setSuccessMessage('Job Order created successfully!');
       setPendingJobOrder(result.data);
       setErrors({});
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'success',
+        title: 'Success',
+        message: 'Job Order created successfully!',
+        onConfirm: () => {
+          onSave(pendingJobOrder!);
+          setPendingJobOrder(null);
+          onClose();
+          setModal({ ...modal, isOpen: false });
+        }
+      });
     } catch (error: any) {
       let errorMessage = 'Unknown error occurred';
       
@@ -636,23 +671,14 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         errorMessage = error;
       }
       
-      setSuccessMessage(`Failed to create job order: ${errorMessage}`);
-      setShowSuccessModal(true);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Failed to Create Job Order',
+        message: `Failed to create job order: ${errorMessage}`
+      });
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSuccessModalClose = () => {
-    setShowSuccessModal(false);
-    if (successMessage.includes('successfully') && pendingJobOrder) {
-      onSave(pendingJobOrder);
-      setPendingJobOrder(null);
-      onClose();
-    } else if (successMessage.includes('Warning') && pendingJobOrder) {
-      onSave(pendingJobOrder);
-      setPendingJobOrder(null);
-      onClose();
     }
   };
 
@@ -743,7 +769,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Group<span className="text-red-500">*</span>
+                Affiliate<span className="text-red-500">*</span>
               </label>
               <div className="relative">
                 <select
@@ -751,7 +777,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
                   onChange={(e) => handleInputChange('groupName', e.target.value)}
                   className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}
                 >
-                  <option value="">Select Group</option>
+                  <option value="">Select Affiliate</option>
                   {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
                     <option value={formData.groupName}>{formData.groupName}</option>
                   )}
@@ -1012,7 +1038,6 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               {errors.choosePlan && <p className="text-red-500 text-xs mt-1">{errors.choosePlan}</p>}
             </div>
 
-            {/* Promo */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
                 Promo
@@ -1248,25 +1273,54 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       </div>
       </div>
 
-      {showSuccessModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg shadow-xl max-w-md w-full mx-4">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-xl font-semibold text-white">
-                  {successMessage.includes('successfully') || successMessage.includes('Warning') ? 'Success' : successMessage.includes('Failed') ? 'Error' : 'Notice'}
-                </h3>
-                <button
-                  onClick={handleSuccessModalClose}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
+      {modal.isOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
+          <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
+            {modal.type === 'loading' ? (
+              <div className="text-center">
+                <div className="flex justify-center mb-4">
+                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                </div>
+                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
+                <p className="text-gray-400 text-sm">{modal.message}</p>
               </div>
-              <p className="text-gray-300 whitespace-pre-line">
-                {successMessage}
-              </p>
-            </div>
+            ) : (
+              <>
+                <h3 className="text-lg font-semibold text-white mb-4">{modal.title}</h3>
+                <p className="text-gray-300 mb-6 whitespace-pre-line">{modal.message}</p>
+                <div className="flex items-center justify-end gap-3">
+                  {modal.type === 'confirm' ? (
+                    <>
+                      <button
+                        onClick={modal.onCancel}
+                        className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={modal.onConfirm}
+                        className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                      >
+                        Confirm
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        if (modal.onConfirm) {
+                          modal.onConfirm();
+                        } else {
+                          setModal({ ...modal, isOpen: false });
+                        }
+                      }}
+                      className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+                    >
+                      OK
+                    </button>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}

@@ -86,11 +86,15 @@ const ApplicationManagement: React.FC = () => {
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
+  const [sidebarWidth, setSidebarWidth] = useState<number>(256);
+  const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
+  const sidebarStartXRef = useRef<number>(0);
+  const sidebarStartWidthRef = useRef<number>(0);
 
   // Handle click outside to close dropdowns
   useEffect(() => {
@@ -503,6 +507,38 @@ const ApplicationManagement: React.FC = () => {
     };
   }, [resizingColumn]);
 
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingSidebar) return;
+      
+      const diff = e.clientX - sidebarStartXRef.current;
+      const newWidth = Math.max(200, Math.min(500, sidebarStartWidthRef.current + diff));
+      
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar]);
+
+  const handleMouseDownSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+    sidebarStartXRef.current = e.clientX;
+    sidebarStartWidthRef.current = sidebarWidth;
+  };
+
   const renderCellValue = (application: Application, columnKey: string) => {
     switch (columnKey) {
       case 'timestamp':
@@ -577,7 +613,7 @@ const ApplicationManagement: React.FC = () => {
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
       {/* Location Sidebar Container */}
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
+      <div className="bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth}px` }}>
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Applications</h2>
@@ -616,10 +652,16 @@ const ApplicationManagement: React.FC = () => {
             </button>
           ))}
         </div>
+        
+        {/* Resize Handle */}
+        <div
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-10"
+          onMouseDown={handleMouseDownSidebarResize}
+        />
       </div>
 
-      {/* Applications List - Shrinks when detail view is shown */}
-      <div className={`bg-gray-900 overflow-hidden ${selectedApplication ? 'w-1/3' : 'flex-1'}`}>
+      {/* Applications List - Adjusts to available space */}
+      <div className="bg-gray-900 overflow-hidden flex-1">
         <div className="flex flex-col h-full">
           {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
@@ -889,7 +931,7 @@ const ApplicationManagement: React.FC = () => {
 
       {/* Application Detail View - Only visible when an application is selected */}
       {selectedApplication && (
-        <div className="flex-1 overflow-hidden">
+        <div className="flex-shrink-0 overflow-hidden">
           <ApplicationDetails 
             application={selectedApplication} 
             onClose={() => setSelectedApplication(null)}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
   ExternalLink, Mail, Edit, Newspaper, ArrowRightFromLine, Calendar, 
@@ -38,6 +38,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string>('');
   const [showVisitExistsConfirmation, setShowVisitExistsConfirmation] = useState(false);
+  const [detailsWidth, setDetailsWidth] = useState<number>(600);
+  const [isResizing, setIsResizing] = useState<boolean>(false);
+  const startXRef = useRef<number>(0);
+  const startWidthRef = useRef<number>(0);
 
   const handleMoveToJO = () => {
     setShowMoveConfirmation(true);
@@ -128,6 +132,38 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   };
 
   useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing) return;
+      
+      const diff = startXRef.current - e.clientX;
+      const newWidth = Math.max(600, Math.min(1200, startWidthRef.current + diff));
+      
+      setDetailsWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizing]);
+
+  const handleMouseDownResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    startXRef.current = e.clientX;
+    startWidthRef.current = detailsWidth;
+  };
+
+  useEffect(() => {
     const fetchApplicationDetails = async () => {
       try {
         setLoading(true);
@@ -201,7 +237,12 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
 
   
   return (
-    <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
+    <div className="h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30 relative" style={{ width: `${detailsWidth}px` }}>
+      {/* Resize Handle */}
+      <div
+        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-50"
+        onMouseDown={handleMouseDownResize}
+      />
       <div className="bg-gray-900 p-3 flex items-center justify-between border-b border-gray-800">
         <div className="flex items-center">
           <h2 className="text-white font-semibold text-lg">
@@ -545,7 +586,10 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
         isOpen={showJOAssignForm}
         onClose={() => setShowJOAssignForm(false)}
         onSave={handleSaveJOForm}
-        applicationData={detailedApplication}
+        applicationData={{
+          ...detailedApplication,
+          installation_address: detailedApplication?.installation_address || application.address,
+        }}
       />
 
       {/* Visit Exists Confirmation Modal */}

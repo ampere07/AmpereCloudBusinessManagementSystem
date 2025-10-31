@@ -199,6 +199,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     title: string;
     messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
   }>({ title: '', messages: [] });
+  const [showLoadingModal, setShowLoadingModal] = useState(false);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -1127,6 +1128,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
 
     setLoading(true);
+    setShowLoadingModal(true);
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
     try {
@@ -1193,32 +1195,35 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
                   }
                 } else {
                   saveMessages.push({
-                    type: 'error',
-                    text: `RADIUS account creation failed: ${radiusResponse.data.message}`
+                  type: 'error',
+                  text: `RADIUS account creation failed: ${radiusResponse.data.message}`
                   });
                   setLoading(false);
+                  setShowLoadingModal(false);
                   showMessageModal('Error', saveMessages);
-                  return;
+                return;
                 }
               } catch (radiusError: any) {
                 const errorMsg = radiusError.response?.data?.message || radiusError.message || 'Unknown error';
                 saveMessages.push({
-                  type: 'error',
-                  text: `RADIUS account creation failed: ${errorMsg}`
+                type: 'error',
+                text: `RADIUS account creation failed: ${errorMsg}`
                 });
                 setLoading(false);
+                setShowLoadingModal(false);
                 showMessageModal('Error', saveMessages);
-                return;
+              return;
               }
             }
           } else {
             saveMessages.push({
-              type: 'error',
-              text: 'Failed to retrieve job order data for RADIUS check'
+            type: 'error',
+            text: 'Failed to retrieve job order data for RADIUS check'
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Error', saveMessages);
-            return;
+          return;
           }
         } catch (fetchError: any) {
           const errorMsg = fetchError.response?.data?.message || fetchError.message || 'Unknown error';
@@ -1227,6 +1232,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
             text: `Failed to check existing RADIUS credentials: ${errorMsg}`
           });
           setLoading(false);
+          setShowLoadingModal(false);
           showMessageModal('Error', saveMessages);
           return;
         }
@@ -1293,6 +1299,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               text: `Failed to upload images: ${uploadResponse.data.message}`
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Error', saveMessages);
             return;
           }
@@ -1303,6 +1310,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
             text: `Failed to upload images to Google Drive: ${errorMsg}`
           });
           setLoading(false);
+          setShowLoadingModal(false);
           showMessageModal('Error', saveMessages);
           return;
         }
@@ -1474,6 +1482,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
               text: `Failed to save items: ${errorMsg}`
             });
             setLoading(false);
+            setShowLoadingModal(false);
             showMessageModal('Save Results', saveMessages);
             return;
           }
@@ -1517,6 +1526,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
       setErrors({});
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
@@ -1524,6 +1534,7 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setLoading(false);
+      setShowLoadingModal(false);
       showMessageModal('Error', [
         { type: 'error', text: `Failed to update records: ${errorMessage}` }
       ]);
@@ -1559,6 +1570,17 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
   return (
     <>
+    {showLoadingModal && (
+      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
+        <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
+          <div className="flex flex-col items-center space-y-4">
+            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
+            <h3 className="text-xl font-semibold text-white">Saving...</h3>
+            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+          </div>
+        </div>
+      </div>
+    )}
     {showModal && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[60]">
         <div className="bg-gray-800 rounded-lg shadow-xl max-w-2xl w-full mx-4 max-h-[80vh] overflow-hidden flex flex-col">
@@ -1948,10 +1970,10 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">Group<span className="text-red-500">*</span></label>
+            <label className="block text-sm font-medium text-gray-300 mb-2">Affiliate<span className="text-red-500">*</span></label>
             <div className="relative">
               <select value={formData.groupName} onChange={(e) => handleInputChange('groupName', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.groupName ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                <option value="">Select Group</option>
+                <option value="">Select Affiliate</option>
                 {formData.groupName && !groups.some(g => g.group_name === formData.groupName) && (
                   <option value={formData.groupName}>{formData.groupName}</option>
                 )}
@@ -1998,26 +2020,50 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">PORT<span className="text-red-500">*</span></label>
-                <div className="relative">
-                  <select value={formData.port} onChange={(e) => handleInputChange('port', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.port ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
-                    <option value="">Select PORT</option>
-                    {formData.port && !ports.some(p => p.Label === formData.port) && (
-                      <option value={formData.port}>{formData.port}</option>
-                    )}
-                    {ports.map((port) => (
-                      <option key={port.id} value={port.Label}>
-                        {port.Label}
-                      </option>
-                    ))}
-                  </select>
-                  <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
-                </div>
-                {errors.port && (
-                  <div className="flex items-center mt-1">
-                    <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
-                    <p className="text-orange-500 text-xs">This entry is required</p>
+                  <div className="relative">
+                    <select value={formData.port} onChange={(e) => handleInputChange('port', e.target.value)} className={`w-full px-3 py-2 bg-gray-800 border ${errors.port ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500 appearance-none`}>
+                      <option value="">Select PORT</option>
+                      <option value="PORT 001">PORT 001</option>
+                      <option value="PORT 002">PORT 002</option>
+                      <option value="PORT 003">PORT 003</option>
+                      <option value="PORT 004">PORT 004</option>
+                      <option value="PORT 005">PORT 005</option>
+                      <option value="PORT 006">PORT 006</option>
+                      <option value="PORT 007">PORT 007</option>
+                      <option value="PORT 008">PORT 008</option>
+                      <option value="PORT 009">PORT 009</option>
+                      <option value="PORT 010">PORT 010</option>
+                      <option value="PORT 011">PORT 011</option>
+                      <option value="PORT 012">PORT 012</option>
+                      <option value="PORT 013">PORT 013</option>
+                      <option value="PORT 014">PORT 014</option>
+                      <option value="PORT 015">PORT 015</option>
+                      <option value="PORT 016">PORT 016</option>
+                      <option value="PORT 017">PORT 017</option>
+                      <option value="PORT 018">PORT 018</option>
+                      <option value="PORT 019">PORT 019</option>
+                      <option value="PORT 020">PORT 020</option>
+                      <option value="PORT 021">PORT 021</option>
+                      <option value="PORT 022">PORT 022</option>
+                      <option value="PORT 023">PORT 023</option>
+                      <option value="PORT 024">PORT 024</option>
+                      <option value="PORT 025">PORT 025</option>
+                      <option value="PORT 026">PORT 026</option>
+                      <option value="PORT 027">PORT 027</option>
+                      <option value="PORT 028">PORT 028</option>
+                      <option value="PORT 029">PORT 029</option>
+                      <option value="PORT 030">PORT 030</option>
+                      <option value="PORT 032">PORT 032</option>
+                      <option value="PORT 032">PORT 032</option>
+                    </select>
+                    <ChevronDown className="absolute right-3 top-2.5 text-gray-400 pointer-events-none" size={20} />
                   </div>
-                )}
+                  {errors.port && (
+                    <div className="flex items-center mt-1">
+                      <div className="flex items-center justify-center w-4 h-4 rounded-full bg-orange-500 text-white text-xs mr-2">!</div>
+                      <p className="text-orange-500 text-xs">This entry is required</p>
+                    </div>
+                  )}
               </div>
 
               <div>

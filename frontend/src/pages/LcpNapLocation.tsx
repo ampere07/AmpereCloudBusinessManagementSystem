@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Plus, Filter } from 'lucide-react';
+import { Loader2, MapPin } from 'lucide-react';
 import AddLcpNapLocationModal from '../modals/AddLcpNapLocationModal';
 
 interface LocationMarker {
@@ -16,20 +16,69 @@ interface LocationMarker {
   region?: string;
 }
 
+interface LcpNapGroup {
+  lcp_nap_id: number;
+  lcpnap_name: string;
+  locations: LocationMarker[];
+}
+
+interface LcpNapItem {
+  id: number;
+  name: string;
+  count: number;
+}
+
 const LcpNapLocation: React.FC = () => {
   const [markers, setMarkers] = useState<LocationMarker[]>([]);
+  const [lcpNapGroups, setLcpNapGroups] = useState<LcpNapGroup[]>([]);
+  const [selectedLcpNapId, setSelectedLcpNapId] = useState<number | string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState<number>(256);
+  const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any[]>([]);
+  const sidebarStartXRef = useRef<number>(0);
+  const sidebarStartWidthRef = useRef<number>(0);
 
-  const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8000/api';
+  const API_BASE_URL = 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
     loadMapScript();
     loadLocations();
   }, []);
+
+  useEffect(() => {
+    if (markers.length > 0) {
+      groupLocationsByLcpNap();
+    }
+  }, [markers]);
+
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingSidebar) return;
+      
+      const diff = e.clientX - sidebarStartXRef.current;
+      const newWidth = Math.max(200, Math.min(500, sidebarStartWidthRef.current + diff));
+      
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar]);
 
   const loadMapScript = () => {
     if (document.getElementById('leaflet-css')) return;
@@ -83,11 +132,11 @@ const LcpNapLocation: React.FC = () => {
           !isNaN(parseFloat(item.latitude)) && !isNaN(parseFloat(item.longitude))
         ).map((item: any) => ({
           id: item.id,
-          lcp_nap_id: item.lcp_nap_id,
+          lcp_nap_id: item.lcp_nap_id || item.id,
           lcpnap_name: item.lcpnap_name,
-          lcp_name: item.lcp_name,
-          nap_name: item.nap_name,
-          location_name: item.location_name,
+          lcp_name: item.lcp_name || 'N/A',
+          nap_name: item.nap_name || 'N/A',
+          location_name: item.location_name || item.lcpnap_name,
           latitude: parseFloat(item.latitude),
           longitude: parseFloat(item.longitude),
           address: item.address,
@@ -103,6 +152,27 @@ const LcpNapLocation: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const groupLocationsByLcpNap = () => {
+    const grouped = markers.reduce((acc: { [key: number]: LcpNapGroup }, marker) => {
+      const key = marker.lcp_nap_id;
+      if (!acc[key]) {
+        acc[key] = {
+          lcp_nap_id: key,
+          lcpnap_name: marker.lcpnap_name,
+          locations: []
+        };
+      }
+      acc[key].locations.push(marker);
+      return acc;
+    }, {});
+
+    const groupArray = Object.values(grouped).sort((a, b) => 
+      a.lcpnap_name.localeCompare(b.lcpnap_name)
+    );
+
+    setLcpNapGroups(groupArray);
   };
 
   const updateMapMarkers = (locations: LocationMarker[]) => {
@@ -142,10 +212,10 @@ const LcpNapLocation: React.FC = () => {
               <strong>LCP NAP:</strong> ${location.lcpnap_name}
             </div>
             <div style="margin-bottom: 4px;">
-              <strong>LCP:</strong> ${location.lcp_name || 'N/A'}
+              <strong>LCP:</strong> ${location.lcp_name}
             </div>
             <div style="margin-bottom: 4px;">
-              <strong>NAP:</strong> ${location.nap_name || 'N/A'}
+              <strong>NAP:</strong> ${location.nap_name}
             </div>
             ${location.address ? `
               <div style="margin-bottom: 4px;">
@@ -182,64 +252,161 @@ const LcpNapLocation: React.FC = () => {
     }
   };
 
-  const resetMapView = () => {
-    if (mapInstanceRef.current) {
-      if (markers.length > 0) {
-        const L = (window as any).L;
-        const bounds = L.latLngBounds(
-          markers.map(loc => [loc.latitude, loc.longitude])
-        );
-        mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
-      } else {
-        mapInstanceRef.current.setView([12.8797, 121.7740], 6);
-      }
+  const handleLcpNapSelect = (lcpNapId: number | string) => {
+    setSelectedLcpNapId(lcpNapId);
+    
+    if (lcpNapId === 'all') {
+      updateMapMarkers(markers);
+    } else {
+      const filteredLocations = markers.filter(m => m.lcp_nap_id === lcpNapId);
+      updateMapMarkers(filteredLocations);
     }
   };
 
-  const handleSaveLocation = (locationData: any) => {
-    console.log('Saving location:', locationData);
+  const handleLocationSelect = (location: LocationMarker) => {
+    if (!mapInstanceRef.current) return;
+    
+    const L = (window as any).L;
+    mapInstanceRef.current.setView([location.latitude, location.longitude], 15);
+    
+    const marker = markersLayerRef.current.find(m => {
+      const latLng = m.getLatLng();
+      return latLng.lat === location.latitude && latLng.lng === location.longitude;
+    });
+    
+    if (marker) {
+      marker.openPopup();
+    }
+  };
+
+  const handleMouseDownSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+    sidebarStartXRef.current = e.clientX;
+    sidebarStartWidthRef.current = sidebarWidth;
+  };
+
+  const handleSaveLocation = () => {
     loadLocations();
   };
 
+  const lcpNapItems: LcpNapItem[] = [
+    {
+      id: 0,
+      name: 'All',
+      count: markers.length
+    },
+    ...lcpNapGroups.map(group => ({
+      id: group.lcp_nap_id,
+      name: group.lcpnap_name,
+      count: group.locations.length
+    }))
+  ];
+
+  const getSelectedGroup = () => {
+    if (selectedLcpNapId === 'all') return null;
+    return lcpNapGroups.find(g => g.lcp_nap_id === selectedLcpNapId);
+  };
+
+  const selectedGroup = getSelectedGroup();
+
   return (
-    <div className="h-full flex flex-col bg-gray-950">
-      <div className="flex-shrink-0 bg-gray-900 px-6 py-4 border-b border-gray-800">
-        <div className="flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-white">
-            LCP/NAP Location
-          </h2>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setShowAddModal(true)}
-              className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add
-            </button>
-            <button
-              className="p-2 text-gray-400 hover:text-white hover:bg-gray-700 rounded"
-              title="Filter"
-            >
-              <Filter className="h-5 w-5" />
-            </button>
+    <div className="bg-gray-950 h-full flex overflow-hidden">
+      <div className="bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth}px` }}>
+        <div className="p-4 border-b border-gray-700 flex-shrink-0">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-lg font-semibold text-white">LCP/NAP Locations</h2>
           </div>
         </div>
-      </div>
-
-      <div className="flex-1 relative z-0">
-        <div 
-          ref={mapRef} 
-          className="absolute inset-0 w-full h-full z-0"
-        />
         
-        {isLoading && (
-          <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[1000]">
-            <div className="flex flex-col items-center gap-3">
-              <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
-              <p className="text-white text-sm">Loading map...</p>
+        <div className="flex-1 overflow-y-auto">
+          {lcpNapItems.map((item) => (
+            <button
+              key={item.id === 0 ? 'all' : item.id}
+              onClick={() => handleLcpNapSelect(item.id === 0 ? 'all' : item.id)}
+              className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
+                (item.id === 0 && selectedLcpNapId === 'all') || (item.id !== 0 && selectedLcpNapId === item.id)
+                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                  : 'text-gray-300'
+              }`}
+            >
+              <div className="flex items-center">
+                <MapPin className="h-4 w-4 mr-2" />
+                <span>{item.name}</span>
+              </div>
+              {item.count > 0 && (
+                <span className={`px-2 py-1 rounded-full text-xs ${
+                  (item.id === 0 && selectedLcpNapId === 'all') || (item.id !== 0 && selectedLcpNapId === item.id)
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-gray-700 text-gray-300'
+                }`}>
+                  {item.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
+        {selectedGroup && (
+          <div className="border-t border-gray-700 bg-gray-800 max-h-64 overflow-y-auto">
+            <div className="px-4 py-2 bg-gray-850 border-b border-gray-700">
+              <div className="text-xs text-gray-400 font-medium">Locations</div>
             </div>
+            {selectedGroup.locations.map(location => (
+              <button
+                key={location.id}
+                onClick={() => handleLocationSelect(location)}
+                className="w-full px-4 py-2 text-left flex items-start gap-2 hover:bg-gray-700 transition-colors text-sm"
+              >
+                <MapPin className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-gray-300 truncate">{location.location_name}</div>
+                  {location.city && (
+                    <div className="text-xs text-gray-500 truncate">{location.city}</div>
+                  )}
+                </div>
+              </button>
+            ))}
           </div>
         )}
+        
+        <div 
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-10"
+          onMouseDown={handleMouseDownSidebarResize}
+        />
+      </div>
+
+      <div className="bg-gray-900 overflow-hidden flex-1">
+        <div className="flex flex-col h-full">
+          <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
+            <div className="flex items-center justify-between">
+              <h3 className="text-white text-lg font-semibold">Map View</h3>
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded flex items-center gap-2 text-sm"
+              >
+                <MapPin className="h-4 w-4" />
+                Add Location
+              </button>
+            </div>
+          </div>
+
+          <div className="flex-1 relative z-0">
+            <div 
+              ref={mapRef} 
+              className="absolute inset-0 w-full h-full z-0"
+            />
+            
+            {isLoading && (
+              <div className="absolute inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center z-[1000]">
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 animate-spin text-orange-500" />
+                  <p className="text-white text-sm">Loading map...</p>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
       <AddLcpNapLocationModal

@@ -28,7 +28,6 @@ import PromoList from './PromoList';
 import RouterModelList from './RouterModelList';
 import LcpList from './LcpList';
 import NapList from './NapList';
-import LcpNapList from './LcpNapList';
 import Inventory from './Inventory';
 import ExpensesLog from './ExpensesLog';
 import Logs from './Logs';
@@ -42,6 +41,7 @@ import StatusRemarksList from './StatusRemarksList';
 import Settings from './Settings';
 import LcpNapLocation from './LcpNapLocation';
 import BillingConfig from './BillingConfig';
+import RadiusConfig from './RadiusConfig';
 
 interface DashboardProps {
   onLogout: () => void;
@@ -86,6 +86,8 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <Discounts />;
       case 'billing-config':
         return <BillingConfig />;
+      case 'radius-config':
+        return <RadiusConfig />;
 
 
       case 'staggered-payment':
@@ -139,8 +141,6 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
         return <LcpList />;
       case 'nap':
         return <NapList />;
-      case 'lcp-nap-list':
-        return <LcpNapList />;
       case 'lcp-nap-location':
         return <LcpNapLocation />;
       case 'usage-type':

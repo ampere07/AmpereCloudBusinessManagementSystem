@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import BillingDetails from '../components/CustomerDetails';
-import BillingListViewDetails from '../components/BillingListViewDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
@@ -103,11 +102,15 @@ const Customer: React.FC = () => {
   const [draggedColumn, setDraggedColumn] = useState<string | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
+  const [sidebarWidth, setSidebarWidth] = useState<number>(256);
+  const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const startXRef = useRef<number>(0);
   const startWidthRef = useRef<number>(0);
+  const sidebarStartXRef = useRef<number>(0);
+  const sidebarStartWidthRef = useRef<number>(0);
 
   // Fetch location data
   // Handle click outside to close dropdowns
@@ -622,6 +625,38 @@ const Customer: React.FC = () => {
     };
   }, [resizingColumn]);
 
+  useEffect(() => {
+    if (!isResizingSidebar) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizingSidebar) return;
+      
+      const diff = e.clientX - sidebarStartXRef.current;
+      const newWidth = Math.max(200, Math.min(500, sidebarStartWidthRef.current + diff));
+      
+      setSidebarWidth(newWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizingSidebar(false);
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isResizingSidebar]);
+
+  const handleMouseDownSidebarResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+    sidebarStartXRef.current = e.clientX;
+    sidebarStartWidthRef.current = sidebarWidth;
+  };
+
   const filteredColumns = allColumns
     .filter(col => visibleColumns.includes(col.key))
     .sort((a, b) => {
@@ -632,7 +667,7 @@ const Customer: React.FC = () => {
 
   return (
     <div className="bg-gray-950 h-full flex overflow-hidden">
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
+      <div className="bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth}px` }}>
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Customer Details</h2>
@@ -665,6 +700,12 @@ const Customer: React.FC = () => {
             </button>
           ))}
         </div>
+        
+        {/* Resize Handle */}
+        <div
+          className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-10"
+          onMouseDown={handleMouseDownSidebarResize}
+        />
       </div>
 
       <div className="flex-1 bg-gray-900 overflow-hidden">
@@ -917,26 +958,12 @@ const Customer: React.FC = () => {
       </div>
 
       {selectedBilling && (
-        <div className="w-full max-w-3xl bg-gray-900 border-l border-gray-700 flex-shrink-0 relative">
-          <div className="absolute top-4 right-4 z-10">
-            <button
-              onClick={handleCloseDetails}
-              className="text-gray-400 hover:text-white transition-colors bg-gray-800 rounded p-1"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          {displayMode === 'card' ? (
-            <BillingDetails
-              billingRecord={selectedBilling}
-              onlineStatusRecords={[]}
-            />
-          ) : (
-            <BillingListViewDetails
-              billingRecord={selectedBilling}
-              onlineStatusRecords={[]}
-            />
-          )}
+        <div className="flex-shrink-0 overflow-hidden">
+          <BillingDetails
+            billingRecord={selectedBilling}
+            onlineStatusRecords={[]}
+            onClose={handleCloseDetails}
+          />
         </div>
       )}
     </div>

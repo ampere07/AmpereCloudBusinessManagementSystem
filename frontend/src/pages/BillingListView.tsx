@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { CreditCard, Search, Circle, X } from 'lucide-react';
-import BillingListViewDetails from '../components/BillingListViewDetails';
+import { CreditCard, Search, Circle } from 'lucide-react';
+import BillingDetails from '../components/CustomerDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
@@ -424,18 +424,11 @@ const BillingListView: React.FC = () => {
       </div>
 
       {selectedBilling && (
-        <div className="w-full max-w-3xl bg-gray-900 border-l border-gray-700 flex-shrink-0 relative">
-          <div className="absolute top-4 right-4 z-10">
-            <button
-              onClick={handleCloseDetails}
-              className="text-gray-400 hover:text-white transition-colors bg-gray-800 rounded p-1"
-            >
-              <X size={20} />
-            </button>
-          </div>
-          <BillingListViewDetails
+        <div className="flex-shrink-0 overflow-hidden">
+          <BillingDetails
             billingRecord={selectedBilling}
             onlineStatusRecords={[]}
+            onClose={handleCloseDetails}
           />
         </div>
       )}

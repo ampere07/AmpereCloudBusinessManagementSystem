@@ -20,6 +20,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
 use App\Services\GoogleDriveService;
+use App\Models\RadiusConfig;
 
 class JobOrderController extends Controller
 {
@@ -97,6 +98,7 @@ class JobOrderController extends Controller
                     'router_reading_image_url' => $jobOrder->router_reading_image_url,
                     'port_label_image_url' => $jobOrder->port_label_image_url,
                     'house_front_picture_url' => $jobOrder->house_front_picture_url,
+                    'installation_landmark' => $jobOrder->installation_landmark,
                     
                     // Timestamps
                     'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
@@ -158,6 +160,7 @@ class JobOrderController extends Controller
                 'modem_router_sn' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'group_name' => 'nullable|string|max:255',
+                'installation_landmark' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
                 'updated_by_user_email' => 'nullable|email|max:255',
             ]);
@@ -242,6 +245,7 @@ class JobOrderController extends Controller
                 'address_coordinates' => 'nullable|string|max:255',
                 'username' => 'nullable|string|max:255',
                 'group_name' => 'nullable|string|max:255',
+                'installation_landmark' => 'nullable|string|max:255',
                 'pppoe_username' => 'nullable|string|max:255',
                 'pppoe_password' => 'nullable|string|max:255',
                 'created_by_user_email' => 'nullable|email|max:255',
@@ -612,10 +616,35 @@ class JobOrderController extends Controller
 
             $modifiedUsername = str_replace(['|', 'ñ'], ['i', 'n'], $username);
 
-            $primaryUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
-            $backupUrl = 'https://103.121.65.24:8729/rest/user-manage/user';
-            $radiusUsername = 'googleapi';
-            $radiusPassword = 'Edward123@';
+            $radiusConfig = RadiusConfig::first();
+            
+            if (!$radiusConfig) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'RADIUS configuration not found. Please configure RADIUS settings first.',
+                ], 400);
+            }
+
+            $baseUrl = sprintf(
+                '%s://%s:%s/rest/user-manage/user',
+                $radiusConfig->ssl_type,
+                $radiusConfig->ip,
+                $radiusConfig->port
+            );
+            
+            $primaryUrl = $baseUrl;
+            $backupUrl = $baseUrl;
+            $radiusUsername = $radiusConfig->username;
+            $radiusPassword = $radiusConfig->password;
+            
+            Log::info('Retrieved RADIUS configuration from database', [
+                'config_id' => $radiusConfig->id,
+                'ssl_type' => $radiusConfig->ssl_type,
+                'ip' => $radiusConfig->ip,
+                'port' => $radiusConfig->port,
+                'username' => $radiusConfig->username,
+                'primary_url' => $primaryUrl,
+            ]);
 
             $payload = [
                 'name' => $modifiedUsername,
@@ -628,6 +657,8 @@ class JobOrderController extends Controller
                 'username' => $modifiedUsername,
                 'group' => $planName,
                 'payload' => $payload,
+                'radius_config_id' => $radiusConfig->id,
+                'radius_url' => $primaryUrl,
             ]);
 
             $response = Http::withBasicAuth($radiusUsername, $radiusPassword)

@@ -18,6 +18,7 @@ use App\Http\Controllers\RegionController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\EmergencyLocationController;
 use App\Http\Controllers\RadiusController;
+use App\Http\Controllers\RadiusConfigController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -1220,6 +1221,16 @@ Route::prefix('usage-types')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\UsageTypeApiController::class, 'destroy']);
 });
 
+// LCP NAP Locations Management Routes - For map view
+Route::prefix('lcp-nap-locations')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LCPNAPLocationApiController::class, 'destroy']);
+});
+
 // LCP NAP List Management Routes - Using lcpnap table
 Route::prefix('lcp-nap-list')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\LCPNAPApiController::class, 'index']);
@@ -1636,3 +1647,26 @@ Route::get('/billing-config', [\App\Http\Controllers\BillingConfigController::cl
 Route::post('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'store']);
 Route::put('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'update']);
 Route::delete('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'destroy']);
+
+// RADIUS Configuration Management Routes
+Route::get('/radius-config', [\App\Http\Controllers\RadiusConfigController::class, 'index']);
+Route::post('/radius-config', [\App\Http\Controllers\RadiusConfigController::class, 'store']);
+Route::put('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'update']);
+Route::delete('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'destroy']);
+
+// Settings Image Size Management Routes
+Route::prefix('settings-image-size')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SettingsImageSizeController::class, 'index']);
+    Route::get('/active', [\App\Http\Controllers\SettingsImageSizeController::class, 'getActive']);
+    Route::put('/{id}/status', [\App\Http\Controllers\SettingsImageSizeController::class, 'updateStatus']);
+});
+
+// Settings Color Palette Management Routes
+Route::prefix('settings-color-palette')->group(function () {
+    Route::get('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'index']);
+    Route::get('/active', [\App\Http\Controllers\SettingsColorPaletteController::class, 'getActive']);
+    Route::post('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'store']);
+    Route::put('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'update']);
+    Route::put('/{id}/status', [\App\Http\Controllers\SettingsColorPaletteController::class, 'updateStatus']);
+    Route::delete('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'destroy']);
+});
