@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Server, Edit2, Trash2, Save, X, Shield } from 'lucide-react';
 import apiClient from '../config/api';
 
 interface RadiusConfigData {
@@ -16,7 +15,8 @@ interface RadiusConfigData {
 
 interface RadiusConfigResponse {
   success: boolean;
-  data: RadiusConfigData | null;
+  data: RadiusConfigData[];
+  count: number;
   message?: string;
 }
 
@@ -30,10 +30,11 @@ interface ModalConfig {
 }
 
 const RadiusConfig: React.FC = () => {
-  const [radiusConfig, setRadiusConfig] = useState<RadiusConfigData | null>(null);
-  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [radiusConfigs, setRadiusConfigs] = useState<RadiusConfigData[]>([]);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [isCreating, setIsCreating] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
-  const [showPassword, setShowPassword] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<Record<number, boolean>>({});
 
   const [formData, setFormData] = useState({
     ssl_type: '',
@@ -50,31 +51,25 @@ const RadiusConfig: React.FC = () => {
     message: ''
   });
 
-  const fetchRadiusConfig = async () => {
+  const fetchRadiusConfigs = async () => {
     try {
       setLoading(true);
       const response = await apiClient.get<RadiusConfigResponse>('/radius-config');
       if (response.data.success && response.data.data) {
-        setRadiusConfig(response.data.data);
-        setFormData({
-          ssl_type: response.data.data.ssl_type || '',
-          ip: response.data.data.ip || '',
-          port: response.data.data.port || '',
-          username: response.data.data.username || '',
-          password: response.data.data.password || ''
-        });
+        setRadiusConfigs(response.data.data);
       } else {
-        setRadiusConfig(null);
+        setRadiusConfigs([]);
       }
     } catch (error) {
-      console.error('Error fetching radius config:', error);
+      console.error('Error fetching radius configs:', error);
+      setRadiusConfigs([]);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchRadiusConfig();
+    fetchRadiusConfigs();
   }, []);
 
   const handleInputChange = (field: string, value: string) => {
@@ -82,6 +77,32 @@ const RadiusConfig: React.FC = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+      ssl_type: '',
+      ip: '',
+      port: '',
+      username: '',
+      password: ''
+    });
+  };
+
+  const handleStartCreate = () => {
+    resetForm();
+    setIsCreating(true);
+  };
+
+  const handleStartEdit = (config: RadiusConfigData) => {
+    setFormData({
+      ssl_type: config.ssl_type || '',
+      ip: config.ip || '',
+      port: config.port || '',
+      username: config.username || '',
+      password: config.password || ''
+    });
+    setEditingId(config.id);
   };
 
   const handleSave = async () => {
@@ -105,15 +126,7 @@ const RadiusConfig: React.FC = () => {
         updated_by: userEmail
       };
 
-      if (radiusConfig) {
-        await apiClient.put('/radius-config', payload);
-        setModal({
-          isOpen: true,
-          type: 'success',
-          title: 'Success',
-          message: 'RADIUS configuration updated successfully'
-        });
-      } else {
+      if (isCreating) {
         await apiClient.post('/radius-config', payload);
         setModal({
           isOpen: true,
@@ -121,10 +134,21 @@ const RadiusConfig: React.FC = () => {
           title: 'Success',
           message: 'RADIUS configuration created successfully'
         });
+        setIsCreating(false);
+      } else if (editingId !== null) {
+        await apiClient.put(`/radius-config/${editingId}`, payload);
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Success',
+          message: 'RADIUS configuration updated successfully'
+        });
+        setEditingId(null);
       }
-      await fetchRadiusConfig();
-      setIsEditing(false);
-      setShowPassword(false);
+      
+      await fetchRadiusConfigs();
+      resetForm();
+      setShowPassword({});
     } catch (error: any) {
       console.error('Error saving radius config:', error);
       const errorMessage = error.response?.data?.error || error.response?.data?.message || error.message || 'Unknown error occurred';
@@ -139,34 +163,23 @@ const RadiusConfig: React.FC = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!radiusConfig) return;
-
+  const handleDelete = async (id: number) => {
     setModal({
       isOpen: true,
       type: 'confirm',
       title: 'Confirm Deletion',
-      message: 'Are you sure you want to delete the RADIUS configuration?',
+      message: 'Are you sure you want to delete this RADIUS configuration?',
       onConfirm: async () => {
         try {
           setLoading(true);
-          await apiClient.delete('/radius-config');
+          await apiClient.delete(`/radius-config/${id}`);
           setModal({
             isOpen: true,
             type: 'success',
             title: 'Success',
             message: 'RADIUS configuration deleted successfully'
           });
-          setRadiusConfig(null);
-          setFormData({
-            ssl_type: '',
-            ip: '',
-            port: '',
-            username: '',
-            password: ''
-          });
-          setIsEditing(false);
-          setShowPassword(false);
+          await fetchRadiusConfigs();
         } catch (error: any) {
           console.error('Error deleting radius config:', error);
           setModal({
@@ -186,222 +199,324 @@ const RadiusConfig: React.FC = () => {
   };
 
   const handleCancel = () => {
-    if (radiusConfig) {
-      setFormData({
-        ssl_type: radiusConfig.ssl_type || '',
-        ip: radiusConfig.ip || '',
-        port: radiusConfig.port || '',
-        username: radiusConfig.username || '',
-        password: radiusConfig.password || ''
-      });
-    } else {
-      setFormData({
-        ssl_type: '',
-        ip: '',
-        port: '',
-        username: '',
-        password: ''
-      });
-    }
-    setIsEditing(false);
-    setShowPassword(false);
+    resetForm();
+    setIsCreating(false);
+    setEditingId(null);
+    setShowPassword({});
   };
+
+  const togglePasswordVisibility = (id: number) => {
+    setShowPassword(prev => ({
+      ...prev,
+      [id]: !prev[id]
+    }));
+  };
+
+  const canCreateNew = radiusConfigs.length < 2;
 
   return (
     <div className="p-6 bg-gray-950 min-h-full">
       <div className="mb-6 pb-6 border-b border-gray-700">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-semibold text-white mb-2 flex items-center gap-3">
-              <Server className="h-7 w-7 text-orange-500" />
+            <h2 className="text-2xl font-semibold text-white mb-2">
               RADIUS Configuration
             </h2>
-            <p className="text-gray-400 text-sm">
-              Configure RADIUS server connection settings for network authentication
-            </p>
           </div>
+          {canCreateNew && !isCreating && editingId === null && (
+            <button
+              onClick={handleStartCreate}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded transition-colors"
+            >
+              <span>Create New</span>
+            </button>
+          )}
         </div>
       </div>
 
       <div className="space-y-6">
-        {loading && !radiusConfig && !isEditing ? (
+        {loading && radiusConfigs.length === 0 && !isCreating ? (
           <div className="flex items-center justify-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>
-        ) : radiusConfig && !isEditing ? (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">SSL Type</p>
-                <p className="text-white font-medium text-lg">{radiusConfig.ssl_type || 'Not set'}</p>
-              </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">IP Address</p>
-                <p className="text-white font-medium text-lg">{radiusConfig.ip || 'Not set'}</p>
-              </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">Port</p>
-                <p className="text-white font-medium text-lg">{radiusConfig.port || 'Not set'}</p>
-              </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">Username</p>
-                <p className="text-white font-medium text-lg">{radiusConfig.username || 'Not set'}</p>
-              </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">Password</p>
-                <p className="text-white font-medium text-lg">
-                  {showPassword ? radiusConfig.password : '••••••••'}
-                </p>
-                <button
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="text-orange-400 hover:text-orange-300 text-xs mt-1"
-                >
-                  {showPassword ? 'Hide' : 'Show'}
-                </button>
-              </div>
-              <div className="bg-gray-800 p-4 rounded">
-                <p className="text-gray-400 text-xs mb-1">Last Updated By</p>
-                <p className="text-white font-medium text-lg">{radiusConfig.updated_by || 'Unknown'}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 pt-2">
-              <button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
-              >
-                <Edit2 size={18} />
-                <span>Edit</span>
-              </button>
-              <button
-                onClick={handleDelete}
-                className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
-              >
-                <Trash2 size={18} />
-                <span>Delete</span>
-              </button>
-            </div>
-          </div>
         ) : (
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  SSL Type
-                </label>
-                <select
-                  value={formData.ssl_type}
-                  onChange={(e) => handleInputChange('ssl_type', e.target.value)}
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                  disabled={loading}
-                >
-                  <option value="">Select SSL Type</option>
-                  <option value="https">HTTPS</option>
-                  <option value="http">HTTP</option>
-                </select>
-                <p className="text-gray-500 text-xs mt-2">
-                  Choose the connection protocol type
-                </p>
-              </div>
+          <>
+            {radiusConfigs.map((config) => (
+              <div key={config.id} className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                {editingId === config.id ? (
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-semibold text-white mb-4">Edit Configuration #{config.id}</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          SSL Type
+                        </label>
+                        <select
+                          value={formData.ssl_type}
+                          onChange={(e) => handleInputChange('ssl_type', e.target.value)}
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          disabled={loading}
+                        >
+                          <option value="">Select SSL Type</option>
+                          <option value="https">HTTPS</option>
+                          <option value="http">HTTP</option>
+                        </select>
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  IP Address
-                </label>
-                <input
-                  type="text"
-                  value={formData.ip}
-                  onChange={(e) => handleInputChange('ip', e.target.value)}
-                  placeholder="e.g., 192.168.1.1"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                  disabled={loading}
-                />
-                <p className="text-gray-500 text-xs mt-2">
-                  RADIUS server IP address
-                </p>
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          IP Address
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.ip}
+                          onChange={(e) => handleInputChange('ip', e.target.value)}
+                          placeholder="e.g., 192.168.1.1"
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          disabled={loading}
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Port
-                </label>
-                <input
-                  type="text"
-                  value={formData.port}
-                  onChange={(e) => handleInputChange('port', e.target.value)}
-                  placeholder="e.g., 1812"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                  disabled={loading}
-                />
-                <p className="text-gray-500 text-xs mt-2">
-                  RADIUS server port number (default: 1812)
-                </p>
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Port
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.port}
+                          onChange={(e) => handleInputChange('port', e.target.value)}
+                          placeholder="e.g., 1812"
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          disabled={loading}
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Username
-                </label>
-                <input
-                  type="text"
-                  value={formData.username}
-                  onChange={(e) => handleInputChange('username', e.target.value)}
-                  placeholder="Enter username"
-                  className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                  disabled={loading}
-                />
-                <p className="text-gray-500 text-xs mt-2">
-                  RADIUS authentication username
-                </p>
-              </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Username
+                        </label>
+                        <input
+                          type="text"
+                          value={formData.username}
+                          onChange={(e) => handleInputChange('username', e.target.value)}
+                          placeholder="Enter username"
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          disabled={loading}
+                        />
+                      </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={(e) => handleInputChange('password', e.target.value)}
-                    placeholder="Enter password"
-                    className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                    disabled={loading}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
-                  >
-                    <Shield size={18} />
-                  </button>
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Password
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showPassword[config.id] ? 'text' : 'password'}
+                            value={formData.password}
+                            onChange={(e) => handleInputChange('password', e.target.value)}
+                            placeholder="Enter password"
+                            className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                            disabled={loading}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => togglePasswordVisibility(config.id)}
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                          >
+                            {showPassword[config.id] ? 'Hide' : 'Show'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2">
+                      <button
+                        onClick={handleSave}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
+                      >
+                        <span>Update</span>
+                      </button>
+                      <button
+                        onClick={handleCancel}
+                        disabled={loading}
+                        className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
+                      >
+                        <span>Cancel</span>
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-semibold text-white">Configuration #{config.id}</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => handleStartEdit(config)}
+                          className="flex items-center gap-2 px-4 py-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
+                        >
+                          <span>Edit</span>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(config.id)}
+                          className="flex items-center gap-2 px-4 py-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
+                        >
+                          <span>Delete</span>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">SSL Type</p>
+                        <p className="text-white font-medium text-lg uppercase">{config.ssl_type || 'Not set'}</p>
+                      </div>
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">IP Address</p>
+                        <p className="text-white font-medium text-lg">{config.ip || 'Not set'}</p>
+                      </div>
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">Port</p>
+                        <p className="text-white font-medium text-lg">{config.port || 'Not set'}</p>
+                      </div>
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">Username</p>
+                        <p className="text-white font-medium text-lg">{config.username || 'Not set'}</p>
+                      </div>
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">Password</p>
+                        <p className="text-white font-medium text-lg">
+                          {showPassword[config.id] ? config.password : '••••••••'}
+                        </p>
+                        <button
+                          onClick={() => togglePasswordVisibility(config.id)}
+                          className="text-orange-400 hover:text-orange-300 text-xs mt-1"
+                        >
+                          {showPassword[config.id] ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                      <div className="bg-gray-700 p-4 rounded">
+                        <p className="text-gray-400 text-xs mb-1">Last Updated By</p>
+                        <p className="text-white font-medium text-lg">{config.updated_by || 'Unknown'}</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+
+            {isCreating && (
+              <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                <h3 className="text-lg font-semibold text-white mb-4">Create New Configuration</h3>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        SSL Type
+                      </label>
+                      <select
+                        value={formData.ssl_type}
+                        onChange={(e) => handleInputChange('ssl_type', e.target.value)}
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        disabled={loading}
+                      >
+                        <option value="">Select SSL Type</option>
+                        <option value="https">HTTPS</option>
+                        <option value="http">HTTP</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        IP Address
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.ip}
+                        onChange={(e) => handleInputChange('ip', e.target.value)}
+                        placeholder="e.g., 192.168.1.1"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Port
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.port}
+                        onChange={(e) => handleInputChange('port', e.target.value)}
+                        placeholder="e.g., 1812"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Username
+                      </label>
+                      <input
+                        type="text"
+                        value={formData.username}
+                        onChange={(e) => handleInputChange('username', e.target.value)}
+                        placeholder="Enter username"
+                        className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                        disabled={loading}
+                      />
+                    </div>
+
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-300 mb-2">
+                        Password
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showPassword[0] ? 'text' : 'password'}
+                          value={formData.password}
+                          onChange={(e) => handleInputChange('password', e.target.value)}
+                          placeholder="Enter password"
+                          className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
+                          disabled={loading}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => togglePasswordVisibility(0)}
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-300"
+                        >
+                          {showPassword[0] ? 'Hide' : 'Show'}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={handleSave}
+                      disabled={loading}
+                      className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
+                    >
+                      <span>Create</span>
+                    </button>
+                    <button
+                      onClick={handleCancel}
+                      disabled={loading}
+                      className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
+                    >
+                      <span>Cancel</span>
+                    </button>
+                  </div>
                 </div>
-                <p className="text-gray-500 text-xs mt-2">
-                  RADIUS authentication password
-                </p>
               </div>
-            </div>
+            )}
 
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSave}
-                disabled={loading}
-                className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 text-white rounded transition-colors"
-              >
-                <Save size={18} />
-                <span>{radiusConfig ? 'Update' : 'Create'}</span>
-              </button>
-              {radiusConfig && (
-                <button
-                  onClick={handleCancel}
-                  disabled={loading}
-                  className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:opacity-50 text-white rounded transition-colors"
-                >
-                  <X size={18} />
-                  <span>Cancel</span>
-                </button>
-              )}
-            </div>
-          </div>
+            {radiusConfigs.length === 0 && !isCreating && (
+              <div className="text-center py-12 text-gray-400">
+                <p className="text-lg mb-2">No RADIUS configurations found</p>
+              </div>
+            )}
+          </>
         )}
       </div>
 

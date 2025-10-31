@@ -18,6 +18,7 @@ use App\Http\Controllers\RegionController;
 use App\Http\Controllers\DebugController;
 use App\Http\Controllers\EmergencyLocationController;
 use App\Http\Controllers\RadiusController;
+use App\Http\Controllers\RadiusConfigController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -1636,3 +1637,9 @@ Route::get('/billing-config', [\App\Http\Controllers\BillingConfigController::cl
 Route::post('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'store']);
 Route::put('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'update']);
 Route::delete('/billing-config', [\App\Http\Controllers\BillingConfigController::class, 'destroy']);
+
+// RADIUS Configuration Management Routes
+Route::get('/radius-config', [\App\Http\Controllers\RadiusConfigController::class, 'index']);
+Route::post('/radius-config', [\App\Http\Controllers\RadiusConfigController::class, 'store']);
+Route::put('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'update']);
+Route::delete('/radius-config/{id}', [\App\Http\Controllers\RadiusConfigController::class, 'destroy']);
