@@ -377,16 +377,44 @@ class JobOrderController extends Controller
             
             $planId = null;
             if ($application->desired_plan) {
-                $plan = Plan::where('plan_name', $application->desired_plan)->first();
-                if ($plan) {
-                    $planId = $plan->id;
-                    \Log::info('Plan found for desired_plan', [
-                        'desired_plan' => $application->desired_plan,
-                        'plan_id' => $planId
+                $desiredPlan = $application->desired_plan;
+                
+                \Log::info('Parsing desired_plan', [
+                    'desired_plan' => $desiredPlan
+                ]);
+                
+                if (strpos($desiredPlan, ' - P') !== false) {
+                    $parts = explode(' - P', $desiredPlan);
+                    $planName = trim($parts[0]);
+                    $priceString = trim($parts[1]);
+                    $price = (float) str_replace(',', '', $priceString);
+                    
+                    \Log::info('Parsed plan components', [
+                        'plan_name' => $planName,
+                        'price' => $price
                     ]);
+                    
+                    $plan = Plan::where('plan_name', $planName)
+                                ->where('price', $price)
+                                ->first();
+                    
+                    if ($plan) {
+                        $planId = $plan->id;
+                        \Log::info('Plan found successfully', [
+                            'plan_name' => $planName,
+                            'price' => $price,
+                            'plan_id' => $planId
+                        ]);
+                    } else {
+                        \Log::warning('Plan not found with exact match', [
+                            'plan_name' => $planName,
+                            'price' => $price
+                        ]);
+                    }
                 } else {
-                    \Log::warning('Plan not found for desired_plan', [
-                        'desired_plan' => $application->desired_plan
+                    \Log::warning('desired_plan format unexpected', [
+                        'desired_plan' => $desiredPlan,
+                        'expected_format' => 'PLAN_NAME - PPRICE'
                     ]);
                 }
             }
@@ -402,6 +430,11 @@ class JobOrderController extends Controller
                 'billing_status_id' => 2,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
+            ]);
+            
+            \Log::info('BillingAccount created', [
+                'billing_account_id' => $billingAccount->id,
+                'plan_id_stored' => $billingAccount->plan_id
             ]);
 
             $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? 'user'));
