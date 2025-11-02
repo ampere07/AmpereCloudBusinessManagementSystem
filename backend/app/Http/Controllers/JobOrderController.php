@@ -12,6 +12,7 @@ use App\Models\ContractTemplate;
 use App\Models\Port;
 use App\Models\VLAN;
 use App\Models\LCPNAP;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -70,7 +71,6 @@ class JobOrderController extends Controller
                     'pppoe_username' => $jobOrder->pppoe_username,
                     'pppoe_password' => $jobOrder->pppoe_password,
                     
-                    // Technical fields from job_orders table
                     'date_installed' => $jobOrder->date_installed,
                     'usage_type' => $jobOrder->usage_type,
                     'connection_type' => $jobOrder->connection_type,
@@ -89,7 +89,6 @@ class JobOrderController extends Controller
                     'onsite_remarks' => $jobOrder->onsite_remarks,
                     'username_status' => $jobOrder->username_status,
                     
-                    // Image URLs from job_orders table
                     'client_signature_url' => $jobOrder->client_signature_url,
                     'setup_image_url' => $jobOrder->setup_image_url,
                     'speedtest_image_url' => $jobOrder->speedtest_image_url,
@@ -100,7 +99,6 @@ class JobOrderController extends Controller
                     'house_front_picture_url' => $jobOrder->house_front_picture_url,
                     'installation_landmark' => $jobOrder->installation_landmark,
                     
-                    // Timestamps
                     'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
                     'updated_at' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'created_by_user_email' => $jobOrder->created_by_user_email,
@@ -377,11 +375,27 @@ class JobOrderController extends Controller
 
             $installationFee = $jobOrder->installation_fee ?? 0;
             
+            $planId = null;
+            if ($application->desired_plan) {
+                $plan = Plan::where('plan_name', $application->desired_plan)->first();
+                if ($plan) {
+                    $planId = $plan->id;
+                    \Log::info('Plan found for desired_plan', [
+                        'desired_plan' => $application->desired_plan,
+                        'plan_id' => $planId
+                    ]);
+                } else {
+                    \Log::warning('Plan not found for desired_plan', [
+                        'desired_plan' => $application->desired_plan
+                    ]);
+                }
+            }
+            
             $billingAccount = BillingAccount::create([
                 'customer_id' => $customer->id,
                 'account_no' => $accountNumber,
                 'date_installed' => $jobOrder->date_installed ?? now(),
-                'plan_id' => null,
+                'plan_id' => $planId,
                 'account_balance' => $installationFee,
                 'balance_update_date' => now(),
                 'billing_day' => $jobOrder->billing_day,
@@ -439,6 +453,8 @@ class JobOrderController extends Controller
                     'billing_account_id' => $billingAccount->id,
                     'technical_detail_id' => $technicalDetail->id,
                     'account_number' => $accountNumber,
+                    'plan_id' => $planId,
+                    'desired_plan' => $application->desired_plan,
                     'installation_fee' => $installationFee,
                     'account_balance' => $installationFee,
                 ]
