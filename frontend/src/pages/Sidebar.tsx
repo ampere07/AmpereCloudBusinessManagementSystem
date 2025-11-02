@@ -194,14 +194,14 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
           }`}
         >
           <div className="flex items-center">
-            <IconComponent className="mr-3 h-5 w-5 text-gray-400" />
+            <IconComponent className={`h-5 w-5 text-gray-400 ${!isCollapsed ? 'mr-3' : ''}`} />
             {!isCollapsed && <span>{item.label}</span>}
           </div>
           {hasChildren && !isCollapsed && (
             <ChevronRight
               className={`h-4 w-4 text-gray-400 transition-transform ${
                 isExpanded ? 'transform rotate-90' : ''
-              }`}
+              } ${isCollapsed ? 'hidden' : ''}`}
             />
           )}
         </button>
@@ -216,18 +216,18 @@ const Sidebar: React.FC<SidebarProps> = ({ activeSection, onSectionChange, onLog
   };
 
   return (
-    <div className={`${isCollapsed ? 'w-16' : 'w-64'} h-full bg-gray-800 border-r border-gray-600 flex flex-col transition-all duration-300 ease-in-out`}>
-      <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-none">
+    <div className={`${isCollapsed ? 'w-16' : 'w-64'} h-full bg-gray-800 border-r border-gray-600 flex flex-col transition-all duration-300 ease-in-out overflow-hidden`}>
+      <nav className="flex-1 py-4 overflow-y-auto overflow-x-hidden scrollbar-none" style={{ maxHeight: 'calc(100% - 80px)' }}>
         {filteredMenuItems.map(item => renderMenuItem(item))}
       </nav>
       
-      <div className="p-4 border-t border-gray-600">
+      <div className="p-4 border-t border-gray-600 flex-shrink-0">
         <button
           onClick={onLogout}
           className="w-full px-4 py-3 text-gray-300 hover:text-white border border-gray-500 rounded hover:bg-gray-700 transition-colors text-sm flex items-center justify-center"
         >
-          <LogOut className="h-4 w-4 mr-2" />
-          {!isCollapsed && 'Logout'}
+          <LogOut className={`h-4 w-4 ${!isCollapsed ? 'mr-2' : ''}`} />
+          {!isCollapsed && <span>Logout</span>}
         </button>
       </div>
     </div>
