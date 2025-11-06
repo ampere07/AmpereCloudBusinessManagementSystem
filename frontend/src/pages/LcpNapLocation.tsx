@@ -4,22 +4,34 @@ import AddLcpNapLocationModal from '../modals/AddLcpNapLocationModal';
 
 interface LocationMarker {
   id: number;
-  lcp_nap_id: number;
   lcpnap_name: string;
   lcp_name: string;
   nap_name: string;
-  location_name: string;
+  coordinates: string;
   latitude: number;
   longitude: number;
-  address?: string;
+  street?: string;
   city?: string;
   region?: string;
+  barangay?: string;
+  port_total?: number;
+  reading_image_url?: string;
+  image1_url?: string;
+  image2_url?: string;
+  modified_by?: string;
+  modified_date?: string;
+}
+
+interface LCPNAP {
+  id: number;
+  lcpnap_name: string;
 }
 
 interface LcpNapGroup {
-  lcp_nap_id: number;
+  lcpnap_id: number;
   lcpnap_name: string;
   locations: LocationMarker[];
+  count: number;
 }
 
 interface LcpNapItem {
@@ -30,12 +42,14 @@ interface LcpNapItem {
 
 const LcpNapLocation: React.FC = () => {
   const [markers, setMarkers] = useState<LocationMarker[]>([]);
+  const [allLcpnaps, setAllLcpnaps] = useState<LCPNAP[]>([]);
   const [lcpNapGroups, setLcpNapGroups] = useState<LcpNapGroup[]>([]);
   const [selectedLcpNapId, setSelectedLcpNapId] = useState<number | string>('all');
   const [isLoading, setIsLoading] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState<number>(256);
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
+  const [isMapReady, setIsMapReady] = useState<boolean>(false);
   const mapRef = useRef<any>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any[]>([]);
@@ -46,14 +60,30 @@ const LcpNapLocation: React.FC = () => {
 
   useEffect(() => {
     loadMapScript();
+    loadAllLcpnaps();
     loadLocations();
+
+    return () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
+      markersLayerRef.current = [];
+      setIsMapReady(false);
+    };
   }, []);
 
   useEffect(() => {
-    if (markers.length > 0) {
+    if (allLcpnaps.length > 0) {
       groupLocationsByLcpNap();
     }
-  }, [markers]);
+  }, [markers, allLcpnaps]);
+
+  useEffect(() => {
+    if (isMapReady && markers.length > 0 && selectedLcpNapId === 'all') {
+      updateMapMarkers(markers);
+    }
+  }, [isMapReady]);
 
   useEffect(() => {
     if (!isResizingSidebar) return;
@@ -81,33 +111,89 @@ const LcpNapLocation: React.FC = () => {
   }, [isResizingSidebar]);
 
   const loadMapScript = () => {
-    if (document.getElementById('leaflet-css')) return;
+    const existingCSS = document.getElementById('leaflet-css');
+    const existingJS = document.getElementById('leaflet-js');
 
-    const link = document.createElement('link');
-    link.id = 'leaflet-css';
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-    document.head.appendChild(link);
+    if (!existingCSS) {
+      const link = document.createElement('link');
+      link.id = 'leaflet-css';
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+      document.head.appendChild(link);
+    }
 
-    const script = document.createElement('script');
-    script.id = 'leaflet-js';
-    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-    script.onload = initializeMap;
-    document.head.appendChild(script);
+    if (!existingJS) {
+      const script = document.createElement('script');
+      script.id = 'leaflet-js';
+      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+      script.onload = initializeMap;
+      document.head.appendChild(script);
+    } else if ((window as any).L && !mapInstanceRef.current) {
+      initializeMap();
+    }
   };
 
   const initializeMap = () => {
-    if (!mapRef.current || mapInstanceRef.current) return;
+    if (!mapRef.current) return;
+
+    if (mapInstanceRef.current) {
+      mapInstanceRef.current.remove();
+      mapInstanceRef.current = null;
+    }
 
     const L = (window as any).L;
     
-    const map = L.map(mapRef.current).setView([12.8797, 121.7740], 6);
+    try {
+      const map = L.map(mapRef.current).setView([12.8797, 121.7740], 6);
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+      }).addTo(map);
 
-    mapInstanceRef.current = map;
+      mapInstanceRef.current = map;
+      setIsMapReady(true);
+    } catch (error) {
+      console.error('Error initializing map:', error);
+      mapInstanceRef.current = null;
+      setIsMapReady(false);
+    }
+  };
+
+  const loadAllLcpnaps = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/lcpnap?page=1&limit=1000`, {
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success && data.data) {
+        setAllLcpnaps(data.data);
+      }
+    } catch (error) {
+      console.error('Error loading LCPNAP records:', error);
+    }
+  };
+
+  const parseCoordinates = (coordString: string): { latitude: number; longitude: number } | null => {
+    if (!coordString) return null;
+    
+    const coords = coordString.split(',').map(c => c.trim());
+    if (coords.length !== 2) return null;
+    
+    const latitude = parseFloat(coords[0]);
+    const longitude = parseFloat(coords[1]);
+    
+    if (isNaN(latitude) || isNaN(longitude)) return null;
+    
+    return { latitude, longitude };
   };
 
   const loadLocations = async () => {
@@ -127,25 +213,44 @@ const LcpNapLocation: React.FC = () => {
       const data = await response.json();
       
       if (data.success && data.data) {
-        const validMarkers = data.data.filter((item: any) => 
-          item.latitude && item.longitude && 
-          !isNaN(parseFloat(item.latitude)) && !isNaN(parseFloat(item.longitude))
-        ).map((item: any) => ({
-          id: item.id,
-          lcp_nap_id: item.lcp_nap_id || item.id,
-          lcpnap_name: item.lcpnap_name,
-          lcp_name: item.lcp_name || 'N/A',
-          nap_name: item.nap_name || 'N/A',
-          location_name: item.location_name || item.lcpnap_name,
-          latitude: parseFloat(item.latitude),
-          longitude: parseFloat(item.longitude),
-          address: item.address,
-          city: item.city,
-          region: item.region
-        }));
+        const validMarkers = data.data
+          .map((item: any) => {
+            const coords = parseCoordinates(item.coordinates);
+            if (!coords) return null;
+            
+            return {
+              id: item.id,
+              lcpnap_name: item.lcpnap_name,
+              lcp_name: item.lcp_name || 'N/A',
+              nap_name: item.nap_name || 'N/A',
+              coordinates: item.coordinates,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              street: item.street,
+              city: item.city,
+              region: item.region,
+              barangay: item.barangay,
+              port_total: item.port_total,
+              reading_image_url: item.reading_image_url,
+              image1_url: item.image1_url,
+              image2_url: item.image2_url,
+              modified_by: item.modified_by,
+              modified_date: item.modified_date
+            };
+          })
+          .filter((marker: LocationMarker | null): marker is LocationMarker => marker !== null);
         
         setMarkers(validMarkers);
-        updateMapMarkers(validMarkers);
+        
+        if (mapInstanceRef.current && (window as any).L) {
+          updateMapMarkers(validMarkers);
+        } else {
+          setTimeout(() => {
+            if (mapInstanceRef.current && (window as any).L) {
+              updateMapMarkers(validMarkers);
+            }
+          }, 500);
+        }
       }
     } catch (error) {
       console.error('Error loading locations:', error);
@@ -155,18 +260,18 @@ const LcpNapLocation: React.FC = () => {
   };
 
   const groupLocationsByLcpNap = () => {
-    const grouped = markers.reduce((acc: { [key: number]: LcpNapGroup }, marker) => {
-      const key = marker.lcp_nap_id;
-      if (!acc[key]) {
-        acc[key] = {
-          lcp_nap_id: key,
-          lcpnap_name: marker.lcpnap_name,
-          locations: []
-        };
-      }
-      acc[key].locations.push(marker);
-      return acc;
-    }, {});
+    const grouped: { [key: number]: LcpNapGroup } = {};
+
+    allLcpnaps.forEach(lcpnap => {
+      const locationsForLcpnap = markers.filter(m => m.id === lcpnap.id);
+      
+      grouped[lcpnap.id] = {
+        lcpnap_id: lcpnap.id,
+        lcpnap_name: lcpnap.lcpnap_name,
+        locations: locationsForLcpnap,
+        count: locationsForLcpnap.length
+      };
+    });
 
     const groupArray = Object.values(grouped).sort((a, b) => 
       a.lcpnap_name.localeCompare(b.lcpnap_name)
@@ -176,9 +281,16 @@ const LcpNapLocation: React.FC = () => {
   };
 
   const updateMapMarkers = (locations: LocationMarker[]) => {
-    if (!mapInstanceRef.current) return;
+    if (!mapInstanceRef.current) {
+      console.warn('Map instance not ready yet');
+      return;
+    }
 
     const L = (window as any).L;
+    if (!L) {
+      console.warn('Leaflet library not loaded yet');
+      return;
+    }
     
     markersLayerRef.current.forEach(marker => {
       mapInstanceRef.current.removeLayer(marker);
@@ -205,21 +317,23 @@ const LcpNapLocation: React.FC = () => {
       const popupContent = `
         <div style="min-width: 200px; font-family: system-ui;">
           <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937;">
-            ${location.location_name}
+            ${location.lcpnap_name}
           </h3>
           <div style="font-size: 14px; color: #4b5563; line-height: 1.6;">
-            <div style="margin-bottom: 4px;">
-              <strong>LCP NAP:</strong> ${location.lcpnap_name}
-            </div>
             <div style="margin-bottom: 4px;">
               <strong>LCP:</strong> ${location.lcp_name}
             </div>
             <div style="margin-bottom: 4px;">
               <strong>NAP:</strong> ${location.nap_name}
             </div>
-            ${location.address ? `
+            ${location.street ? `
               <div style="margin-bottom: 4px;">
-                <strong>Address:</strong> ${location.address}
+                <strong>Street:</strong> ${location.street}
+              </div>
+            ` : ''}
+            ${location.barangay ? `
+              <div style="margin-bottom: 4px;">
+                <strong>Barangay:</strong> ${location.barangay}
               </div>
             ` : ''}
             ${location.city ? `
@@ -230,6 +344,11 @@ const LcpNapLocation: React.FC = () => {
             ${location.region ? `
               <div style="margin-bottom: 4px;">
                 <strong>Region:</strong> ${location.region}
+              </div>
+            ` : ''}
+            ${location.port_total ? `
+              <div style="margin-bottom: 4px;">
+                <strong>Port Total:</strong> ${location.port_total}
               </div>
             ` : ''}
             <div style="margin-top: 8px; padding-top: 8px; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
@@ -258,7 +377,7 @@ const LcpNapLocation: React.FC = () => {
     if (lcpNapId === 'all') {
       updateMapMarkers(markers);
     } else {
-      const filteredLocations = markers.filter(m => m.lcp_nap_id === lcpNapId);
+      const filteredLocations = markers.filter(m => m.id === lcpNapId);
       updateMapMarkers(filteredLocations);
     }
   };
@@ -287,6 +406,7 @@ const LcpNapLocation: React.FC = () => {
   };
 
   const handleSaveLocation = () => {
+    loadAllLcpnaps();
     loadLocations();
   };
 
@@ -297,15 +417,15 @@ const LcpNapLocation: React.FC = () => {
       count: markers.length
     },
     ...lcpNapGroups.map(group => ({
-      id: group.lcp_nap_id,
+      id: group.lcpnap_id,
       name: group.lcpnap_name,
-      count: group.locations.length
+      count: group.count
     }))
   ];
 
   const getSelectedGroup = () => {
     if (selectedLcpNapId === 'all') return null;
-    return lcpNapGroups.find(g => g.lcp_nap_id === selectedLcpNapId);
+    return lcpNapGroups.find(g => g.lcpnap_id === selectedLcpNapId);
   };
 
   const selectedGroup = getSelectedGroup();
@@ -347,7 +467,7 @@ const LcpNapLocation: React.FC = () => {
           ))}
         </div>
 
-        {selectedGroup && (
+        {selectedGroup && selectedGroup.locations.length > 0 && (
           <div className="border-t border-gray-700 bg-gray-800 max-h-64 overflow-y-auto">
             <div className="px-4 py-2 bg-gray-850 border-b border-gray-700">
               <div className="text-xs text-gray-400 font-medium">Locations</div>
@@ -360,7 +480,7 @@ const LcpNapLocation: React.FC = () => {
               >
                 <MapPin className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-gray-300 truncate">{location.location_name}</div>
+                  <div className="text-gray-300 truncate">{location.lcpnap_name}</div>
                   {location.city && (
                     <div className="text-xs text-gray-500 truncate">{location.city}</div>
                   )}
@@ -386,7 +506,7 @@ const LcpNapLocation: React.FC = () => {
                 className="px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white rounded flex items-center gap-2 text-sm"
               >
                 <MapPin className="h-4 w-4" />
-                Add Location
+                Add LCPNAP
               </button>
             </div>
           </div>

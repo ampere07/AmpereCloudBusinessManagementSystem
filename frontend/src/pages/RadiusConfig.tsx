@@ -249,7 +249,7 @@ const RadiusConfig: React.FC = () => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                       <div>
                         <label className="block text-xs font-medium text-gray-300 mb-1">
-                          SSL Type
+                          Connection Type
                         </label>
                         <select
                           value={formData.ssl_type}
@@ -257,7 +257,7 @@ const RadiusConfig: React.FC = () => {
                           className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                           disabled={loading}
                         >
-                          <option value="">Select SSL Type</option>
+                          <option value="">Select Connection Type</option>
                           <option value="https">HTTPS</option>
                           <option value="http">HTTP</option>
                         </select>
@@ -367,7 +367,7 @@ const RadiusConfig: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       <div className="bg-gray-700 p-2.5 rounded">
-                        <p className="text-gray-400 text-xs mb-0.5">SSL Type</p>
+                        <p className="text-gray-400 text-xs mb-0.5">Connection Type</p>
                         <p className="text-white font-medium text-sm uppercase">{config.ssl_type || 'Not set'}</p>
                       </div>
                       <div className="bg-gray-700 p-2.5 rounded">
@@ -411,7 +411,7 @@ const RadiusConfig: React.FC = () => {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-300 mb-1">
-                        SSL Type
+                        Connection Type
                       </label>
                       <select
                         value={formData.ssl_type}
@@ -419,7 +419,7 @@ const RadiusConfig: React.FC = () => {
                         className="w-full px-3 py-1.5 text-sm bg-gray-700 border border-gray-600 rounded text-white focus:outline-none focus:border-orange-500"
                         disabled={loading}
                       >
-                        <option value="">Select SSL Type</option>
+                        <option value="">Select Connection Type</option>
                         <option value="https">HTTPS</option>
                         <option value="http">HTTP</option>
                       </select>

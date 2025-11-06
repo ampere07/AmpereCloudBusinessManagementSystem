@@ -12,6 +12,7 @@ use App\Models\ContractTemplate;
 use App\Models\Port;
 use App\Models\VLAN;
 use App\Models\LCPNAP;
+use App\Models\Plan;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
@@ -70,7 +71,6 @@ class JobOrderController extends Controller
                     'pppoe_username' => $jobOrder->pppoe_username,
                     'pppoe_password' => $jobOrder->pppoe_password,
                     
-                    // Technical fields from job_orders table
                     'date_installed' => $jobOrder->date_installed,
                     'usage_type' => $jobOrder->usage_type,
                     'connection_type' => $jobOrder->connection_type,
@@ -89,7 +89,6 @@ class JobOrderController extends Controller
                     'onsite_remarks' => $jobOrder->onsite_remarks,
                     'username_status' => $jobOrder->username_status,
                     
-                    // Image URLs from job_orders table
                     'client_signature_url' => $jobOrder->client_signature_url,
                     'setup_image_url' => $jobOrder->setup_image_url,
                     'speedtest_image_url' => $jobOrder->speedtest_image_url,
@@ -100,7 +99,6 @@ class JobOrderController extends Controller
                     'house_front_picture_url' => $jobOrder->house_front_picture_url,
                     'installation_landmark' => $jobOrder->installation_landmark,
                     
-                    // Timestamps
                     'created_at' => $jobOrder->created_at ? $jobOrder->created_at->format('Y-m-d H:i:s') : null,
                     'updated_at' => $jobOrder->updated_at ? $jobOrder->updated_at->format('Y-m-d H:i:s') : null,
                     'created_by_user_email' => $jobOrder->created_by_user_email,
@@ -325,14 +323,13 @@ class JobOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            $jobOrder = JobOrder::with('application')->findOrFail($id);
+            $jobOrder = JobOrder::with('application')->lockForUpdate()->findOrFail($id);
             
             if (!$jobOrder->application) {
                 throw new \Exception('Job order must have an associated application');
             }
 
             $application = $jobOrder->application;
-            
             $defaultUserId = 1;
 
             $customer = Customer::create([
@@ -343,51 +340,87 @@ class JobOrderController extends Controller
                 'contact_number_primary' => $application->mobile_number,
                 'contact_number_secondary' => $application->secondary_mobile_number,
                 'address' => $application->installation_address,
+                'location' => $application->location,
                 'barangay' => $application->barangay,
                 'city' => $application->city,
                 'region' => $application->region,
-                'address_coordinates' => null,
-                'housing_status' => null,
+                'address_coordinates' => $jobOrder->address_coordinates,
+                'housing_status' => $application->housing_status,
                 'referred_by' => $application->referred_by,
                 'desired_plan' => $application->desired_plan,
+                'house_front_picture_url' => $jobOrder->house_front_picture_url,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
             ]);
 
-            $customAccountNumber = DB::table('custom_account_number')->first();
+            $accountNumber = $this->generateAccountNumber();
             
-            if (!$customAccountNumber) {
-                throw new \Exception('Custom account number not configured. Please set up the starting number in settings.');
-            }
-            
-            $startingNumber = $customAccountNumber->starting_number;
-            
-            $latestAccount = BillingAccount::where('account_no', 'LIKE', $startingNumber . '%')
-                ->orderBy('account_no', 'desc')
-                ->first();
-            
-            if ($latestAccount) {
-                $lastSequence = (int) substr($latestAccount->account_no, strlen($startingNumber));
-                $nextSequence = $lastSequence + 1;
-            } else {
-                $nextSequence = 1;
-            }
-            
-            $accountNumber = $startingNumber . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+            \Log::info('Generated account number', [
+                'generated_account_no' => $accountNumber
+            ]);
 
             $installationFee = $jobOrder->installation_fee ?? 0;
+            
+            $planId = null;
+            if ($application->desired_plan) {
+                $desiredPlan = $application->desired_plan;
+                
+                \Log::info('Parsing desired_plan', [
+                    'desired_plan' => $desiredPlan
+                ]);
+                
+                if (strpos($desiredPlan, ' - P') !== false) {
+                    $parts = explode(' - P', $desiredPlan);
+                    $planName = trim($parts[0]);
+                    $priceString = trim($parts[1]);
+                    $price = (float) str_replace(',', '', $priceString);
+                    
+                    \Log::info('Parsed plan components', [
+                        'plan_name' => $planName,
+                        'price' => $price
+                    ]);
+                    
+                    $plan = Plan::where('plan_name', $planName)
+                                ->where('price', $price)
+                                ->first();
+                    
+                    if ($plan) {
+                        $planId = $plan->id;
+                        \Log::info('Plan found successfully', [
+                            'plan_name' => $planName,
+                            'price' => $price,
+                            'plan_id' => $planId
+                        ]);
+                    } else {
+                        \Log::warning('Plan not found with exact match', [
+                            'plan_name' => $planName,
+                            'price' => $price
+                        ]);
+                    }
+                } else {
+                    \Log::warning('desired_plan format unexpected', [
+                        'desired_plan' => $desiredPlan,
+                        'expected_format' => 'PLAN_NAME - PPRICE'
+                    ]);
+                }
+            }
             
             $billingAccount = BillingAccount::create([
                 'customer_id' => $customer->id,
                 'account_no' => $accountNumber,
                 'date_installed' => $jobOrder->date_installed ?? now(),
-                'plan_id' => null,
+                'plan_id' => $planId,
                 'account_balance' => $installationFee,
                 'balance_update_date' => now(),
                 'billing_day' => $jobOrder->billing_day,
                 'billing_status_id' => 2,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
+            ]);
+            
+            \Log::info('BillingAccount created', [
+                'billing_account_id' => $billingAccount->id,
+                'plan_id_stored' => $billingAccount->plan_id
             ]);
 
             $lastName = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', $application->last_name ?? 'user'));
@@ -407,6 +440,16 @@ class JobOrderController extends Controller
                 }
             }
 
+            $lcpnapValue = $jobOrder->lcpnap;
+            $lcpValue = null;
+            $napValue = null;
+            
+            if ($lcpnapValue && strpos($lcpnapValue, '/') !== false) {
+                $parts = explode('/', $lcpnapValue);
+                $lcpValue = trim($parts[0]);
+                $napValue = isset($parts[1]) ? trim($parts[1]) : null;
+            }
+
             $technicalDetail = TechnicalDetail::create([
                 'account_id' => $billingAccount->id,
                 'username' => $usernameForTechnical,
@@ -415,6 +458,8 @@ class JobOrderController extends Controller
                 'router_model' => $jobOrder->router_model,
                 'router_modem_sn' => $modemSN,
                 'ip_address' => $jobOrder->ip_address,
+                'lcp' => $lcpValue,
+                'nap' => $napValue,
                 'port' => $jobOrder->port,
                 'vlan' => $jobOrder->vlan,
                 'lcpnap' => $jobOrder->lcpnap,
@@ -439,6 +484,8 @@ class JobOrderController extends Controller
                     'billing_account_id' => $billingAccount->id,
                     'technical_detail_id' => $technicalDetail->id,
                     'account_number' => $accountNumber,
+                    'plan_id' => $planId,
+                    'desired_plan' => $application->desired_plan,
                     'installation_fee' => $installationFee,
                     'account_balance' => $installationFee,
                 ]
@@ -456,6 +503,78 @@ class JobOrderController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function generateAccountNumber(): string
+    {
+        DB::table('billing_accounts')->lockForUpdate()->get();
+        
+        $customAccountNumber = DB::table('custom_account_number')->first();
+        
+        if (!$customAccountNumber) {
+            return $this->generateDefaultAccountNumber();
+        }
+        
+        if ($customAccountNumber->starting_number === null || $customAccountNumber->starting_number === '') {
+            \Log::info('Starting number is null, using default 0001');
+            return '0001';
+        }
+        
+        $startingNumber = $customAccountNumber->starting_number;
+        
+        if (!preg_match('/^([A-Za-z]*)(\d+)$/', $startingNumber, $matches)) {
+            \Log::warning('Invalid starting_number format', [
+                'starting_number' => $startingNumber
+            ]);
+            return $this->generateDefaultAccountNumber();
+        }
+        
+        $prefix = $matches[1];
+        $numericPart = $matches[2];
+        $numLength = strlen($numericPart);
+        
+        if (!empty($prefix)) {
+            $latestAccount = BillingAccount::where('account_no', 'LIKE', $prefix . '%')
+                ->orderBy('account_no', 'desc')
+                ->lockForUpdate()
+                ->first();
+            
+            if ($latestAccount && preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $latestAccount->account_no, $accountMatches)) {
+                $lastNumber = (int) $accountMatches[1];
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = (int) $numericPart;
+            }
+            
+            return $prefix . str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+        } else {
+            $latestAccount = BillingAccount::where('account_no', 'REGEXP', '^[0-9]+$')
+                ->orderBy(DB::raw('CAST(account_no AS UNSIGNED)'), 'desc')
+                ->lockForUpdate()
+                ->first();
+            
+            if ($latestAccount && is_numeric($latestAccount->account_no)) {
+                $nextNumber = (int) $latestAccount->account_no + 1;
+            } else {
+                $nextNumber = (int) $numericPart;
+            }
+            
+            return str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+        }
+    }
+
+    private function generateDefaultAccountNumber(): string
+    {
+        $latestAccount = BillingAccount::orderBy('account_no', 'desc')
+            ->lockForUpdate()
+            ->first();
+        
+        if ($latestAccount && is_numeric($latestAccount->account_no)) {
+            $nextNumber = (int) $latestAccount->account_no + 1;
+            return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+        
+        return '0001';
     }
 
     public function getModemRouterSNs(): JsonResponse

@@ -8,55 +8,51 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Exception;
 
-class LCPNAPLocationApiController extends Controller
+class LCPNAPApiController extends Controller
 {
     public function index(Request $request)
     {
         try {
-            $query = LCPNAPLocation::with(['lcp', 'nap']);
+            $page = $request->input('page', 1);
+            $limit = $request->input('limit', 100);
+            $search = $request->input('search', '');
 
-            if ($request->has('lcp_nap_id')) {
-                $query->where('id', $request->lcp_nap_id);
+            $query = LCPNAPLocation::query();
+
+            if ($search) {
+                $query->where('lcpnap_name', 'LIKE', "%{$search}%");
             }
 
-            $locations = $query->get();
-
-            $formattedLocations = $locations->map(function ($location, $index) {
-                $baseLatitude = 14.5995;
-                $baseLongitude = 120.9842;
-                $offset = $index * 0.01;
-
-                return [
-                    'id' => $location->id,
-                    'lcp_nap_id' => $location->id,
-                    'lcpnap_name' => $location->lcpnap_name,
-                    'lcp_name' => $location->lcp_name,
-                    'nap_name' => $location->nap_name,
-                    'location_name' => $location->lcpnap_name,
-                    'latitude' => $baseLatitude + $offset,
-                    'longitude' => $baseLongitude + $offset,
-                    'address' => null,
-                    'city' => null,
-                    'region' => null,
-                ];
-            });
+            $total = $query->count();
+            
+            $locations = $query->skip(($page - 1) * $limit)
+                ->take($limit)
+                ->get();
 
             return response()->json([
                 'success' => true,
-                'data' => $formattedLocations,
-                'count' => $formattedLocations->count()
+                'data' => $locations,
+                'pagination' => [
+                    'current_page' => (int) $page,
+                    'total_pages' => (int) ceil($total / $limit),
+                    'total_items' => $total,
+                    'per_page' => (int) $limit,
+                    'from' => (($page - 1) * $limit) + 1,
+                    'to' => min($page * $limit, $total)
+                ]
             ]);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Locations API error', [
+            Log::error('LCP/NAP API error', [
                 'message' => $e->getMessage(),
                 'file' => $e->getFile(),
-                'line' => $e->getLine()
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to fetch LCP/NAP locations',
+                'message' => 'Failed to fetch LCP/NAP records',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -65,34 +61,22 @@ class LCPNAPLocationApiController extends Controller
     public function show($id)
     {
         try {
-            $location = LCPNAPLocation::with(['lcp', 'nap'])->findOrFail($id);
+            $location = LCPNAPLocation::findOrFail($id);
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $location->id,
-                    'lcp_nap_id' => $location->id,
-                    'lcpnap_name' => $location->lcpnap_name,
-                    'lcp_name' => $location->lcp_name,
-                    'nap_name' => $location->nap_name,
-                    'location_name' => $location->lcpnap_name,
-                    'latitude' => 14.5995,
-                    'longitude' => 120.9842,
-                    'address' => null,
-                    'city' => null,
-                    'region' => null,
-                ]
+                'data' => $location
             ]);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Location show error', [
+            Log::error('LCP/NAP show error', [
                 'id' => $id,
                 'message' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'LCP/NAP location not found',
+                'message' => 'LCP/NAP record not found',
                 'error' => $e->getMessage()
             ], 404);
         }
@@ -103,26 +87,24 @@ class LCPNAPLocationApiController extends Controller
         try {
             $validated = $request->validate([
                 'lcpnap_name' => 'required|string|max:255',
-                'lcp_id' => 'required|integer|exists:lcp,id',
-                'nap_id' => 'required|integer|exists:nap,id',
             ]);
 
             $location = LCPNAPLocation::create($validated);
 
             return response()->json([
                 'success' => true,
-                'message' => 'LCP/NAP location created successfully',
+                'message' => 'LCP/NAP record created successfully',
                 'data' => $location
             ], 201);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Location create error', [
+            Log::error('LCP/NAP create error', [
                 'message' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create LCP/NAP location',
+                'message' => 'Failed to create LCP/NAP record',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -135,27 +117,25 @@ class LCPNAPLocationApiController extends Controller
 
             $validated = $request->validate([
                 'lcpnap_name' => 'sometimes|required|string|max:255',
-                'lcp_id' => 'sometimes|required|integer|exists:lcp,id',
-                'nap_id' => 'sometimes|required|integer|exists:nap,id',
             ]);
 
             $location->update($validated);
 
             return response()->json([
                 'success' => true,
-                'message' => 'LCP/NAP location updated successfully',
+                'message' => 'LCP/NAP record updated successfully',
                 'data' => $location
             ]);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Location update error', [
+            Log::error('LCP/NAP update error', [
                 'id' => $id,
                 'message' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to update LCP/NAP location',
+                'message' => 'Failed to update LCP/NAP record',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -169,18 +149,18 @@ class LCPNAPLocationApiController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'LCP/NAP location deleted successfully'
+                'message' => 'LCP/NAP record deleted successfully'
             ]);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Location delete error', [
+            Log::error('LCP/NAP delete error', [
                 'id' => $id,
                 'message' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to delete LCP/NAP location',
+                'message' => 'Failed to delete LCP/NAP record',
                 'error' => $e->getMessage()
             ], 500);
         }
@@ -190,26 +170,45 @@ class LCPNAPLocationApiController extends Controller
     {
         try {
             $total = LCPNAPLocation::count();
-            $withLcp = LCPNAPLocation::whereNotNull('lcp_id')->count();
-            $withNap = LCPNAPLocation::whereNotNull('nap_id')->count();
 
             return response()->json([
                 'success' => true,
                 'data' => [
                     'total_locations' => $total,
-                    'with_lcp' => $withLcp,
-                    'with_nap' => $withNap,
                 ]
             ]);
 
         } catch (Exception $e) {
-            Log::error('LCP/NAP Location statistics error', [
+            Log::error('LCP/NAP statistics error', [
                 'message' => $e->getMessage()
             ]);
 
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to fetch statistics',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getLookupData()
+    {
+        try {
+            $lcpnaps = LCPNAPLocation::select('id', 'lcpnap_name')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $lcpnaps
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('LCP/NAP lookup error', [
+                'message' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to fetch lookup data',
                 'error' => $e->getMessage()
             ], 500);
         }

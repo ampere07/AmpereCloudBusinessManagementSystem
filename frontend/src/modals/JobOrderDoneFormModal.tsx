@@ -544,22 +544,14 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          console.log('Fetching LCPNAP data from database...');
-          const response = await getAllLCPNAPs();
-          console.log('LCPNAP API Response:', response);
-          console.log('LCPNAP Data:', response.data);
+          const response = await getAllLCPNAPs('', 1, 1000);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);
-            console.log('Successfully loaded LCPNAP records:', response.data.length);
-            console.log('LCPNAP Names:', response.data.map(l => l.lcpnap_name));
           } else {
-            console.warn('Unexpected LCPNAP response structure:', response);
             setLcpnaps([]);
           }
         } catch (error) {
-          console.error('Error fetching LCPNAP records:', error);
-          console.error('Error details:', error);
           setLcpnaps([]);
         }
       }

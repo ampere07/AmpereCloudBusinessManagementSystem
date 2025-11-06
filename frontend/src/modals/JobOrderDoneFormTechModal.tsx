@@ -406,7 +406,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const fetchLcpnaps = async () => {
       if (isOpen) {
         try {
-          const response = await getAllLCPNAPs();
+          const response = await getAllLCPNAPs('', 1, 1000);
           
           if (response.success && Array.isArray(response.data)) {
             setLcpnaps(response.data);

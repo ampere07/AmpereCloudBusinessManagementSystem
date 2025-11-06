@@ -352,7 +352,7 @@ const Settings: React.FC = () => {
                       {size.image_size}
                     </span>
                     <span className="text-gray-400 text-sm">
-                      {size.image_size_value}% maximum size
+                      -{size.image_size_value}% maximum size
                     </span>
                   </div>
                   {size.status === 'active' && !isEditingImageSize && (

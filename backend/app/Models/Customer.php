@@ -27,6 +27,7 @@ class Customer extends Model
         'housing_status',
         'referred_by',
         'desired_plan',
+        'house_front_picture_url',
         'group_id',
         'created_by',
         'updated_by',

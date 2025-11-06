@@ -50,6 +50,7 @@ interface DashboardProps {
 const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   const [activeSection, setActiveSection] = useState('dashboard');
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [userData, setUserData] = useState<any>(null);
 
@@ -172,7 +173,23 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
   };
 
   const toggleSidebar = () => {
-    setSidebarCollapsed(!sidebarCollapsed);
+    const isMobile = window.innerWidth < 768;
+    if (isMobile) {
+      setIsMobileMenuOpen(!isMobileMenuOpen);
+    } else {
+      setSidebarCollapsed(!sidebarCollapsed);
+    }
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  const handleSectionChange = (section: string) => {
+    setActiveSection(section);
+    if (window.innerWidth < 768) {
+      closeMobileMenu();
+    }
   };
 
   return (
@@ -184,15 +201,27 @@ const Dashboard: React.FC<DashboardProps> = ({ onLogout }) => {
       
       {/* Main Content Area with Fixed Sidebar and Scrollable Content */}
       <div className="flex-1 flex overflow-hidden">
+        {/* Mobile Overlay */}
+        {isMobileMenuOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
+            onClick={closeMobileMenu}
+          />
+        )}
+        
         {/* Fixed Sidebar */}
-        <div className="flex-shrink-0">
+        <div className={`flex-shrink-0 fixed md:relative z-50 transition-all duration-300 top-0 md:top-auto left-0 ${
+          isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        } md:translate-x-0 h-screen md:h-auto`}>
+          <div className="h-full md:h-full">
           <Sidebar 
             activeSection={activeSection}
-            onSectionChange={setActiveSection}
+            onSectionChange={handleSectionChange}
             onLogout={onLogout}
             isCollapsed={sidebarCollapsed}
             userRole={userData?.role || ''}
           />
+          </div>
         </div>
         
         {/* Scrollable Content Area Only */}

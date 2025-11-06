@@ -93,8 +93,21 @@ const BillingConfig: React.FC = () => {
   const handleSaveAccountNumber = async () => {
     try {
       setLoadingAccountNumber(true);
+      const trimmedInput = accountNumberInput.trim();
+      
+      if (trimmedInput !== '' && trimmedInput.length > 7) {
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Validation Error',
+          message: 'Starting number must not exceed 7 characters'
+        });
+        setLoadingAccountNumber(false);
+        return;
+      }
+
       if (customAccountNumber) {
-        await customAccountNumberService.update(accountNumberInput.trim());
+        await customAccountNumberService.update(trimmedInput);
         setModal({
           isOpen: true,
           type: 'success',
@@ -102,7 +115,7 @@ const BillingConfig: React.FC = () => {
           message: 'Starting account number updated successfully'
         });
       } else {
-        await customAccountNumberService.create(accountNumberInput.trim());
+        await customAccountNumberService.create(trimmedInput);
         setModal({
           isOpen: true,
           type: 'success',
@@ -313,7 +326,7 @@ const BillingConfig: React.FC = () => {
     }
     
     const numValue = parseInt(value, 10);
-    if (!isNaN(numValue) && numValue >= 1 && numValue <= 31) {
+    if (!isNaN(numValue) && numValue >= 0 && numValue <= 31) {
       setBillingConfigInput(prev => ({
         ...prev,
         [field]: numValue
@@ -388,12 +401,13 @@ const BillingConfig: React.FC = () => {
                     type="text"
                     value={accountNumberInput}
                     onChange={(e) => setAccountNumberInput(e.target.value)}
-                    placeholder="e.g., ABC12345"
+                    placeholder="e.g., ABC1234 (optional, max 7 characters)"
+                    maxLength={7}
                     className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500 uppercase"
                     disabled={loadingAccountNumber}
                   />
                   <p className="text-gray-500 text-xs mt-2">
-                    Enter any combination of letters and numbers for the starting account number.
+                    Enter any combination of letters and numbers (max 7 characters). Leave blank to generate without prefix.
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
@@ -491,12 +505,12 @@ const BillingConfig: React.FC = () => {
                       onChange={(e) => handleBillingConfigInputChange('advance_generation_day', e.target.value)}
                       onFocus={(e) => e.target.select()}
                       className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-                      min="1"
+                      min="0"
                       max="31"
                       disabled={loadingBillingConfig}
                     />
                     <p className="text-gray-500 text-xs mt-2">
-                      Days before billing day to generate bills (1-31)
+                      Days before billing day to generate bills (0-31, 0 = disabled)
                     </p>
                   </div>
 
@@ -515,7 +529,7 @@ const BillingConfig: React.FC = () => {
                       disabled={loadingBillingConfig}
                     />
                     <p className="text-gray-500 text-xs mt-2">
-                      Days after billing day for payment due date (1-31)
+                      Days after billing day for payment due date (0-31, 0 = same day)
                     </p>
                   </div>
 
@@ -534,7 +548,7 @@ const BillingConfig: React.FC = () => {
                       disabled={loadingBillingConfig}
                     />
                     <p className="text-gray-500 text-xs mt-2">
-                      Days after due date to disconnect service (1-31)
+                      Days after due date to disconnect service (0-31, 0 = disabled)
                     </p>
                   </div>
 
@@ -553,7 +567,7 @@ const BillingConfig: React.FC = () => {
                       disabled={loadingBillingConfig}
                     />
                     <p className="text-gray-500 text-xs mt-2">
-                      Days after due date to mark as overdue (1-31)
+                      Days after due date to mark as overdue (0-31, 0 = same day)
                     </p>
                   </div>
 
@@ -572,7 +586,7 @@ const BillingConfig: React.FC = () => {
                       disabled={loadingBillingConfig}
                     />
                     <p className="text-gray-500 text-xs mt-2">
-                      Days before disconnection to send notice (1-31)
+                      Days before disconnection to send notice (0-31, 0 = disabled)
                     </p>
                   </div>
                 </div>
