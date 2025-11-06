@@ -22,11 +22,6 @@ interface LocationMarker {
   modified_date?: string;
 }
 
-interface LCPNAP {
-  id: number;
-  lcpnap_name: string;
-}
-
 interface LcpNapGroup {
   lcpnap_id: number;
   lcpnap_name: string;
@@ -42,7 +37,6 @@ interface LcpNapItem {
 
 const LcpNapLocation: React.FC = () => {
   const [markers, setMarkers] = useState<LocationMarker[]>([]);
-  const [allLcpnaps, setAllLcpnaps] = useState<LCPNAP[]>([]);
   const [lcpNapGroups, setLcpNapGroups] = useState<LcpNapGroup[]>([]);
   const [selectedLcpNapId, setSelectedLcpNapId] = useState<number | string>('all');
   const [isLoading, setIsLoading] = useState(false);
@@ -60,7 +54,6 @@ const LcpNapLocation: React.FC = () => {
 
   useEffect(() => {
     loadMapScript();
-    loadAllLcpnaps();
     loadLocations();
 
     return () => {
@@ -74,10 +67,10 @@ const LcpNapLocation: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (allLcpnaps.length > 0) {
+    if (markers.length > 0) {
       groupLocationsByLcpNap();
     }
-  }, [markers, allLcpnaps]);
+  }, [markers]);
 
   useEffect(() => {
     if (isMapReady && markers.length > 0 && selectedLcpNapId === 'all') {
@@ -150,35 +143,16 @@ const LcpNapLocation: React.FC = () => {
         attribution: '© OpenStreetMap contributors'
       }).addTo(map);
 
+      map.on('zoomend', () => {
+        updateMarkerSizes();
+      });
+
       mapInstanceRef.current = map;
       setIsMapReady(true);
     } catch (error) {
       console.error('Error initializing map:', error);
       mapInstanceRef.current = null;
       setIsMapReady(false);
-    }
-  };
-
-  const loadAllLcpnaps = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/lcpnap?page=1&limit=1000`, {
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const data = await response.json();
-      
-      if (data.success && data.data) {
-        setAllLcpnaps(data.data);
-      }
-    } catch (error) {
-      console.error('Error loading LCPNAP records:', error);
     }
   };
 
@@ -260,17 +234,19 @@ const LcpNapLocation: React.FC = () => {
   };
 
   const groupLocationsByLcpNap = () => {
-    const grouped: { [key: number]: LcpNapGroup } = {};
+    const grouped: { [key: string]: LcpNapGroup } = {};
 
-    allLcpnaps.forEach(lcpnap => {
-      const locationsForLcpnap = markers.filter(m => m.id === lcpnap.id);
-      
-      grouped[lcpnap.id] = {
-        lcpnap_id: lcpnap.id,
-        lcpnap_name: lcpnap.lcpnap_name,
-        locations: locationsForLcpnap,
-        count: locationsForLcpnap.length
-      };
+    markers.forEach(marker => {
+      if (!grouped[marker.lcpnap_name]) {
+        grouped[marker.lcpnap_name] = {
+          lcpnap_id: marker.id,
+          lcpnap_name: marker.lcpnap_name,
+          locations: [],
+          count: 0
+        };
+      }
+      grouped[marker.lcpnap_name].locations.push(marker);
+      grouped[marker.lcpnap_name].count++;
     });
 
     const groupArray = Object.values(grouped).sort((a, b) => 
@@ -278,6 +254,46 @@ const LcpNapLocation: React.FC = () => {
     );
 
     setLcpNapGroups(groupArray);
+  };
+
+  const getMarkerSize = (zoomLevel: number) => {
+    if (zoomLevel >= 15) return { width: 32, height: 44, iconSize: [32, 44], iconAnchor: [16, 44] };
+    if (zoomLevel >= 12) return { width: 24, height: 33, iconSize: [24, 33], iconAnchor: [12, 33] };
+    if (zoomLevel >= 9) return { width: 18, height: 25, iconSize: [18, 25], iconAnchor: [9, 25] };
+    if (zoomLevel >= 6) return { width: 14, height: 19, iconSize: [14, 19], iconAnchor: [7, 19] };
+    return { width: 10, height: 14, iconSize: [10, 14], iconAnchor: [5, 14] };
+  };
+
+  const createMarkerIcon = (zoomLevel: number) => {
+    const L = (window as any).L;
+    const size = getMarkerSize(zoomLevel);
+    
+    return L.divIcon({
+      className: 'custom-marker',
+      html: `
+        <svg width="${size.width}" height="${size.height}" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
+          <path d="M16 0C7.163 0 0 7.163 0 16c0 13 16 28 16 28s16-15 16-28c0-8.837-7.163-16-16-16z" fill="#22c55e" stroke="#fff" stroke-width="2"/>
+          <circle cx="16" cy="16" r="6" fill="#fff"/>
+        </svg>
+      `,
+      iconSize: size.iconSize,
+      iconAnchor: size.iconAnchor,
+      popupAnchor: [0, -size.iconAnchor[1]]
+    });
+  };
+
+  const updateMarkerSizes = () => {
+    if (!mapInstanceRef.current) return;
+    
+    const L = (window as any).L;
+    if (!L) return;
+    
+    const currentZoom = mapInstanceRef.current.getZoom();
+    const newIcon = createMarkerIcon(currentZoom);
+    
+    markersLayerRef.current.forEach(marker => {
+      marker.setIcon(newIcon);
+    });
   };
 
   const updateMapMarkers = (locations: LocationMarker[]) => {
@@ -297,18 +313,8 @@ const LcpNapLocation: React.FC = () => {
     });
     markersLayerRef.current = [];
 
-    const customIcon = L.divIcon({
-      className: 'custom-marker',
-      html: `
-        <svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 13 16 28 16 28s16-15 16-28c0-8.837-7.163-16-16-16z" fill="#22c55e" stroke="#fff" stroke-width="2"/>
-          <circle cx="16" cy="16" r="6" fill="#fff"/>
-        </svg>
-      `,
-      iconSize: [32, 44],
-      iconAnchor: [16, 44],
-      popupAnchor: [0, -44]
-    });
+    const currentZoom = mapInstanceRef.current.getZoom();
+    const customIcon = createMarkerIcon(currentZoom);
 
     locations.forEach(location => {
       const marker = L.marker([location.latitude, location.longitude], { icon: customIcon })
@@ -377,8 +383,10 @@ const LcpNapLocation: React.FC = () => {
     if (lcpNapId === 'all') {
       updateMapMarkers(markers);
     } else {
-      const filteredLocations = markers.filter(m => m.id === lcpNapId);
-      updateMapMarkers(filteredLocations);
+      const selectedGroup = lcpNapGroups.find(g => g.lcpnap_id === lcpNapId);
+      if (selectedGroup) {
+        updateMapMarkers(selectedGroup.locations);
+      }
     }
   };
 
@@ -406,7 +414,6 @@ const LcpNapLocation: React.FC = () => {
   };
 
   const handleSaveLocation = () => {
-    loadAllLcpnaps();
     loadLocations();
   };
 

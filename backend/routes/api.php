@@ -1231,6 +1231,19 @@ Route::prefix('vlans')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\VlanApiController::class, 'destroy']);
 });
 
+// LCPNAP Location Management Routes - Using lcpnap table
+Route::prefix('lcpnap')->group(function () {
+    Route::get('/', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'store']);
+    Route::get('/statistics', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'getStatistics']);
+    Route::get('/{id}', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'destroy']);
+});
+
+// LCPNAP Locations endpoint (for distinct locations)
+Route::get('/lcp-nap-locations', [\App\Http\Controllers\Api\LcpNapLocationController::class, 'getLocations']);
+
 // Inventory Items for frontend compatibility
 Route::prefix('inventory-items')->group(function () {
     Route::get('/', [\App\Http\Controllers\Api\InventoryApiController::class, 'index']);
