@@ -71,6 +71,7 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultType, setResultType] = useState<'success' | 'error'>('success');
   const [resultMessage, setResultMessage] = useState('');
@@ -332,6 +333,7 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
 
     setLoading(true);
     setShowLoadingModal(true);
+    setUploadProgress(0);
     
     try {
       const submitData = new FormData();
@@ -385,10 +387,43 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       });
 
       console.log('Sending POST request to:', `${API_BASE_URL}/lcpnap`);
-      const response = await fetch(`${API_BASE_URL}/lcpnap`, {
-        method: 'POST',
-        body: submitData,
+      
+      setUploadProgress(25);
+      
+      const xhr = new XMLHttpRequest();
+      
+      const uploadPromise = new Promise<Response>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (e) => {
+          if (e.lengthComputable) {
+            const percentComplete = Math.round((e.loaded / e.total) * 50) + 25;
+            setUploadProgress(Math.min(percentComplete, 75));
+          }
+        });
+        
+        xhr.addEventListener('load', () => {
+          setUploadProgress(90);
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve(new Response(xhr.responseText, {
+              status: xhr.status,
+              statusText: xhr.statusText,
+              headers: new Headers({
+                'content-type': xhr.getResponseHeader('content-type') || 'application/json'
+              })
+            }));
+          } else {
+            reject(new Error(`HTTP error! status: ${xhr.status}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => reject(new Error('Network error')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload aborted')));
+        
+        xhr.open('POST', `${API_BASE_URL}/lcpnap`);
+        xhr.send(submitData);
       });
+      
+      const response = await uploadPromise;
+      setUploadProgress(95);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
@@ -416,6 +451,8 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       }
 
       console.log('=== FORM SUBMISSION SUCCESS ===');
+      setUploadProgress(100);
+      await new Promise(resolve => setTimeout(resolve, 300));
       setShowLoadingModal(false);
       setResultType('success');
       setResultMessage('LCP/NAP location created successfully');
@@ -574,10 +611,27 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     <>
       {showLoadingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-[10000] flex items-center justify-center">
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-4">
+          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-4 min-w-[320px]">
             <Loader2 className="w-16 h-16 text-orange-500 animate-spin" />
             <p className="text-white text-lg font-medium">Saving LCP/NAP Location...</p>
-            <p className="text-gray-400 text-sm">Please wait while we process your request</p>
+            <div className="w-full">
+              <div className="flex justify-between text-sm text-gray-400 mb-2">
+                <span>Progress</span>
+                <span>{uploadProgress}%</span>
+              </div>
+              <div className="w-full bg-gray-700 rounded-full h-2.5">
+                <div 
+                  className="bg-orange-500 h-2.5 rounded-full transition-all duration-300 ease-out"
+                  style={{ width: `${uploadProgress}%` }}
+                ></div>
+              </div>
+            </div>
+            <p className="text-gray-400 text-sm text-center">
+              {uploadProgress < 25 && 'Preparing data...'}
+              {uploadProgress >= 25 && uploadProgress < 75 && 'Uploading images...'}
+              {uploadProgress >= 75 && uploadProgress < 95 && 'Processing...'}
+              {uploadProgress >= 95 && 'Finalizing...'}
+            </p>
           </div>
         </div>
       )}
