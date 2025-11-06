@@ -13,6 +13,7 @@ use App\Models\InstallmentSchedule;
 use App\Models\AdvancedPayment;
 use App\Models\MassRebate;
 use App\Models\Barangay;
+use App\Models\BillingConfig;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
@@ -112,6 +113,57 @@ class EnhancedBillingGenerationService
         return $query->get();
     }
 
+    protected function getAdvanceGenerationDay(): int
+    {
+        $billingConfig = BillingConfig::first();
+        
+        if (!$billingConfig || $billingConfig->advance_generation_day === null) {
+            Log::info('No advance_generation_day configured, using default 0');
+            return 0;
+        }
+        
+        return $billingConfig->advance_generation_day;
+    }
+
+    protected function calculateTargetBillingDays(Carbon $generationDate): array
+    {
+        $advanceGenerationDay = $this->getAdvanceGenerationDay();
+        $currentDay = $generationDate->day;
+        $targetBillingDay = $currentDay + $advanceGenerationDay;
+        
+        $billingDays = [];
+        
+        if ($generationDate->isLastOfMonth()) {
+            $billingDays[] = self::END_OF_MONTH_BILLING;
+            
+            $lastDayOfMonth = $generationDate->day;
+            $targetDay = $lastDayOfMonth + $advanceGenerationDay;
+            
+            if ($targetDay <= 31) {
+                $billingDays[] = $targetDay;
+            }
+        } else {
+            if ($targetBillingDay <= 31) {
+                $billingDays[] = $targetBillingDay;
+            }
+            
+            $lastDayOfMonth = $generationDate->copy()->endOfMonth()->day;
+            if ($targetBillingDay > $lastDayOfMonth) {
+                $billingDays[] = self::END_OF_MONTH_BILLING;
+            }
+        }
+        
+        Log::info('Calculated target billing days', [
+            'generation_date' => $generationDate->format('Y-m-d'),
+            'current_day' => $currentDay,
+            'advance_generation_day' => $advanceGenerationDay,
+            'target_billing_day' => $targetBillingDay,
+            'billing_days_to_process' => $billingDays
+        ]);
+        
+        return $billingDays;
+    }
+
     protected function adjustBillingDayForMonth(int $billingDay, Carbon $date): int
     {
         if ($billingDay === self::END_OF_MONTH_BILLING) {
@@ -174,17 +226,18 @@ class EnhancedBillingGenerationService
             $statement = StatementOfAccount::create([
                 'account_id' => $account->id,
                 'statement_date' => $statementDate,
-                'balance_from_previous_bill' => $account->account_balance,
-                'payment_received_previous' => $charges['payment_received_previous'],
-                'remaining_balance_previous' => $account->account_balance,
+                'balance_from_previous_bill' => round($account->account_balance, 2),
+                'payment_received_previous' => round($charges['payment_received_previous'], 2),
+                'remaining_balance_previous' => round($account->account_balance, 2),
                 'monthly_service_fee' => round($monthlyServiceFee, 2),
                 'others_and_basic_charges' => round($othersAndBasicCharges, 2),
                 'vat' => round($vat, 2),
                 'due_date' => $dueDate,
                 'amount_due' => round($amountDue, 2),
                 'total_amount_due' => round($totalAmountDue, 2),
-                'created_by_user_id' => $userId,
-                'updated_by_user_id' => $userId
+                'print_link' => null,
+                'created_by' => (string) $userId,
+                'updated_by' => (string) $userId
             ]);
 
             DB::commit();
@@ -242,11 +295,13 @@ class EnhancedBillingGenerationService
                 'invoice_balance' => round($prorateAmount, 2),
                 'others_and_basic_charges' => round($othersBasicCharges, 2),
                 'total_amount' => round($totalAmount, 2),
-                'received_payment' => 0,
+                'received_payment' => 0.00,
                 'due_date' => $dueDate,
                 'status' => $totalAmount <= 0 ? 'Paid' : 'Unpaid',
-                'created_by_user_id' => $userId,
-                'updated_by_user_id' => $userId
+                'payment_portal_log_ref' => null,
+                'transaction_id' => null,
+                'created_by' => (string) $userId,
+                'updated_by' => (string) $userId
             ]);
 
             $newBalance = $account->account_balance > 0 
@@ -396,20 +451,20 @@ class EnhancedBillingGenerationService
                     'status' => 'Used',
                     'invoice_used_id' => $invoiceId,
                     'used_date' => now(),
-                    'updated_by_user_id' => $userId
+                    'updated_by' => $userId
                 ]);
             } elseif ($discount->status === 'Permanent') {
                 $total += $discount->discount_amount;
                 $discount->update([
                     'invoice_used_id' => $invoiceId,
-                    'updated_by_user_id' => $userId
+                    'updated_by' => $userId
                 ]);
             } elseif ($discount->status === 'Monthly' && $discount->remaining > 0) {
                 $total += $discount->discount_amount;
                 $discount->update([
                     'invoice_used_id' => $invoiceId,
                     'remaining' => $discount->remaining - 1,
-                    'updated_by_user_id' => $userId
+                    'updated_by' => $userId
                 ]);
             }
         }
@@ -436,7 +491,7 @@ class EnhancedBillingGenerationService
             $payment->update([
                 'status' => 'Used',
                 'invoice_used_id' => $invoiceId,
-                'updated_by_user_id' => $userId
+                'updated_by' => $userId
             ]);
         }
 
@@ -527,41 +582,34 @@ class EnhancedBillingGenerationService
     public function generateAllBillingsForToday(int $userId): array
     {
         $today = Carbon::now();
-        $currentDay = $today->day;
-        $isLastDayOfMonth = $today->isLastOfMonth();
+        $targetBillingDays = $this->calculateTargetBillingDays($today);
+        $advanceGenerationDay = $this->getAdvanceGenerationDay();
 
         $results = [
             'date' => $today->format('Y-m-d'),
+            'advance_generation_day' => $advanceGenerationDay,
             'billing_days_processed' => [],
             'invoices' => ['success' => 0, 'failed' => 0, 'errors' => []],
             'statements' => ['success' => 0, 'failed' => 0, 'errors' => []]
         ];
 
-        if ($isLastDayOfMonth) {
-            $endOfMonthInvoices = $this->generateInvoicesForBillingDay(self::END_OF_MONTH_BILLING, $today, $userId);
-            $endOfMonthSOAs = $this->generateSOAForBillingDay(self::END_OF_MONTH_BILLING, $today, $userId);
+        foreach ($targetBillingDays as $billingDay) {
+            $billingDayLabel = $billingDay === self::END_OF_MONTH_BILLING ? 'End of Month (0)' : "Day {$billingDay}";
             
-            $results['billing_days_processed'][] = 'End of Month (0)';
-            $results['invoices']['success'] += $endOfMonthInvoices['success'];
-            $results['invoices']['failed'] += $endOfMonthInvoices['failed'];
-            $results['invoices']['errors'] = array_merge($results['invoices']['errors'], $endOfMonthInvoices['errors']);
+            Log::info("Processing billing day: {$billingDayLabel}");
             
-            $results['statements']['success'] += $endOfMonthSOAs['success'];
-            $results['statements']['failed'] += $endOfMonthSOAs['failed'];
-            $results['statements']['errors'] = array_merge($results['statements']['errors'], $endOfMonthSOAs['errors']);
+            $invoiceResults = $this->generateInvoicesForBillingDay($billingDay, $today, $userId);
+            $soaResults = $this->generateSOAForBillingDay($billingDay, $today, $userId);
+            
+            $results['billing_days_processed'][] = $billingDayLabel;
+            $results['invoices']['success'] += $invoiceResults['success'];
+            $results['invoices']['failed'] += $invoiceResults['failed'];
+            $results['invoices']['errors'] = array_merge($results['invoices']['errors'], $invoiceResults['errors']);
+            
+            $results['statements']['success'] += $soaResults['success'];
+            $results['statements']['failed'] += $soaResults['failed'];
+            $results['statements']['errors'] = array_merge($results['statements']['errors'], $soaResults['errors']);
         }
-
-        $specificDayInvoices = $this->generateInvoicesForBillingDay($currentDay, $today, $userId);
-        $specificDaySOAs = $this->generateSOAForBillingDay($currentDay, $today, $userId);
-        
-        $results['billing_days_processed'][] = "Day {$currentDay}";
-        $results['invoices']['success'] += $specificDayInvoices['success'];
-        $results['invoices']['failed'] += $specificDayInvoices['failed'];
-        $results['invoices']['errors'] = array_merge($results['invoices']['errors'], $specificDayInvoices['errors']);
-        
-        $results['statements']['success'] += $specificDaySOAs['success'];
-        $results['statements']['failed'] += $specificDaySOAs['failed'];
-        $results['statements']['errors'] = array_merge($results['statements']['errors'], $specificDaySOAs['errors']);
 
         return $results;
     }

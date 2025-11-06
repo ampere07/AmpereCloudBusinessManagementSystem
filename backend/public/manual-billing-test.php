@@ -12,8 +12,8 @@
  * Security: Change the SECRET_KEY below before uploading
  */
 
-define('SECRET_KEY', '@tss2025billing');
-define('ALLOW_GENERATION', true);
+define('SECRET_KEY', '@tss2025test'); // CHANGE THIS!
+define('ALLOW_GENERATION', true); // Set to false to disable actual generation
 
 if (!isset($_GET['key']) || $_GET['key'] !== SECRET_KEY) {
     http_response_code(403);
@@ -69,7 +69,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
 </head>
 <body>
     <div class="container">
-        <h1>⚠️ Manual Billing Generation Test</h1>
+        <h1>Manual Billing Generation Test</h1>
         
         <?php
         $today = Carbon::today();
@@ -85,7 +85,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
 
         if ($action === 'preview') {
             echo "<div class='warning'>";
-            echo "<h3>🔍 PREVIEW MODE - NO CHANGES WILL BE MADE</h3>";
+            echo "<h3>PREVIEW MODE - NO CHANGES WILL BE MADE</h3>";
             echo "<p>This will show what accounts will be processed without actually generating anything.</p>";
             echo "</div>";
             
@@ -104,7 +104,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
                             $query->orWhere('ba.billing_day', 0);
                         }
                     })
-                    ->select('ba.id', 'ba.account_no', 'c.last_name', 'c.first_name', 'c.desired_plan', 
+                    ->select('ba.id', 'ba.account_no', 'c.cust_lname', 'c.cust_fname', 'c.desired_plan', 
                             'ba.billing_day', 'ba.account_balance', 'ba.date_installed')
                     ->get();
 
@@ -122,7 +122,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
                         echo "<tr>";
                         echo "<td>{$num}</td>";
                         echo "<td><code>{$account->account_no}</code></td>";
-                        echo "<td>{$account->last_name}, {$account->first_name}</td>";
+                        echo "<td>{$account->cust_lname}, {$account->cust_fname}</td>";
                         echo "<td>{$account->desired_plan}</td>";
                         echo "<td>{$billingDayLabel}</td>";
                         echo "<td>₱" . number_format($account->account_balance, 2) . "</td>";
@@ -146,12 +146,10 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
 
                     if (ALLOW_GENERATION) {
                         echo "<div class='warning'>";
-                        echo "<h3>⚠️ Ready to Generate?</h3>";
+                        echo "<h3>Ready to Generate?</h3>";
                         echo "<p>Click the button below to actually generate the invoices and SOA.</p>";
                         echo "<p><strong>WARNING:</strong> This will make changes to your database!</p>";
-                        echo "<a href='?key=" . SECRET_KEY . "&action=generate&user_id={$userId}";
-                        if ($billingDay !== null) echo "&day={$billingDay}";
-                        echo "' class='btn btn-generate'>🚀 Generate Now</a>";
+                        echo "<a href='?key=" . SECRET_KEY . "&action=generate&user_id={$userId}' class='btn btn-generate'>🚀 Generate Now</a>";
                         echo "<a href='?key=" . SECRET_KEY . "&action=preview' class='btn btn-back'>🔄 Refresh Preview</a>";
                         echo "</div>";
                     } else {
@@ -199,12 +197,12 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
         } elseif ($action === 'generate') {
             if (!ALLOW_GENERATION) {
                 echo "<div class='error'>";
-                echo "<h3>❌ Generation Disabled</h3>";
+                echo "<h3>Generation Disabled</h3>";
                 echo "<p>Set ALLOW_GENERATION to true in the script to enable actual generation.</p>";
                 echo "</div>";
             } else {
                 echo "<div class='warning'>";
-                echo "<h3>🚀 GENERATING INVOICES AND SOA...</h3>";
+                echo "<h3>GENERATING INVOICES AND SOA...</h3>";
                 echo "<p>Please wait while the system processes the accounts.</p>";
                 echo "</div>";
 
@@ -225,7 +223,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
                     $output = Artisan::output();
                     ob_end_clean();
 
-                    echo "<h2>✅ Generation Complete!</h2>";
+                    echo "<h2>Generation Complete!</h2>";
                     echo "<div class='success'>";
                     echo "<p><strong>Command executed successfully.</strong></p>";
                     echo "</div>";
@@ -243,20 +241,20 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
                     echo "</div>";
 
                     echo "<div class='info'>";
-                    echo "<a href='?key=" . SECRET_KEY . "&action=preview' class='btn btn-back'>🔙 Back to Preview</a>";
-                    echo "<a href='billing-check.php?key=" . SECRET_KEY . "' class='btn btn-preview' target='_blank'>📊 View Full Status</a>";
+                    echo "<a href='?key=" . SECRET_KEY . "&action=preview' class='btn btn-back'>Back to Preview</a>";
+                    echo "<a href='../billing-check.php?key=atss2025billing' class='btn btn-preview' target='_blank'>📊 View Full Status</a>";
                     echo "</div>";
 
                 } catch (\Exception $e) {
                     echo "<div class='error'>";
-                    echo "<h3>❌ Generation Failed</h3>";
+                    echo "<h3>Generation Failed</h3>";
                     echo "<p><strong>Error:</strong> " . htmlspecialchars($e->getMessage()) . "</p>";
                     echo "<h4>Stack Trace:</h4>";
                     echo "<pre>" . htmlspecialchars($e->getTraceAsString()) . "</pre>";
                     echo "</div>";
 
                     echo "<div class='info'>";
-                    echo "<a href='?key=" . SECRET_KEY . "&action=preview' class='btn btn-back'>🔙 Back to Preview</a>";
+                    echo "<a href='?key=" . SECRET_KEY . "&action=preview' class='btn btn-back'>Back to Preview</a>";
                     echo "</div>";
                 }
             }
@@ -264,7 +262,7 @@ $userId = isset($_GET['user_id']) ? (int)$_GET['user_id'] : 1;
         ?>
 
         <div style="margin-top: 40px; padding: 20px; background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px;">
-            <h3 style="color: #dc2626;">⚠️ Important Security Notes</h3>
+            <h3 style="color: #dc2626;">Important Security Notes</h3>
             <ul>
                 <li>Change the SECRET_KEY in this file before uploading to production</li>
                 <li>Keep the URL private - anyone with the key can generate billings</li>

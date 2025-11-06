@@ -323,14 +323,13 @@ class JobOrderController extends Controller
         try {
             DB::beginTransaction();
 
-            $jobOrder = JobOrder::with('application')->findOrFail($id);
+            $jobOrder = JobOrder::with('application')->lockForUpdate()->findOrFail($id);
             
             if (!$jobOrder->application) {
                 throw new \Exception('Job order must have an associated application');
             }
 
             $application = $jobOrder->application;
-            
             $defaultUserId = 1;
 
             $customer = Customer::create([
@@ -341,37 +340,24 @@ class JobOrderController extends Controller
                 'contact_number_primary' => $application->mobile_number,
                 'contact_number_secondary' => $application->secondary_mobile_number,
                 'address' => $application->installation_address,
+                'location' => $application->location,
                 'barangay' => $application->barangay,
                 'city' => $application->city,
                 'region' => $application->region,
-                'address_coordinates' => null,
-                'housing_status' => null,
+                'address_coordinates' => $jobOrder->address_coordinates,
+                'housing_status' => $application->housing_status,
                 'referred_by' => $application->referred_by,
                 'desired_plan' => $application->desired_plan,
+                'house_front_picture_url' => $jobOrder->house_front_picture_url,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
             ]);
 
-            $customAccountNumber = DB::table('custom_account_number')->first();
+            $accountNumber = $this->generateAccountNumber();
             
-            if (!$customAccountNumber) {
-                throw new \Exception('Custom account number not configured. Please set up the starting number in settings.');
-            }
-            
-            $startingNumber = $customAccountNumber->starting_number;
-            
-            $latestAccount = BillingAccount::where('account_no', 'LIKE', $startingNumber . '%')
-                ->orderBy('account_no', 'desc')
-                ->first();
-            
-            if ($latestAccount) {
-                $lastSequence = (int) substr($latestAccount->account_no, strlen($startingNumber));
-                $nextSequence = $lastSequence + 1;
-            } else {
-                $nextSequence = 1;
-            }
-            
-            $accountNumber = $startingNumber . str_pad($nextSequence, 4, '0', STR_PAD_LEFT);
+            \Log::info('Generated account number', [
+                'generated_account_no' => $accountNumber
+            ]);
 
             $installationFee = $jobOrder->installation_fee ?? 0;
             
@@ -454,6 +440,16 @@ class JobOrderController extends Controller
                 }
             }
 
+            $lcpnapValue = $jobOrder->lcpnap;
+            $lcpValue = null;
+            $napValue = null;
+            
+            if ($lcpnapValue && strpos($lcpnapValue, '/') !== false) {
+                $parts = explode('/', $lcpnapValue);
+                $lcpValue = trim($parts[0]);
+                $napValue = isset($parts[1]) ? trim($parts[1]) : null;
+            }
+
             $technicalDetail = TechnicalDetail::create([
                 'account_id' => $billingAccount->id,
                 'username' => $usernameForTechnical,
@@ -462,6 +458,8 @@ class JobOrderController extends Controller
                 'router_model' => $jobOrder->router_model,
                 'router_modem_sn' => $modemSN,
                 'ip_address' => $jobOrder->ip_address,
+                'lcp' => $lcpValue,
+                'nap' => $napValue,
                 'port' => $jobOrder->port,
                 'vlan' => $jobOrder->vlan,
                 'lcpnap' => $jobOrder->lcpnap,
@@ -505,6 +503,78 @@ class JobOrderController extends Controller
                 'error' => $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function generateAccountNumber(): string
+    {
+        DB::table('billing_accounts')->lockForUpdate()->get();
+        
+        $customAccountNumber = DB::table('custom_account_number')->first();
+        
+        if (!$customAccountNumber) {
+            return $this->generateDefaultAccountNumber();
+        }
+        
+        if ($customAccountNumber->starting_number === null || $customAccountNumber->starting_number === '') {
+            \Log::info('Starting number is null, using default 0001');
+            return '0001';
+        }
+        
+        $startingNumber = $customAccountNumber->starting_number;
+        
+        if (!preg_match('/^([A-Za-z]*)(\d+)$/', $startingNumber, $matches)) {
+            \Log::warning('Invalid starting_number format', [
+                'starting_number' => $startingNumber
+            ]);
+            return $this->generateDefaultAccountNumber();
+        }
+        
+        $prefix = $matches[1];
+        $numericPart = $matches[2];
+        $numLength = strlen($numericPart);
+        
+        if (!empty($prefix)) {
+            $latestAccount = BillingAccount::where('account_no', 'LIKE', $prefix . '%')
+                ->orderBy('account_no', 'desc')
+                ->lockForUpdate()
+                ->first();
+            
+            if ($latestAccount && preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $latestAccount->account_no, $accountMatches)) {
+                $lastNumber = (int) $accountMatches[1];
+                $nextNumber = $lastNumber + 1;
+            } else {
+                $nextNumber = (int) $numericPart;
+            }
+            
+            return $prefix . str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+        } else {
+            $latestAccount = BillingAccount::where('account_no', 'REGEXP', '^[0-9]+$')
+                ->orderBy(DB::raw('CAST(account_no AS UNSIGNED)'), 'desc')
+                ->lockForUpdate()
+                ->first();
+            
+            if ($latestAccount && is_numeric($latestAccount->account_no)) {
+                $nextNumber = (int) $latestAccount->account_no + 1;
+            } else {
+                $nextNumber = (int) $numericPart;
+            }
+            
+            return str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+        }
+    }
+
+    private function generateDefaultAccountNumber(): string
+    {
+        $latestAccount = BillingAccount::orderBy('account_no', 'desc')
+            ->lockForUpdate()
+            ->first();
+        
+        if ($latestAccount && is_numeric($latestAccount->account_no)) {
+            $nextNumber = (int) $latestAccount->account_no + 1;
+            return str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+        }
+        
+        return '0001';
     }
 
     public function getModemRouterSNs(): JsonResponse

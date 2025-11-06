@@ -2,18 +2,27 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\CustomAccountNumber;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
+/**
+ * Custom Account Number Controller
+ * 
+ * This table is designed as a single-row configuration table without a primary key.
+ * Only one record can exist at a time. Operations:
+ * - CREATE: Only allowed when table is empty
+ * - UPDATE: Updates the single existing row
+ * - DELETE: Removes the single row
+ */
 class CustomAccountNumberController extends Controller
 {
     public function index(): JsonResponse
     {
         try {
-            $customNumber = CustomAccountNumber::first();
+            $customNumber = DB::table('custom_account_number')->first();
             
             if (!$customNumber) {
                 return response()->json([
@@ -44,7 +53,7 @@ class CustomAccountNumberController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
-            $existingCount = CustomAccountNumber::count();
+            $existingCount = DB::table('custom_account_number')->count();
             if ($existingCount > 0) {
                 return response()->json([
                     'success' => false,
@@ -52,21 +61,28 @@ class CustomAccountNumberController extends Controller
                 ], 400);
             }
 
-            $validator = Validator::make($request->all(), [
-                'starting_number' => [
-                    'required',
-                    'string',
-                    'min:6',
-                    'max:9',
-                    'regex:/^[A-Za-z0-9]+$/'
-                ],
-                'user_email' => 'nullable|email|max:255'
-            ], [
-                'starting_number.required' => 'Starting number is required',
-                'starting_number.min' => 'Starting number must be at least 6 characters',
-                'starting_number.max' => 'Starting number must not exceed 9 characters',
-                'starting_number.regex' => 'Starting number must contain only letters and numbers'
-            ]);
+            $startingNumber = $request->input('starting_number');
+
+            if ($startingNumber === '' || $startingNumber === null) {
+                $validator = Validator::make($request->all(), [
+                    'starting_number' => 'nullable|string',
+                    'user_email' => 'nullable|email|max:255'
+                ]);
+            } else {
+                $validator = Validator::make($request->all(), [
+                    'starting_number' => [
+                        'required',
+                        'string',
+                        'max:7',
+                        'regex:/^[A-Za-z0-9]+$/'
+                    ],
+                    'user_email' => 'nullable|email|max:255'
+                ], [
+                    'starting_number.required' => 'Starting number is required',
+                    'starting_number.max' => 'Starting number must not exceed 7 characters',
+                    'starting_number.regex' => 'Starting number must contain only letters and numbers'
+                ]);
+            }
 
             if ($validator->fails()) {
                 return response()->json([
@@ -77,16 +93,21 @@ class CustomAccountNumberController extends Controller
             }
 
             $userEmail = $request->input('user_email', 'unknown@user.com');
+            $startingNumberValue = $startingNumber === '' ? null : $startingNumber;
 
             Log::info('Creating custom account number', [
-                'starting_number' => $request->input('starting_number'),
+                'starting_number' => $startingNumberValue,
                 'updated_by' => $userEmail
             ]);
 
-            $customNumber = CustomAccountNumber::create([
-                'starting_number' => $request->input('starting_number'),
-                'updated_by' => $userEmail
+            DB::table('custom_account_number')->insert([
+                'starting_number' => $startingNumberValue,
+                'updated_by' => $userEmail,
+                'created_at' => now(),
+                'updated_at' => now()
             ]);
+
+            $customNumber = DB::table('custom_account_number')->first();
 
             return response()->json([
                 'success' => true,
@@ -109,33 +130,44 @@ class CustomAccountNumberController extends Controller
         }
     }
 
+    /**
+     * Update the single configuration row
+     * No WHERE clause needed since table only contains one row by design
+     */
     public function update(Request $request): JsonResponse
     {
         try {
-            $customNumber = CustomAccountNumber::first();
+            $existingRecord = DB::table('custom_account_number')->first();
             
-            if (!$customNumber) {
+            if (!$existingRecord) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Custom account number not found'
                 ], 404);
             }
 
-            $validator = Validator::make($request->all(), [
-                'starting_number' => [
-                    'required',
-                    'string',
-                    'min:6',
-                    'max:9',
-                    'regex:/^[A-Za-z0-9]+$/'
-                ],
-                'user_email' => 'nullable|email|max:255'
-            ], [
-                'starting_number.required' => 'Starting number is required',
-                'starting_number.min' => 'Starting number must be at least 6 characters',
-                'starting_number.max' => 'Starting number must not exceed 9 characters',
-                'starting_number.regex' => 'Starting number must contain only letters and numbers'
-            ]);
+            $startingNumber = $request->input('starting_number');
+
+            if ($startingNumber === '' || $startingNumber === null) {
+                $validator = Validator::make($request->all(), [
+                    'starting_number' => 'nullable|string',
+                    'user_email' => 'nullable|email|max:255'
+                ]);
+            } else {
+                $validator = Validator::make($request->all(), [
+                    'starting_number' => [
+                        'required',
+                        'string',
+                        'max:7',
+                        'regex:/^[A-Za-z0-9]+$/'
+                    ],
+                    'user_email' => 'nullable|email|max:255'
+                ], [
+                    'starting_number.required' => 'Starting number is required',
+                    'starting_number.max' => 'Starting number must not exceed 7 characters',
+                    'starting_number.regex' => 'Starting number must contain only letters and numbers'
+                ]);
+            }
 
             if ($validator->fails()) {
                 return response()->json([
@@ -146,20 +178,23 @@ class CustomAccountNumberController extends Controller
             }
 
             $userEmail = $request->input('user_email', 'unknown@user.com');
-            $newStartingNumber = $request->input('starting_number');
+            $newStartingNumberValue = $startingNumber === '' ? null : $startingNumber;
 
             Log::info('Updating custom account number', [
-                'old_starting_number' => $customNumber->starting_number,
-                'new_starting_number' => $newStartingNumber,
+                'old_starting_number' => $existingRecord->starting_number,
+                'new_starting_number' => $newStartingNumberValue,
                 'updated_by' => $userEmail
             ]);
 
-            $customNumber->delete();
+            // Update the first (and only) row - no WHERE clause needed
+            DB::table('custom_account_number')
+                ->update([
+                    'starting_number' => $newStartingNumberValue,
+                    'updated_by' => $userEmail,
+                    'updated_at' => now()
+                ]);
 
-            $updatedNumber = CustomAccountNumber::create([
-                'starting_number' => $newStartingNumber,
-                'updated_by' => $userEmail
-            ]);
+            $updatedNumber = DB::table('custom_account_number')->first();
 
             return response()->json([
                 'success' => true,
@@ -181,10 +216,14 @@ class CustomAccountNumberController extends Controller
         }
     }
 
+    /**
+     * Delete the single configuration row
+     * Using truncate to clear the table
+     */
     public function destroy(): JsonResponse
     {
         try {
-            $customNumber = CustomAccountNumber::first();
+            $customNumber = DB::table('custom_account_number')->first();
             
             if (!$customNumber) {
                 return response()->json([
@@ -197,7 +236,7 @@ class CustomAccountNumberController extends Controller
                 'starting_number' => $customNumber->starting_number
             ]);
 
-            $customNumber->delete();
+            DB::table('custom_account_number')->truncate();
 
             return response()->json([
                 'success' => true,
