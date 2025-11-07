@@ -3,7 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class InstallmentSchedule extends Model
 {
@@ -21,18 +20,13 @@ class InstallmentSchedule extends Model
     ];
 
     protected $casts = [
+        'installment_no' => 'integer',
         'due_date' => 'date',
-        'amount' => 'decimal:2',
-        'installment_no' => 'integer'
+        'amount' => 'decimal:2'
     ];
 
-    public function installment(): BelongsTo
+    public function installment()
     {
-        return $this->belongsTo(Installment::class);
-    }
-
-    public function invoice(): BelongsTo
-    {
-        return $this->belongsTo(Invoice::class);
+        return $this->belongsTo(Installment::class, 'installment_id');
     }
 }

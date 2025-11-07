@@ -1551,6 +1551,7 @@ Route::prefix('billing-generation')->group(function () {
     Route::post('/generate-enhanced-invoices', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedInvoices']);
     Route::post('/generate-enhanced-statements', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedStatements']);
     Route::post('/generate-for-day', [\App\Http\Controllers\BillingGenerationController::class, 'generateBillingsForDay']);
+    Route::post('/force-generate-all', [\App\Http\Controllers\BillingGenerationController::class, 'forceGenerateAll']);
     Route::get('/invoices', [\App\Http\Controllers\BillingGenerationController::class, 'getInvoices']);
     Route::get('/statements', [\App\Http\Controllers\BillingGenerationController::class, 'getStatements']);
 });

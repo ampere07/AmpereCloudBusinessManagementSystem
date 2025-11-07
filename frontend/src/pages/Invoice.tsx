@@ -1,220 +1,169 @@
 import React, { useState, useEffect } from 'react';
-import { Search, X, ChevronRight } from 'lucide-react';
+import { Search, X } from 'lucide-react';
 import InvoiceDetails from '../components/InvoiceDetails';
+import { invoiceService, InvoiceRecord } from '../services/invoiceService';
 
-interface DateItem {
-  date: string;
+interface InvoiceRecordUI {
   id: string;
-}
-
-// Invoice-specific interface for records
-interface InvoiceRecord {
-  id: string;
-  invoiceDate: string;
-  invoiceStatus: string;
+  accountId: number;
   accountNo: string;
+  invoiceDate: string;
+  invoiceBalance: number;
+  othersAndBasicCharges: number;
+  totalAmount: number;
+  receivedPayment: number;
+  dueDate: string;
+  status: string;
+  paymentPortalLogRef?: string;
+  transactionId?: string;
+  createdAt?: string;
+  createdBy?: string;
+  updatedAt?: string;
+  updatedBy?: string;
   fullName: string;
   contactNumber: string;
   emailAddress: string;
   address: string;
   plan: string;
   dateInstalled?: string;
+  barangay?: string;
+  city?: string;
+  region?: string;
   provider?: string;
   invoiceNo?: string;
-  invoiceBalance?: number;
   otherCharges?: number;
   totalAmountDue?: number;
-  dueDate?: string;
   invoicePayment?: number;
   paymentMethod?: string;
   dateProcessed?: string;
   processedBy?: string;
+  remarks?: string;
   vat?: number;
   amountDue?: number;
   balanceFromPreviousBill?: number;
   paymentReceived?: number;
   remainingBalance?: number;
   monthlyServiceFee?: number;
-  remarks?: string;
   staggeredPaymentsCount?: number;
+  invoiceStatus: string;
 }
 
 const Invoice: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedRecord, setSelectedRecord] = useState<InvoiceRecord | null>(null);
-  const [invoiceRecords, setInvoiceRecords] = useState<InvoiceRecord[]>([]);
+  const [selectedRecord, setSelectedRecord] = useState<InvoiceRecordUI | null>(null);
+  const [invoiceRecords, setInvoiceRecords] = useState<InvoiceRecordUI[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTable, setActiveTable] = useState<number>(1); // To toggle between different table views
 
-  // All columns for the table based on the provided requirements
   const allColumns = [
+    { key: 'id', label: 'ID', width: 'min-w-20' },
+    { key: 'accountNo', label: 'Account Number', width: 'min-w-36' },
     { key: 'invoiceDate', label: 'Invoice Date', width: 'min-w-36' },
-    { key: 'invoiceStatus', label: 'Invoice Status', width: 'min-w-36' },
-    { key: 'accountNo', label: 'Account No.', width: 'min-w-32' },
     { key: 'invoiceBalance', label: 'Invoice Balance', width: 'min-w-36' },
-    { key: 'otherCharges', label: 'Others and Basic Charges', width: 'min-w-44' },
-    { key: 'totalAmountDue', label: 'Total Amount', width: 'min-w-32' },
+    { key: 'othersAndBasicCharges', label: 'Others and Basic Charges', width: 'min-w-48' },
+    { key: 'totalAmount', label: 'Total Amount', width: 'min-w-32' },
+    { key: 'receivedPayment', label: 'Received Payment', width: 'min-w-36' },
     { key: 'dueDate', label: 'Due Date', width: 'min-w-32' },
-    { key: 'invoicePayment', label: 'Invoice Payment', width: 'min-w-36' },
-    { key: 'paymentMethod', label: 'Payment Method', width: 'min-w-36' },
-    { key: 'dateProcessed', label: 'Date Processed', width: 'min-w-36' },
-    { key: 'processedBy', label: 'Processed By', width: 'min-w-32' }
+    { key: 'status', label: 'Status', width: 'min-w-28' },
+    { key: 'paymentPortalLogRef', label: 'Payment Portal Log Ref', width: 'min-w-44' },
+    { key: 'transactionId', label: 'Transaction ID', width: 'min-w-36' },
+    { key: 'createdAt', label: 'Created At', width: 'min-w-40' },
+    { key: 'createdBy', label: 'Created By', width: 'min-w-32' },
+    { key: 'updatedAt', label: 'Updated At', width: 'min-w-40' },
+    { key: 'updatedBy', label: 'Updated By', width: 'min-w-32' },
+    { key: 'fullName', label: 'Full Name', width: 'min-w-40' },
+    { key: 'contactNumber', label: 'Contact Number', width: 'min-w-36' },
+    { key: 'emailAddress', label: 'Email Address', width: 'min-w-48' },
+    { key: 'address', label: 'Address', width: 'min-w-56' },
+    { key: 'plan', label: 'Plan', width: 'min-w-32' },
+    { key: 'dateInstalled', label: 'Date Installed', width: 'min-w-32' },
+    { key: 'barangay', label: 'Barangay', width: 'min-w-32' },
+    { key: 'city', label: 'City', width: 'min-w-32' },
+    { key: 'region', label: 'Region', width: 'min-w-32' },
   ];
 
-  // Date navigation items
-  const dateItems = [
-    { date: 'All', id: '' },
-    { date: '9/23/2025', id: '1782' },
-    { date: '8/23/2025', id: '5475' },
-    { date: '7/23/2025', id: '5226' },
-    { date: '6/23/2025', id: '9005' },
-    { date: '5/23/2025', id: '4711' },
-    { date: '4/23/2025', id: '4474' },
-    { date: '3/23/2025', id: '4211' },
-    { date: '2/23/2025', id: '3023' },
-    { date: '1/23/2025', id: '3549' },
-  ];
+  const dateItems: Array<{ date: string; id: string }> = [{ date: 'All', id: '' }];
 
-  // Sample Invoice data
   useEffect(() => {
-    const fetchInvoiceData = async () => {
-      try {
-        setIsLoading(true);
-        
-        // In a real implementation, this would fetch from an API
-        // For now, we'll create sample data
-        const sampleData: InvoiceRecord[] = [
-          {
-            id: '1782',
-            invoiceDate: '9/23/2025',
-            invoiceStatus: 'Paid',
-            accountNo: '202306870',
-            fullName: 'Violeta A Espinolilla',
-            contactNumber: '9701304853',
-            emailAddress: 'violetaarabit@gmail.com',
-            address: '0225 Ilang Ilang St, Bilibiran, Binangonan, Rizal',
-            plan: 'SwitchLite - P699',
-            provider: 'SWITCH',
-            invoiceNo: '2508182' + '1782',
-            invoiceBalance: 0,
-            otherCharges: 0,
-            totalAmountDue: 2609.60,
-            dueDate: '10/15/2025',
-            invoicePayment: 2609.60,
-            paymentMethod: 'Credit Card',
-            dateProcessed: '9/28/2025',
-            processedBy: 'admin',
-            dateInstalled: '6/18/2025',
-            balanceFromPreviousBill: 0,
-            vat: 83.88,
-            remarks: 'System Generated',
-            staggeredPaymentsCount: 0
-          },
-          {
-            id: '5475',
-            invoiceDate: '8/23/2025',
-            invoiceStatus: 'Unpaid',
-            accountNo: '202307911',
-            fullName: 'Winilyn R Luklukan',
-            contactNumber: '9707551528',
-            emailAddress: 'luklukanwinilyn@gmail.com',
-            address: 'Tabing Dagat, Bilibiran, Binangonan, Rizal',
-            plan: 'SwitchLite - P699',
-            provider: 'SWITCH',
-            invoiceNo: '2508182' + '5475',
-            invoiceBalance: 699,
-            otherCharges: 0,
-            totalAmountDue: 2609.60,
-            dueDate: '8/30/2025',
-            invoicePayment: 0,
-            paymentMethod: 'N/A',
-            dateInstalled: '6/18/2025',
-            vat: 95.88,
-            remarks: 'System Generated',
-            staggeredPaymentsCount: 0
-          },
-          {
-            id: '5226',
-            invoiceDate: '7/23/2025',
-            invoiceStatus: 'Partial',
-            accountNo: '202306868',
-            fullName: 'Jonell P Enriquez',
-            contactNumber: '9052592462',
-            emailAddress: 'jajarojas089@gmail.com',
-            address: '51 National Rd, Bilibiran, Binangonan, Rizal',
-            plan: 'SwitchNet - P999',
-            provider: 'SWITCH',
-            invoiceNo: '2508182' + '5226',
-            invoiceBalance: 518.88,
-            otherCharges: 119.88,
-            totalAmountDue: 2609.60,
-            dueDate: '8/15/2025',
-            invoicePayment: 600,
-            paymentMethod: 'GCash',
-            dateProcessed: '8/10/2025',
-            processedBy: 'agent001',
-            dateInstalled: '6/18/2025',
-            vat: 119.88,
-            remarks: 'System Generated',
-            staggeredPaymentsCount: 0
-          }
-        ];
-        
-        // Add more sample data by duplicating and modifying the first few records
-        const additionalData = [];
-        for (let i = 0; i < 10; i++) {
-          const baseRecord = sampleData[i % sampleData.length];
-          const status = i % 3 === 0 ? 'Paid' : (i % 3 === 1 ? 'Unpaid' : 'Partial');
-          const payment = status === 'Paid' ? (baseRecord.totalAmountDue || 0) : (status === 'Partial' ? (baseRecord.totalAmountDue || 0) / 2 : 0);
-          
-          additionalData.push({
-            ...baseRecord,
-            id: `${i + 9000}`,
-            accountNo: `2023068${70 + i}`,
-            fullName: `Customer ${i + 1}`,
-            emailAddress: `customer${i + 1}@example.com`,
-            invoiceStatus: status,
-            invoicePayment: payment,
-            invoiceBalance: (baseRecord.totalAmountDue || 0) - payment,
-            paymentMethod: status === 'Unpaid' ? 'N/A' : (i % 2 === 0 ? 'GCash' : 'Credit Card'),
-            dateProcessed: status === 'Unpaid' ? undefined : `9/${10 + i}/2025`,
-            processedBy: status === 'Unpaid' ? undefined : 'agent' + (i % 5 + 1).toString().padStart(3, '0'),
-            remarks: 'System Generated',
-            staggeredPaymentsCount: i % 5 === 0 ? 2 : 0
-          });
-        }
-        
-        setInvoiceRecords([...sampleData, ...additionalData]);
-        setError(null);
-      } catch (err) {
-        console.error('Failed to fetch Invoice records:', err);
-        setError('Failed to load Invoice records. Please try again.');
-        setInvoiceRecords([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
     fetchInvoiceData();
   }, []);
+
+  const fetchInvoiceData = async () => {
+    try {
+      setIsLoading(true);
+      const data = await invoiceService.getAllInvoices();
+      
+      const transformedData: InvoiceRecordUI[] = data.map(record => ({
+        id: record.id.toString(),
+        accountId: record.account_id,
+        accountNo: record.account?.account_no || '',
+        invoiceDate: new Date(record.invoice_date).toLocaleDateString(),
+        invoiceBalance: Number(record.invoice_balance) || 0,
+        othersAndBasicCharges: Number(record.others_and_basic_charges) || 0,
+        totalAmount: Number(record.total_amount) || 0,
+        receivedPayment: Number(record.received_payment) || 0,
+        dueDate: new Date(record.due_date).toLocaleDateString(),
+        status: record.status,
+        paymentPortalLogRef: record.payment_portal_log_ref,
+        transactionId: record.transaction_id,
+        createdAt: record.created_at ? new Date(record.created_at).toLocaleString() : '',
+        createdBy: record.created_by,
+        updatedAt: record.updated_at ? new Date(record.updated_at).toLocaleString() : '',
+        updatedBy: record.updated_by,
+        fullName: record.account?.customer?.full_name || 'Unknown',
+        contactNumber: record.account?.customer?.contact_number_primary || 'N/A',
+        emailAddress: record.account?.customer?.email_address || 'N/A',
+        address: record.account?.customer?.address || 'N/A',
+        plan: record.account?.customer?.desired_plan || 'No Plan',
+        dateInstalled: record.account?.date_installed ? new Date(record.account.date_installed).toLocaleDateString() : '',
+        barangay: record.account?.customer?.barangay || '',
+        city: record.account?.customer?.city || '',
+        region: record.account?.customer?.region || '',
+        provider: 'SWITCH',
+        invoiceNo: '2508182' + record.id.toString(),
+        otherCharges: Number(record.others_and_basic_charges) || 0,
+        totalAmountDue: Number(record.total_amount) || 0,
+        invoicePayment: Number(record.received_payment) || 0,
+        paymentMethod: record.received_payment > 0 ? 'Payment Received' : 'N/A',
+        dateProcessed: record.received_payment > 0 && record.updated_at ? new Date(record.updated_at).toLocaleDateString() : undefined,
+        processedBy: record.received_payment > 0 ? record.updated_by : undefined,
+        remarks: 'System Generated',
+        vat: 0,
+        amountDue: (Number(record.total_amount) || 0) - (Number(record.received_payment) || 0),
+        balanceFromPreviousBill: 0,
+        paymentReceived: Number(record.received_payment) || 0,
+        remainingBalance: (Number(record.total_amount) || 0) - (Number(record.received_payment) || 0),
+        monthlyServiceFee: Number(record.invoice_balance) || 0,
+        staggeredPaymentsCount: 0,
+        invoiceStatus: record.status,
+      }));
+
+      setInvoiceRecords(transformedData);
+      setError(null);
+    } catch (err) {
+      console.error('Failed to fetch Invoice records:', err);
+      setError('Failed to load Invoice records. Please try again.');
+      setInvoiceRecords([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const filteredRecords = invoiceRecords.filter(record => {
     const matchesDate = selectedDate === 'All' || record.invoiceDate === selectedDate;
     const matchesSearch = searchQuery === '' || 
-                         record.fullName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         record.address.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         record.fullName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         record.address?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          record.accountNo.includes(searchQuery) ||
-                         (record.invoiceNo && record.invoiceNo.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         (record.invoiceStatus && record.invoiceStatus.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         (record.paymentMethod && record.paymentMethod.toLowerCase().includes(searchQuery.toLowerCase())) ||
-                         (record.processedBy && record.processedBy.toLowerCase().includes(searchQuery.toLowerCase()));
+                         record.id.includes(searchQuery) ||
+                         record.status.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                         (record.transactionId && record.transactionId.toLowerCase().includes(searchQuery.toLowerCase()));
     
     return matchesDate && matchesSearch;
   });
 
-  const handleRowClick = (record: InvoiceRecord) => {
+  const handleRowClick = (record: InvoiceRecordUI) => {
     setSelectedRecord(record);
   };
 
@@ -223,41 +172,67 @@ const Invoice: React.FC = () => {
   };
 
   const handleRefresh = async () => {
-    // In a real implementation, this would re-fetch from the API
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+    await fetchInvoiceData();
   };
 
-  const renderCellValue = (record: InvoiceRecord, columnKey: string) => {
+  const renderCellValue = (record: InvoiceRecordUI, columnKey: string) => {
     switch (columnKey) {
-      case 'invoiceDate':
-        return record.invoiceDate || '-';
-      case 'invoiceStatus':
-        return (
-          <span className={`${record.invoiceStatus === 'Unpaid' ? 'text-red-500' : record.invoiceStatus === 'Paid' ? 'text-green-500' : 'text-yellow-500'}`}>
-            {record.invoiceStatus || 'Unpaid'}
-          </span>
-        );
+      case 'id':
+        return record.id;
       case 'accountNo':
         return <span className="text-red-400">{record.accountNo}</span>;
+      case 'invoiceDate':
+        return record.invoiceDate;
       case 'invoiceBalance':
-        return record.invoiceBalance !== undefined ? `₱ ${record.invoiceBalance.toFixed(2)}` : '-';
-      case 'otherCharges':
-        return record.otherCharges !== undefined ? `₱ ${record.otherCharges.toFixed(2)}` : '-';
-      case 'totalAmountDue':
-        return record.totalAmountDue !== undefined ? `₱ ${record.totalAmountDue.toFixed(2)}` : '-';
+        return `₱ ${record.invoiceBalance.toFixed(2)}`;
+      case 'othersAndBasicCharges':
+        return `₱ ${record.othersAndBasicCharges.toFixed(2)}`;
+      case 'totalAmount':
+        return `₱ ${record.totalAmount.toFixed(2)}`;
+      case 'receivedPayment':
+        return `₱ ${record.receivedPayment.toFixed(2)}`;
       case 'dueDate':
-        return record.dueDate || '-';
-      case 'invoicePayment':
-        return record.invoicePayment !== undefined ? `₱ ${record.invoicePayment.toFixed(2)}` : '-';
-      case 'paymentMethod':
-        return record.paymentMethod || 'N/A';
-      case 'dateProcessed':
-        return record.dateProcessed || 'Pending';
-      case 'processedBy':
-        return record.processedBy || '-';
+        return record.dueDate;
+      case 'status':
+        return (
+          <span className={`${
+            record.status === 'Unpaid' ? 'text-red-500' : 
+            record.status === 'Paid' ? 'text-green-500' : 
+            'text-yellow-500'
+          }`}>
+            {record.status}
+          </span>
+        );
+      case 'paymentPortalLogRef':
+        return record.paymentPortalLogRef || 'NULL';
+      case 'transactionId':
+        return record.transactionId || 'NULL';
+      case 'createdAt':
+        return record.createdAt || '-';
+      case 'createdBy':
+        return record.createdBy || '-';
+      case 'updatedAt':
+        return record.updatedAt || '-';
+      case 'updatedBy':
+        return record.updatedBy || '-';
+      case 'fullName':
+        return record.fullName || '-';
+      case 'contactNumber':
+        return record.contactNumber || '-';
+      case 'emailAddress':
+        return record.emailAddress || '-';
+      case 'address':
+        return <span title={record.address}>{record.address || '-'}</span>;
+      case 'plan':
+        return record.plan || '-';
+      case 'dateInstalled':
+        return record.dateInstalled || '-';
+      case 'barangay':
+        return record.barangay || '-';
+      case 'city':
+        return record.city || '-';
+      case 'region':
+        return record.region || '-';
       default:
         return '-';
     }
@@ -278,26 +253,17 @@ const Invoice: React.FC = () => {
               onClick={() => setSelectedDate(item.date)}
               className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
                 selectedDate === item.date
-                  ? item.date === 'All' ? 'bg-orange-500 bg-opacity-20 text-orange-400 flex items-center' : 'bg-orange-500 bg-opacity-20 text-orange-400'
+                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
                   : 'text-gray-300'
               }`}
             >
-              {item.date === 'All' ? (
-                <span className="text-sm font-medium flex items-center">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                  </svg>
-                  {item.date}
-                </span>
-              ) : (
-                <div className="flex items-center justify-between w-full">
-                  <span className="flex items-center">
-                    {item.date}
-                  </span>
-                  <span className={`px-2 py-0.5 rounded text-xs ${selectedDate === item.date ? 'bg-orange-600 text-white' : 'bg-gray-700 text-gray-300'}`}>{item.id}</span>
-                </div>
-              )}
+              <span className="text-sm font-medium flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mr-2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+                {item.date}
+              </span>
             </button>
           ))}
         </div>
@@ -306,28 +272,24 @@ const Invoice: React.FC = () => {
       <div className="flex-1 bg-gray-900 overflow-hidden">
         <div className="flex flex-col h-full">
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
-            <div className="flex flex-col space-y-3">
-              <div className="flex items-center space-x-3">
-                <div className="relative flex-1">
-                  <input
-                    type="text"
-                    placeholder="Search Invoice records..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                  />
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
-                </div>
-                <button
-                  onClick={handleRefresh}
-                  disabled={isLoading}
-                  className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
-                >
-                  {isLoading ? 'Loading...' : 'Refresh'}
-                </button>
+            <div className="flex items-center space-x-3">
+              <div className="relative flex-1">
+                <input
+                  type="text"
+                  placeholder="Search Invoice records..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full bg-gray-800 text-white border border-gray-700 rounded pl-10 pr-4 py-2 focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+                <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              
-              {/* Table View Selection removed as requested */}
+              <button
+                onClick={handleRefresh}
+                disabled={isLoading}
+                className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+              >
+                {isLoading ? 'Loading...' : 'Refresh'}
+              </button>
             </div>
           </div>
           

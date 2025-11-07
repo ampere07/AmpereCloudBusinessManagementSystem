@@ -574,6 +574,74 @@ const Customer: React.FC = () => {
     }
   };
 
+  const handleGenerateSampleData = async () => {
+    setIsLoading(true);
+    
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000/api'
+      : 'https://backend.atssfiber.ph/api';
+
+    const generationDate = new Date().toISOString().split('T')[0];
+    
+    fetch(`${API_BASE_URL}/billing-generation/force-generate-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        generation_date: generationDate
+      })
+    }).then(async (response) => {
+      const result = await response.json();
+      
+      if (!result.success) {
+        const errorDetails = result.data?.invoices?.errors || [];
+        const soaErrors = result.data?.statements?.errors || [];
+        const allErrors = [...errorDetails, ...soaErrors];
+        
+        if (allErrors.length > 0) {
+          console.error('Generation errors:', allErrors);
+          const firstError = allErrors[0];
+          alert(`Generation failed for account ${firstError.account_no}: ${firstError.error}`);
+        } else {
+          alert(result.message || 'Generation failed');
+        }
+        setError(result.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      const data = await getBillingRecords();
+      setBillingRecords(data);
+      setError(null);
+      
+      const invoiceCount = result.data?.invoices?.success || 0;
+      const soaCount = result.data?.statements?.success || 0;
+      const accountCount = result.data?.total_accounts || 0;
+      const invoiceErrors = result.data?.invoices?.failed || 0;
+      const soaErrors = result.data?.statements?.failed || 0;
+      
+      if (invoiceErrors > 0 || soaErrors > 0) {
+        const errors = [
+          ...(result.data?.invoices?.errors || []),
+          ...(result.data?.statements?.errors || [])
+        ];
+        console.error('Generation errors:', errors);
+        alert(`Generated ${invoiceCount} invoices and ${soaCount} statements for ${accountCount} accounts.\n\nFailed: ${invoiceErrors} invoices, ${soaErrors} statements.\n\nCheck console for errors.`);
+      } else {
+        alert(`Successfully generated ${invoiceCount} invoices and ${soaCount} statements for ${accountCount} active accounts`);
+      }
+    }).catch((err) => {
+      console.error('Generation failed:', err);
+      setError('Generation failed. Please try again.');
+      alert('Generation failed: ' + (err as Error).message);
+    }).finally(() => {
+      setIsLoading(false);
+    });
+  };
+
   const handleToggleColumn = (columnKey: string) => {
     setVisibleColumns(prev => {
       if (prev.includes(columnKey)) {
@@ -868,6 +936,13 @@ const Customer: React.FC = () => {
                     </div>
                   )}
                 </div>
+                <button
+                  onClick={handleGenerateSampleData}
+                  disabled={isLoading}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                >
+                  {isLoading ? 'Generating...' : 'Generate Sample Data'}
+                </button>
                 <button
                   onClick={handleRefresh}
                   disabled={isLoading}

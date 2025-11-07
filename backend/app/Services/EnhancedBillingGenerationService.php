@@ -182,7 +182,7 @@ class EnhancedBillingGenerationService
         return $billingDay;
     }
 
-    protected function createEnhancedStatement(BillingAccount $account, Carbon $statementDate, int $userId): StatementOfAccount
+    public function createEnhancedStatement(BillingAccount $account, Carbon $statementDate, int $userId): StatementOfAccount
     {
         DB::beginTransaction();
 
@@ -192,15 +192,37 @@ class EnhancedBillingGenerationService
                 throw new \Exception("Customer not found for account {$account->account_no}");
             }
 
-            $plan = AppPlan::where('Plan_Name', $customer->desired_plan)->first();
+            $desiredPlan = $customer->desired_plan;
+            if (!$desiredPlan) {
+                throw new \Exception("No desired_plan found for customer {$customer->full_name}");
+            }
+
+            $planName = $this->extractPlanName($desiredPlan);
+            
+            Log::info('Looking up plan', [
+                'plan_name_extracted' => $planName,
+                'original_desired_plan' => $desiredPlan
+            ]);
+            
+            $plan = AppPlan::where('plan_name', $planName)->first();
+                
             if (!$plan) {
-                throw new \Exception("Plan not found for account {$account->account_no}");
+                $allPlans = AppPlan::select('id', 'plan_name', 'price')->get();
+                Log::error('Plan not found', [
+                    'searching_for' => $planName,
+                    'available_plans' => $allPlans->toArray()
+                ]);
+                throw new \Exception("Plan '{$planName}' not found in plan_list table (extracted from '{$desiredPlan}'). Available plans: " . $allPlans->pluck('plan_name')->implode(', '));
+            }
+
+            if (!$plan->price || $plan->price <= 0) {
+                throw new \Exception("Plan '{$planName}' has invalid price: " . ($plan->price ?? 'NULL'));
             }
 
             $adjustedDate = $this->calculateAdjustedBillingDate($account, $statementDate);
             $dueDate = $adjustedDate->copy()->addDays(self::DAYS_UNTIL_DUE);
 
-            $prorateAmount = $this->calculateProrateAmount($account, $plan->Plan_Price, $adjustedDate);
+            $prorateAmount = $this->calculateProrateAmount($account, $plan->price, $adjustedDate);
             $monthlyFeeGross = $prorateAmount / (1 + self::VAT_RATE);
             $vat = $monthlyFeeGross * self::VAT_RATE;
             $monthlyServiceFee = $prorateAmount - $vat;
@@ -212,7 +234,7 @@ class EnhancedBillingGenerationService
                 $statementDate, 
                 $userId, 
                 $invoiceId,
-                $plan->Plan_Price
+                $plan->price
             );
             
             $othersAndBasicCharges = $charges['staggered_fees'] + 
@@ -249,7 +271,7 @@ class EnhancedBillingGenerationService
         }
     }
 
-    protected function createEnhancedInvoice(BillingAccount $account, Carbon $invoiceDate, int $userId): Invoice
+    public function createEnhancedInvoice(BillingAccount $account, Carbon $invoiceDate, int $userId): Invoice
     {
         DB::beginTransaction();
 
@@ -259,9 +281,20 @@ class EnhancedBillingGenerationService
                 throw new \Exception("Customer not found for account {$account->account_no}");
             }
 
-            $plan = AppPlan::where('Plan_Name', $customer->desired_plan)->first();
+            $desiredPlan = $customer->desired_plan;
+            if (!$desiredPlan) {
+                throw new \Exception("No desired_plan found for customer {$customer->full_name}");
+            }
+
+            $planName = $this->extractPlanName($desiredPlan);
+            
+            $plan = AppPlan::where('plan_name', $planName)->first();
             if (!$plan) {
-                throw new \Exception("Plan not found for account {$account->account_no}");
+                throw new \Exception("Plan '{$planName}' not found in plan_list table (extracted from '{$desiredPlan}')");
+            }
+
+            if (!$plan->price || $plan->price <= 0) {
+                throw new \Exception("Plan '{$planName}' has invalid price: " . ($plan->price ?? 'NULL'));
             }
 
             $adjustedDate = $this->calculateAdjustedBillingDate($account, $invoiceDate);
@@ -269,13 +302,13 @@ class EnhancedBillingGenerationService
 
             $invoiceId = $this->generateInvoiceId($invoiceDate);
             
-            $prorateAmount = $this->calculateProrateAmount($account, $plan->Plan_Price, $adjustedDate);
+            $prorateAmount = $this->calculateProrateAmount($account, $plan->price, $adjustedDate);
             $charges = $this->calculateChargesAndDeductions(
                 $account, 
                 $invoiceDate, 
                 $userId, 
                 $invoiceId,
-                $plan->Plan_Price
+                $plan->price
             );
             
             $othersBasicCharges = $charges['staggered_fees'] + 
@@ -627,5 +660,15 @@ class EnhancedBillingGenerationService
             'invoices' => $invoiceResults,
             'statements' => $soaResults
         ];
+    }
+
+    protected function extractPlanName(string $desiredPlan): string
+    {
+        if (strpos($desiredPlan, ' - ') !== false) {
+            $parts = explode(' - ', $desiredPlan);
+            return trim($parts[0]);
+        }
+        
+        return trim($desiredPlan);
     }
 }

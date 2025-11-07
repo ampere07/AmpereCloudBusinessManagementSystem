@@ -286,4 +286,131 @@ class BillingGenerationController extends Controller
             ], 500);
         }
     }
+
+    public function forceGenerateAll(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'generation_date' => 'nullable|date'
+            ]);
+
+            $userId = $request->user()->id ?? 1;
+            $generationDate = isset($validated['generation_date']) 
+                ? Carbon::parse($validated['generation_date']) 
+                : Carbon::now();
+
+            $allBillingAccounts = \App\Models\BillingAccount::with(['customer'])->get();
+            
+            Log::info('All billing accounts found', [
+                'total' => $allBillingAccounts->count(),
+                'accounts' => $allBillingAccounts->map(function($acc) {
+                    return [
+                        'account_no' => $acc->account_no,
+                        'billing_status_id' => $acc->billing_status_id,
+                        'billing_status_id_type' => gettype($acc->billing_status_id),
+                        'date_installed' => $acc->date_installed,
+                        'has_customer' => $acc->customer ? true : false
+                    ];
+                })->toArray()
+            ]);
+
+            $accounts = \App\Models\BillingAccount::with(['customer'])
+                ->whereNotNull('date_installed')
+                ->get();
+
+            Log::info('Force generate started', [
+                'total_accounts' => $accounts->count(),
+                'generation_date' => $generationDate->format('Y-m-d')
+            ]);
+
+            if ($accounts->count() === 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active accounts found. Check billing_status_id=2 and date_installed is not null',
+                    'data' => [
+                        'total_accounts' => 0,
+                        'criteria' => 'billing_status_id = 2 AND date_installed IS NOT NULL'
+                    ]
+                ], 404);
+            }
+
+            $invoiceResults = [
+                'success' => 0,
+                'failed' => 0,
+                'errors' => []
+            ];
+
+            $soaResults = [
+                'success' => 0,
+                'failed' => 0,
+                'errors' => []
+            ];
+
+            foreach ($accounts as $account) {
+                Log::info('Processing account', [
+                    'account_no' => $account->account_no,
+                    'customer' => $account->customer ? $account->customer->full_name : 'NO CUSTOMER'
+                ]);
+
+                try {
+                    $this->enhancedBillingService->createEnhancedInvoice($account, $generationDate, $userId);
+                    $invoiceResults['success']++;
+                    Log::info('Invoice created successfully', ['account_no' => $account->account_no]);
+                } catch (\Exception $e) {
+                    $invoiceResults['failed']++;
+                    $invoiceResults['errors'][] = [
+                        'account_id' => $account->id,
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ];
+                    Log::error('Invoice generation failed', [
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                try {
+                    $this->enhancedBillingService->createEnhancedStatement($account, $generationDate, $userId);
+                    $soaResults['success']++;
+                    Log::info('SOA created successfully', ['account_no' => $account->account_no]);
+                } catch (\Exception $e) {
+                    $soaResults['failed']++;
+                    $soaResults['errors'][] = [
+                        'account_id' => $account->id,
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ];
+                    Log::error('SOA generation failed', [
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+            }
+
+            $totalGenerated = $invoiceResults['success'] + $soaResults['success'];
+
+            return response()->json([
+                'success' => true,
+                'message' => "Force generated {$totalGenerated} billing records for {$accounts->count()} active accounts",
+                'data' => [
+                    'invoices' => $invoiceResults,
+                    'statements' => $soaResults,
+                    'total_accounts' => $accounts->count(),
+                    'generation_date' => $generationDate->format('Y-m-d')
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error in force generate all: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to force generate billings',
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    }
 }
