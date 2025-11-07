@@ -2,8 +2,60 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import BillingDetails from '../components/CustomerDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
+import { getCustomerDetail, CustomerDetailData } from '../services/customerDetailService';
+import { BillingDetailRecord } from '../types/billing';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
+
+const convertCustomerDataToBillingDetail = (customerData: CustomerDetailData): BillingDetailRecord => {
+  return {
+    id: customerData.billingAccount?.accountNo || '',
+    applicationId: customerData.billingAccount?.accountNo || '',
+    customerName: customerData.fullName,
+    address: customerData.address,
+    status: customerData.billingAccount?.billingStatusId === 2 ? 'Active' : 'Inactive',
+    balance: customerData.billingAccount?.accountBalance || 0,
+    onlineStatus: customerData.billingAccount?.billingStatusId === 2 ? 'Online' : 'Offline',
+    cityId: null,
+    regionId: null,
+    timestamp: customerData.updatedAt || '',
+    billingStatus: customerData.billingAccount?.billingStatusId ? `Status ${customerData.billingAccount.billingStatusId}` : '',
+    dateInstalled: customerData.billingAccount?.dateInstalled || '',
+    contactNumber: customerData.contactNumberPrimary,
+    secondContactNumber: customerData.contactNumberSecondary || '',
+    emailAddress: customerData.emailAddress || '',
+    plan: customerData.desiredPlan || '',
+    username: customerData.technicalDetails?.username || '',
+    connectionType: customerData.technicalDetails?.connectionType || '',
+    routerModel: customerData.technicalDetails?.routerModel || '',
+    routerModemSN: customerData.technicalDetails?.routerModemSn || '',
+    lcpnap: customerData.technicalDetails?.lcpnap || '',
+    port: customerData.technicalDetails?.port || '',
+    vlan: customerData.technicalDetails?.vlan || '',
+    billingDay: customerData.billingAccount?.billingDay || 0,
+    totalPaid: 0,
+    provider: '',
+    lcp: customerData.technicalDetails?.lcp || '',
+    nap: customerData.technicalDetails?.nap || '',
+    modifiedBy: '',
+    modifiedDate: customerData.updatedAt || '',
+    barangay: customerData.barangay || '',
+    city: customerData.city || '',
+    region: customerData.region || '',
+    
+    usageType: customerData.technicalDetails?.usageTypeId ? `Type ${customerData.technicalDetails.usageTypeId}` : '',
+    referredBy: customerData.referredBy || '',
+    referralContactNo: '',
+    groupName: customerData.groupName || '',
+    mikrotikId: '',
+    sessionIp: customerData.technicalDetails?.ipAddress || '',
+    houseFrontPicture: customerData.houseFrontPictureUrl || '',
+    accountBalance: customerData.billingAccount?.accountBalance || 0,
+    housingStatus: customerData.housingStatus || '',
+    location: customerData.location || '',
+    addressCoordinates: customerData.addressCoordinates || '',
+  };
+};
 
 interface LocationItem {
   id: string;
@@ -84,11 +136,12 @@ const allColumns = [
 const Customer: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedBilling, setSelectedBilling] = useState<BillingRecord | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetailData | null>(null);
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('card');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -349,12 +402,23 @@ const Customer: React.FC = () => {
     return filtered;
   }, [billingRecords, selectedLocation, searchQuery, sortColumn, sortDirection]);
 
-  const handleRecordClick = (record: BillingRecord) => {
-    setSelectedBilling(record);
+  const handleRecordClick = async (record: BillingRecord) => {
+    try {
+      setIsLoadingDetails(true);
+      console.log('Fetching customer detail for account:', record.applicationId);
+      const customerData = await getCustomerDetail(record.applicationId);
+      console.log('Fetched customer data:', customerData);
+      setSelectedCustomer(customerData);
+    } catch (error) {
+      console.error('Failed to fetch customer details:', error);
+      setError('Failed to load customer details');
+    } finally {
+      setIsLoadingDetails(false);
+    }
   };
 
   const handleCloseDetails = () => {
-    setSelectedBilling(null);
+    setSelectedCustomer(null);
   };
   
   const renderCellValue = (record: BillingRecord, columnKey: string) => {
@@ -841,7 +905,7 @@ const Customer: React.FC = () => {
                       <div
                         key={record.id}
                         onClick={() => handleRecordClick(record)}
-                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedBilling?.id === record.id ? 'bg-gray-800' : ''}`}
+                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedCustomer?.billingAccount?.accountNo === record.applicationId ? 'bg-gray-800' : ''}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
@@ -922,7 +986,7 @@ const Customer: React.FC = () => {
                         filteredBillingRecords.map((record) => (
                           <tr 
                             key={record.id} 
-                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedBilling?.id === record.id ? 'bg-gray-800' : ''}`}
+                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedCustomer?.billingAccount?.accountNo === record.applicationId ? 'bg-gray-800' : ''}`}
                             onClick={() => handleRecordClick(record)}
                           >
                             {filteredColumns.map((column, index) => (
@@ -957,13 +1021,22 @@ const Customer: React.FC = () => {
         </div>
       </div>
 
-      {selectedBilling && (
+      {(selectedCustomer || isLoadingDetails) && (
         <div className="flex-shrink-0 overflow-hidden">
-          <BillingDetails
-            billingRecord={selectedBilling}
-            onlineStatusRecords={[]}
-            onClose={handleCloseDetails}
-          />
+          {isLoadingDetails ? (
+            <div className="w-[600px] bg-gray-900 text-white h-full flex items-center justify-center border-l border-white border-opacity-30">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading details...</p>
+              </div>
+            </div>
+          ) : selectedCustomer ? (
+            <BillingDetails
+              billingRecord={convertCustomerDataToBillingDetail(selectedCustomer)}
+              onlineStatusRecords={[]}
+              onClose={handleCloseDetails}
+            />
+          ) : null}
         </div>
       )}
     </div>

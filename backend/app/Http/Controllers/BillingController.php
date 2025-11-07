@@ -45,6 +45,7 @@ class BillingController extends Controller
                         'Housing_Status' => $customer ? $customer->housing_status : null,
                         'Referred_By' => $customer ? $customer->referred_by : null,
                         'Desired_Plan' => $customer ? $customer->desired_plan : null,
+                        'house_front_picture_url' => $customer ? $customer->house_front_picture_url : null,
                         'Group_ID' => $customer ? $customer->group_id : null,
                         
                         'Username' => $technicalDetail ? $technicalDetail->username : null,
@@ -94,6 +95,12 @@ class BillingController extends Controller
             $customer = $billingAccount->customer;
             $technicalDetail = $billingAccount->technicalDetails->first();
             
+            \Log::info('BillingController - Customer data:', [
+                'customer_id' => $customer ? $customer->id : 'null',
+                'house_front_picture_url' => $customer ? $customer->house_front_picture_url : 'null',
+                'raw_customer' => $customer ? $customer->toArray() : 'null'
+            ]);
+            
             $data = [
                 'id' => $billingAccount->id,
                 'Account_No' => $billingAccount->account_no,
@@ -119,6 +126,7 @@ class BillingController extends Controller
                 'Housing_Status' => $customer ? $customer->housing_status : null,
                 'Referred_By' => $customer ? $customer->referred_by : null,
                 'Desired_Plan' => $customer ? $customer->desired_plan : null,
+                'house_front_picture_url' => $customer ? $customer->house_front_picture_url : null,
                 'Group_ID' => $customer ? $customer->group_id : null,
                 
                 'Username' => $technicalDetail ? $technicalDetail->username : null,

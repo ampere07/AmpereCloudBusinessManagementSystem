@@ -24,6 +24,9 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
   onlineStatusRecords = [],
   onClose
 }) => {
+  console.log('CustomerDetails - Received billingRecord:', billingRecord);
+  console.log('CustomerDetails - houseFrontPicture value:', billingRecord.houseFrontPicture);
+  
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({
     invoices: false,
     paymentPortalLogs: false,
@@ -284,11 +287,23 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
           <span className="text-white font-medium">{billingRecord.region || ''}</span>
         </div>
 
+        {/* Location */}
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400 text-sm">Location</span>
+          <span className="text-white font-medium">{billingRecord.location || ''}</span>
+        </div>
+
+        {/* Housing Status */}
+        <div className="flex justify-between items-center">
+          <span className="text-gray-400 text-sm">Housing Status</span>
+          <span className="text-white font-medium">{billingRecord.housingStatus || ''}</span>
+        </div>
+
         {/* Address Coordinates - Map placeholder */}
         <div className="space-y-2">
           <span className="text-gray-400 text-sm">Address Coordinates</span>
           <div className="w-full h-24 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-            <span className="text-gray-500 text-sm">Map View</span>
+            <span className="text-gray-500 text-sm">{billingRecord.addressCoordinates || 'Map View'}</span>
           </div>
         </div>
 
@@ -418,14 +433,18 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
         {/* House Front Picture */}
         <div className="flex justify-between items-center">
           <span className="text-gray-400 text-sm">House Front Picture</span>
-          {billingRecord.houseFrontPicture ? (
-            <button className="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
-              <span className="text-sm">{billingRecord.houseFrontPicture}</span>
-              <ExternalLink size={14} />
-            </button>
-          ) : (
-            <span className="text-white font-medium"></span>
-          )}
+          {(() => {
+            console.log('Rendering House Front Picture - Value:', billingRecord.houseFrontPicture);
+            console.log('Rendering House Front Picture - Truthy check:', !!billingRecord.houseFrontPicture);
+            return billingRecord.houseFrontPicture ? (
+              <button className="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
+                <span className="text-sm">{billingRecord.houseFrontPicture}</span>
+                <ExternalLink size={14} />
+              </button>
+            ) : (
+              <span className="text-white font-medium">No image</span>
+            );
+          })()}
         </div>
       </div>
 

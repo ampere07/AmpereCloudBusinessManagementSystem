@@ -1,4 +1,7 @@
 import axios from 'axios';
+import { BillingRecord, BillingDetailRecord } from '../types/billing';
+
+export type { BillingRecord, BillingDetailRecord };
 
 const getApiBaseUrl = (): string => {
   if (process.env.REACT_APP_API_BASE_URL) {
@@ -14,86 +17,6 @@ const getApiBaseUrl = (): string => {
 };
 
 const API_BASE_URL = getApiBaseUrl();
-
-export interface BillingRecord {
-  id: string;
-  applicationId: string;
-  customerName: string;
-  address: string;
-  status: 'Active' | 'Inactive';
-  balance: number;
-  onlineStatus: 'Online' | 'Offline';
-  cityId?: number | null;
-  regionId?: number | null;
-  timestamp?: string;
-  billingStatus?: string;
-  dateInstalled?: string;
-  contactNumber?: string;
-  secondContactNumber?: string;
-  emailAddress?: string;
-  plan?: string;
-  username?: string;
-  connectionType?: string;
-  routerModel?: string;
-  routerModemSN?: string;
-  lcpnap?: string;
-  port?: string;
-  vlan?: string;
-  billingDay?: number;
-  totalPaid?: number;
-  provider?: string;
-  lcp?: string;
-  nap?: string;
-  modifiedBy?: string;
-  modifiedDate?: string;
-  barangay?: string;
-  city?: string;
-  region?: string;
-}
-
-export interface BillingDetailRecord extends BillingRecord {
-  lcpnapport?: string;
-  usageType?: string;
-  referredBy?: string;
-  secondContactNumber?: string;
-  referrersAccountNumber?: string;
-  accountBalance?: number;
-  houseFrontPicture?: string;
-  referralContactNo?: string;
-  groupName?: string;
-  sessionIp?: string;
-  relatedInvoices?: string;
-  relatedStatementOfAccount?: string;
-  relatedDiscounts?: string;
-  relatedStaggeredInstallation?: string;
-  relatedStaggeredPayments?: string;
-  relatedOverdues?: string;
-  relatedDCNotices?: string;
-  relatedServiceOrders?: string;
-  relatedDisconnectedLogs?: string;
-  relatedReconnectionLogs?: string;
-  relatedChangeDueLogs?: string;
-  relatedTransactions?: string;
-  relatedDetailsUpdateLogs?: string;
-  computedAddress?: string;
-  computedStatus?: string;
-  relatedAdvancedPayments?: string;
-  relatedPaymentPortalLogs?: string;
-  relatedInventoryLogs?: string;
-  computedAccountNo?: string;
-  relatedOnlineStatus?: string;
-  group?: string;
-  mikrotikId?: string;
-  sessionIP?: string;
-  relatedBorrowedLogs?: string;
-  relatedPlanChangeLogs?: string;
-  relatedServiceChargeLogs?: string;
-  relatedAdjustedAccountLogs?: string;
-  relatedSecurityDeposits?: string;
-  relatedApprovedTransactions?: string;
-  relatedAttachments?: string;
-  logs?: string;
-}
 
 interface BillingApiResponse {
   data?: BillingRecord[];
@@ -178,6 +101,9 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
     const response = await axiosInstance.get<any>(`/billing/${id}`);
     const responseData = response.data;
     
+    console.log('Raw API Response:', responseData);
+    console.log('House Front Picture URL from API:', responseData?.data?.house_front_picture_url);
+    
     if (responseData?.data) {
       const item = responseData.data;
       const basicRecord: BillingRecord = {
@@ -229,8 +155,11 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         sessionIp: item.IP_Address || item.ip_address || '',
         emailAddress: item.email_address || item.Email_Address || '',
         accountBalance: parseFloat(item.Account_Balance) || parseFloat(item.account_balance) || 0,
-        houseFrontPicture: item.House_Front_Picture || item.house_front_picture || '',
+        houseFrontPicture: item.house_front_picture_url || '',
         referralContactNo: item.Referral_Contact_No || item.referral_contact_no || '',
+        housingStatus: item.Housing_Status || item.housing_status || '',
+        location: item.Location || item.location || '',
+        addressCoordinates: item.Address_Coordinates || item.address_coordinates || '',
         relatedInvoices: 'Related Invoices (0)',
         relatedStatementOfAccount: 'Related Statement of Account...',
         relatedDiscounts: 'Related Discounts (0)',
@@ -260,6 +189,9 @@ export const getBillingRecordDetails = async (id: string): Promise<BillingDetail
         relatedAttachments: '',
         logs: 'Logs (0)'
       };
+      
+      console.log('Mapped houseFrontPicture value:', detailRecord.houseFrontPicture);
+      console.log('Full detailRecord:', detailRecord);
       
       return detailRecord;
     }

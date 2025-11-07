@@ -1367,6 +1367,18 @@ Route::prefix('service_orders')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
 });
 
+// Customer Detail Management - Dedicated endpoint for customer details view
+Route::get('/customer-detail/{accountNo}', [\App\Http\Controllers\CustomerDetailController::class, 'show']);
+
+// Customer Management Routes
+Route::prefix('customers')->group(function () {
+    Route::get('/', [\App\Http\Controllers\CustomerController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\CustomerController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\CustomerController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\CustomerController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\CustomerController::class, 'destroy']);
+});
+
 // Billing API Routes - Fetches from customers, billing_accounts, and technical_details
 Route::prefix('billing')->group(function () {
     Route::get('/', [\App\Http\Controllers\BillingController::class, 'index']);
