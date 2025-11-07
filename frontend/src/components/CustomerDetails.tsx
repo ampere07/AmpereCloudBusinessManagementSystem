@@ -218,10 +218,10 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
           <span className="text-white font-medium">{billingRecord.status}</span>
         </div>
 
-        {/* Provider */}
+        {/* Affiliate */}
         <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Provider</span>
-          <span className="text-white font-medium">{billingRecord.provider || ''}</span>
+          <span className="text-gray-400 text-sm">Affiliate</span>
+          <span className="text-white font-medium">{billingRecord.group || ''}</span>
         </div>
 
         {/* Billing Day */}

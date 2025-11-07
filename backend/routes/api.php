@@ -1468,6 +1468,36 @@ Route::get('/debug/customers-structure', function() {
     }
 });
 
+// Debug route to check customers table structure
+Route::get('/debug/customers-structure', function() {
+    try {
+        $customer = \App\Models\Customer::first();
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No customers found in database'
+            ]);
+        }
+        
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('customers');
+        
+        return response()->json([
+            'success' => true,
+            'columns' => $columns,
+            'sample_customer' => $customer->getAttributes(),
+            'contact_number_primary' => $customer->contact_number_primary ?? 'NULL',
+            'contact_number_secondary' => $customer->contact_number_secondary ?? 'NULL',
+            'has_secondary_field' => in_array('contact_number_secondary', $columns)
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Debug route to check billing data
 Route::get('/debug/billing-data', function() {
     try {
