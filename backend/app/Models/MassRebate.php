@@ -21,8 +21,8 @@ class MassRebate extends Model
     ];
 
     protected $casts = [
-        'rebate_date' => 'date',
         'rebate_days' => 'integer',
-        'billing_day' => 'integer'
+        'billing_day' => 'integer',
+        'rebate_date' => 'date'
     ];
 }

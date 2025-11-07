@@ -3,8 +3,6 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Installment extends Model
 {
@@ -25,27 +23,17 @@ class Installment extends Model
     protected $casts = [
         'start_date' => 'date',
         'total_balance' => 'decimal:2',
-        'monthly_payment' => 'decimal:2',
-        'months_to_pay' => 'integer'
+        'months_to_pay' => 'integer',
+        'monthly_payment' => 'decimal:2'
     ];
 
-    public function billingAccount(): BelongsTo
+    public function billingAccount()
     {
         return $this->belongsTo(BillingAccount::class, 'account_id');
     }
 
-    public function schedules(): HasMany
+    public function schedules()
     {
-        return $this->hasMany(InstallmentSchedule::class);
-    }
-
-    public function paidSchedules(): HasMany
-    {
-        return $this->hasMany(InstallmentSchedule::class)->where('status', 'paid');
-    }
-
-    public function pendingSchedules(): HasMany
-    {
-        return $this->hasMany(InstallmentSchedule::class)->where('status', 'pending');
+        return $this->hasMany(InstallmentSchedule::class, 'installment_id');
     }
 }

@@ -10,6 +10,8 @@ class AppPlan extends Model
 {
     use HasFactory;
 
+    public $timestamps = false;
+
     /**
      * The table associated with the model.
      *
@@ -23,12 +25,12 @@ class AppPlan extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
+        'plan_name',
         'description',
         'price',
-        'is_active',
+        'group_id',
+        'modified_by_user_id',
         'modified_date',
-        'modified_by',
     ];
 
     /**
@@ -38,27 +40,8 @@ class AppPlan extends Model
      */
     protected $casts = [
         'price' => 'decimal:2',
-        'is_active' => 'boolean',
         'modified_date' => 'datetime',
-        'created_at' => 'datetime',
-        'updated_at' => 'datetime',
     ];
-
-    /**
-     * Scope to get only active plans
-     */
-    public function scopeActive($query)
-    {
-        return $query->where('is_active', true);
-    }
-
-    /**
-     * Scope to get only inactive plans
-     */
-    public function scopeInactive($query)
-    {
-        return $query->where('is_active', false);
-    }
 
     /**
      * Get formatted price
@@ -66,40 +49,6 @@ class AppPlan extends Model
     public function getFormattedPriceAttribute()
     {
         return '₱' . number_format($this->price, 2);
-    }
-
-    /**
-     * Get plan status
-     */
-    public function getStatusAttribute()
-    {
-        return $this->is_active ? 'Active' : 'Inactive';
-    }
-
-    /**
-     * Check if plan is active
-     */
-    public function isActive()
-    {
-        return $this->is_active;
-    }
-
-    /**
-     * Activate the plan
-     */
-    public function activate()
-    {
-        $this->is_active = true;
-        $this->save();
-    }
-
-    /**
-     * Deactivate the plan
-     */
-    public function deactivate()
-    {
-        $this->is_active = false;
-        $this->save();
     }
 
     /**

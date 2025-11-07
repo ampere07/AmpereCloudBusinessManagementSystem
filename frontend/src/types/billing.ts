@@ -44,6 +44,9 @@ export interface BillingDetailRecord extends BillingRecord {
   houseFrontPicture?: string;
   accountBalance?: number;
   email?: string;
+  housingStatus?: string;
+  location?: string;
+  addressCoordinates?: string;
   
   // Extended fields for detailed view
   lcpnapport?: string;

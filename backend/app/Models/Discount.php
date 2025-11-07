@@ -4,26 +4,26 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class AdvancedPayment extends Model
+class Discount extends Model
 {
-    protected $table = 'advanced_payments';
+    protected $table = 'discounts';
 
     protected $fillable = [
         'account_id',
-        'account_no',
-        'payment_amount',
-        'payment_month',
-        'payment_date',
+        'discount_amount',
         'status',
-        'invoice_used_id',
+        'remaining',
         'remarks',
+        'invoice_used_id',
+        'used_date',
         'created_by_user_id',
         'updated_by_user_id'
     ];
 
     protected $casts = [
-        'payment_amount' => 'decimal:2',
-        'payment_date' => 'date'
+        'discount_amount' => 'decimal:2',
+        'remaining' => 'integer',
+        'used_date' => 'datetime'
     ];
 
     public function billingAccount()

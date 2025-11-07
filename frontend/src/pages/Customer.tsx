@@ -2,8 +2,60 @@ import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CreditCard, Search, Circle, X, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
 import BillingDetails from '../components/CustomerDetails';
 import { getBillingRecords, BillingRecord } from '../services/billingService';
+import { getCustomerDetail, CustomerDetailData } from '../services/customerDetailService';
+import { BillingDetailRecord } from '../types/billing';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
+
+const convertCustomerDataToBillingDetail = (customerData: CustomerDetailData): BillingDetailRecord => {
+  return {
+    id: customerData.billingAccount?.accountNo || '',
+    applicationId: customerData.billingAccount?.accountNo || '',
+    customerName: customerData.fullName,
+    address: customerData.address,
+    status: customerData.billingAccount?.billingStatusId === 2 ? 'Active' : 'Inactive',
+    balance: customerData.billingAccount?.accountBalance || 0,
+    onlineStatus: customerData.billingAccount?.billingStatusId === 2 ? 'Online' : 'Offline',
+    cityId: null,
+    regionId: null,
+    timestamp: customerData.updatedAt || '',
+    billingStatus: customerData.billingAccount?.billingStatusId ? `Status ${customerData.billingAccount.billingStatusId}` : '',
+    dateInstalled: customerData.billingAccount?.dateInstalled || '',
+    contactNumber: customerData.contactNumberPrimary,
+    secondContactNumber: customerData.contactNumberSecondary || '',
+    emailAddress: customerData.emailAddress || '',
+    plan: customerData.desiredPlan || '',
+    username: customerData.technicalDetails?.username || '',
+    connectionType: customerData.technicalDetails?.connectionType || '',
+    routerModel: customerData.technicalDetails?.routerModel || '',
+    routerModemSN: customerData.technicalDetails?.routerModemSn || '',
+    lcpnap: customerData.technicalDetails?.lcpnap || '',
+    port: customerData.technicalDetails?.port || '',
+    vlan: customerData.technicalDetails?.vlan || '',
+    billingDay: customerData.billingAccount?.billingDay || 0,
+    totalPaid: 0,
+    provider: '',
+    lcp: customerData.technicalDetails?.lcp || '',
+    nap: customerData.technicalDetails?.nap || '',
+    modifiedBy: '',
+    modifiedDate: customerData.updatedAt || '',
+    barangay: customerData.barangay || '',
+    city: customerData.city || '',
+    region: customerData.region || '',
+    
+    usageType: customerData.technicalDetails?.usageTypeId ? `Type ${customerData.technicalDetails.usageTypeId}` : '',
+    referredBy: customerData.referredBy || '',
+    referralContactNo: '',
+    groupName: customerData.groupName || '',
+    mikrotikId: '',
+    sessionIp: customerData.technicalDetails?.ipAddress || '',
+    houseFrontPicture: customerData.houseFrontPictureUrl || '',
+    accountBalance: customerData.billingAccount?.accountBalance || 0,
+    housingStatus: customerData.housingStatus || '',
+    location: customerData.location || '',
+    addressCoordinates: customerData.addressCoordinates || '',
+  };
+};
 
 interface LocationItem {
   id: string;
@@ -84,11 +136,12 @@ const allColumns = [
 const Customer: React.FC = () => {
   const [selectedLocation, setSelectedLocation] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedBilling, setSelectedBilling] = useState<BillingRecord | null>(null);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetailData | null>(null);
   const [billingRecords, setBillingRecords] = useState<BillingRecord[]>([]);
   const [cities, setCities] = useState<City[]>([]);
   const [regions, setRegions] = useState<Region[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [displayMode, setDisplayMode] = useState<DisplayMode>('card');
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -349,12 +402,23 @@ const Customer: React.FC = () => {
     return filtered;
   }, [billingRecords, selectedLocation, searchQuery, sortColumn, sortDirection]);
 
-  const handleRecordClick = (record: BillingRecord) => {
-    setSelectedBilling(record);
+  const handleRecordClick = async (record: BillingRecord) => {
+    try {
+      setIsLoadingDetails(true);
+      console.log('Fetching customer detail for account:', record.applicationId);
+      const customerData = await getCustomerDetail(record.applicationId);
+      console.log('Fetched customer data:', customerData);
+      setSelectedCustomer(customerData);
+    } catch (error) {
+      console.error('Failed to fetch customer details:', error);
+      setError('Failed to load customer details');
+    } finally {
+      setIsLoadingDetails(false);
+    }
   };
 
   const handleCloseDetails = () => {
-    setSelectedBilling(null);
+    setSelectedCustomer(null);
   };
   
   const renderCellValue = (record: BillingRecord, columnKey: string) => {
@@ -508,6 +572,74 @@ const Customer: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleGenerateSampleData = async () => {
+    setIsLoading(true);
+    
+    const API_BASE_URL = window.location.hostname === 'localhost' 
+      ? 'http://localhost:8000/api'
+      : 'https://backend.atssfiber.ph/api';
+
+    const generationDate = new Date().toISOString().split('T')[0];
+    
+    fetch(`${API_BASE_URL}/billing-generation/force-generate-all`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        generation_date: generationDate
+      })
+    }).then(async (response) => {
+      const result = await response.json();
+      
+      if (!result.success) {
+        const errorDetails = result.data?.invoices?.errors || [];
+        const soaErrors = result.data?.statements?.errors || [];
+        const allErrors = [...errorDetails, ...soaErrors];
+        
+        if (allErrors.length > 0) {
+          console.error('Generation errors:', allErrors);
+          const firstError = allErrors[0];
+          alert(`Generation failed for account ${firstError.account_no}: ${firstError.error}`);
+        } else {
+          alert(result.message || 'Generation failed');
+        }
+        setError(result.message);
+        setIsLoading(false);
+        return;
+      }
+      
+      const data = await getBillingRecords();
+      setBillingRecords(data);
+      setError(null);
+      
+      const invoiceCount = result.data?.invoices?.success || 0;
+      const soaCount = result.data?.statements?.success || 0;
+      const accountCount = result.data?.total_accounts || 0;
+      const invoiceErrors = result.data?.invoices?.failed || 0;
+      const soaErrors = result.data?.statements?.failed || 0;
+      
+      if (invoiceErrors > 0 || soaErrors > 0) {
+        const errors = [
+          ...(result.data?.invoices?.errors || []),
+          ...(result.data?.statements?.errors || [])
+        ];
+        console.error('Generation errors:', errors);
+        alert(`Generated ${invoiceCount} invoices and ${soaCount} statements for ${accountCount} accounts.\n\nFailed: ${invoiceErrors} invoices, ${soaErrors} statements.\n\nCheck console for errors.`);
+      } else {
+        alert(`Successfully generated ${invoiceCount} invoices and ${soaCount} statements for ${accountCount} active accounts`);
+      }
+    }).catch((err) => {
+      console.error('Generation failed:', err);
+      setError('Generation failed. Please try again.');
+      alert('Generation failed: ' + (err as Error).message);
+    }).finally(() => {
+      setIsLoading(false);
+    });
   };
 
   const handleToggleColumn = (columnKey: string) => {
@@ -805,6 +937,13 @@ const Customer: React.FC = () => {
                   )}
                 </div>
                 <button
+                  onClick={handleGenerateSampleData}
+                  disabled={isLoading}
+                  className="bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
+                >
+                  {isLoading ? 'Generating...' : 'Generate Sample Data'}
+                </button>
+                <button
                   onClick={handleRefresh}
                   disabled={isLoading}
                   className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-600 text-white px-4 py-2 rounded text-sm transition-colors"
@@ -841,7 +980,7 @@ const Customer: React.FC = () => {
                       <div
                         key={record.id}
                         onClick={() => handleRecordClick(record)}
-                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedBilling?.id === record.id ? 'bg-gray-800' : ''}`}
+                        className={`px-4 py-3 cursor-pointer transition-colors hover:bg-gray-800 border-b border-gray-800 ${selectedCustomer?.billingAccount?.accountNo === record.applicationId ? 'bg-gray-800' : ''}`}
                       >
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
@@ -922,7 +1061,7 @@ const Customer: React.FC = () => {
                         filteredBillingRecords.map((record) => (
                           <tr 
                             key={record.id} 
-                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedBilling?.id === record.id ? 'bg-gray-800' : ''}`}
+                            className={`border-b border-gray-800 hover:bg-gray-900 cursor-pointer transition-colors ${selectedCustomer?.billingAccount?.accountNo === record.applicationId ? 'bg-gray-800' : ''}`}
                             onClick={() => handleRecordClick(record)}
                           >
                             {filteredColumns.map((column, index) => (
@@ -957,13 +1096,22 @@ const Customer: React.FC = () => {
         </div>
       </div>
 
-      {selectedBilling && (
+      {(selectedCustomer || isLoadingDetails) && (
         <div className="flex-shrink-0 overflow-hidden">
-          <BillingDetails
-            billingRecord={selectedBilling}
-            onlineStatusRecords={[]}
-            onClose={handleCloseDetails}
-          />
+          {isLoadingDetails ? (
+            <div className="w-[600px] bg-gray-900 text-white h-full flex items-center justify-center border-l border-white border-opacity-30">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+                <p className="text-gray-400">Loading details...</p>
+              </div>
+            </div>
+          ) : selectedCustomer ? (
+            <BillingDetails
+              billingRecord={convertCustomerDataToBillingDetail(selectedCustomer)}
+              onlineStatusRecords={[]}
+              onClose={handleCloseDetails}
+            />
+          ) : null}
         </div>
       )}
     </div>

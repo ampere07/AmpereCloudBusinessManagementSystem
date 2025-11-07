@@ -332,6 +332,21 @@ class JobOrderController extends Controller
             $application = $jobOrder->application;
             $defaultUserId = 1;
 
+            \Log::info('Job Order Approval - Application Data', [
+                'application_id' => $application->id,
+                'mobile_number' => $application->mobile_number,
+                'secondary_mobile_number' => $application->secondary_mobile_number,
+                'first_name' => $application->first_name,
+                'last_name' => $application->last_name,
+            ]);
+
+            if (empty($application->secondary_mobile_number)) {
+                \Log::warning('Secondary mobile number is empty in application', [
+                    'application_id' => $application->id,
+                    'job_order_id' => $id
+                ]);
+            }
+
             $customer = Customer::create([
                 'first_name' => $application->first_name,
                 'middle_initial' => $application->middle_initial,
@@ -351,6 +366,13 @@ class JobOrderController extends Controller
                 'house_front_picture_url' => $jobOrder->house_front_picture_url,
                 'created_by' => $defaultUserId,
                 'updated_by' => $defaultUserId,
+            ]);
+
+            \Log::info('Customer Created with Contact Numbers', [
+                'customer_id' => $customer->id,
+                'contact_number_primary' => $customer->contact_number_primary,
+                'contact_number_secondary' => $customer->contact_number_secondary,
+                'from_application_secondary' => $application->secondary_mobile_number,
             ]);
 
             $accountNumber = $this->generateAccountNumber();
@@ -488,6 +510,8 @@ class JobOrderController extends Controller
                     'desired_plan' => $application->desired_plan,
                     'installation_fee' => $installationFee,
                     'account_balance' => $installationFee,
+                    'contact_number_primary' => $customer->contact_number_primary,
+                    'contact_number_secondary' => $customer->contact_number_secondary,
                 ]
             ]);
 
@@ -512,55 +536,75 @@ class JobOrderController extends Controller
         $customAccountNumber = DB::table('custom_account_number')->first();
         
         if (!$customAccountNumber) {
+            \Log::info('No custom_account_number record found, using default generation');
             return $this->generateDefaultAccountNumber();
         }
         
-        if ($customAccountNumber->starting_number === null || $customAccountNumber->starting_number === '') {
-            \Log::info('Starting number is null, using default 0001');
-            return '0001';
-        }
+        $prefix = $customAccountNumber->starting_number;
         
-        $startingNumber = $customAccountNumber->starting_number;
-        
-        if (!preg_match('/^([A-Za-z]*)(\d+)$/', $startingNumber, $matches)) {
-            \Log::warning('Invalid starting_number format', [
-                'starting_number' => $startingNumber
-            ]);
-            return $this->generateDefaultAccountNumber();
-        }
-        
-        $prefix = $matches[1];
-        $numericPart = $matches[2];
-        $numLength = strlen($numericPart);
-        
-        if (!empty($prefix)) {
-            $latestAccount = BillingAccount::where('account_no', 'LIKE', $prefix . '%')
-                ->orderBy('account_no', 'desc')
-                ->lockForUpdate()
-                ->first();
-            
-            if ($latestAccount && preg_match('/^' . preg_quote($prefix, '/') . '(\d+)$/', $latestAccount->account_no, $accountMatches)) {
-                $lastNumber = (int) $accountMatches[1];
-                $nextNumber = $lastNumber + 1;
-            } else {
-                $nextNumber = (int) $numericPart;
-            }
-            
-            return $prefix . str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+        if ($prefix === null) {
+            $prefix = '';
         } else {
-            $latestAccount = BillingAccount::where('account_no', 'REGEXP', '^[0-9]+$')
-                ->orderBy(DB::raw('CAST(account_no AS UNSIGNED)'), 'desc')
-                ->lockForUpdate()
-                ->first();
-            
-            if ($latestAccount && is_numeric($latestAccount->account_no)) {
-                $nextNumber = (int) $latestAccount->account_no + 1;
-            } else {
-                $nextNumber = (int) $numericPart;
-            }
-            
-            return str_pad($nextNumber, $numLength, '0', STR_PAD_LEFT);
+            $prefix = (string)$prefix;
         }
+        
+        \Log::info('Custom account number config', [
+            'prefix' => $prefix,
+            'prefix_length' => strlen($prefix)
+        ]);
+        
+        $prefixLength = strlen($prefix);
+        $minIncrementLength = 4;
+        
+        $pattern = '^' . preg_quote($prefix, '/') . '\d+$';
+        
+        $latestAccount = BillingAccount::where('account_no', 'REGEXP', $pattern)
+            ->where('account_no', 'LIKE', $prefix . '%')
+            ->orderByRaw('LENGTH(account_no) DESC, account_no DESC')
+            ->lockForUpdate()
+            ->first();
+        
+        \Log::info('Latest account search', [
+            'prefix' => $prefix,
+            'pattern' => $pattern,
+            'found' => $latestAccount ? $latestAccount->account_no : 'none'
+        ]);
+        
+        if ($latestAccount) {
+            $numericPart = substr($latestAccount->account_no, $prefixLength);
+            $lastIncrement = (int)$numericPart;
+            $lastIncrementLength = strlen($numericPart);
+            $nextIncrement = $lastIncrement + 1;
+            
+            $nextIncrementLength = max($lastIncrementLength, strlen((string)$nextIncrement));
+            
+            \Log::info('Incrementing from existing account', [
+                'last_account' => $latestAccount->account_no,
+                'last_increment' => $lastIncrement,
+                'last_increment_length' => $lastIncrementLength,
+                'next_increment' => $nextIncrement,
+                'next_increment_length' => $nextIncrementLength
+            ]);
+        } else {
+            $nextIncrement = 1;
+            $nextIncrementLength = $minIncrementLength;
+            
+            \Log::info('No existing account found, starting from 1', [
+                'next_increment' => $nextIncrement,
+                'next_increment_length' => $nextIncrementLength
+            ]);
+        }
+        
+        $newAccountNumber = $prefix . str_pad($nextIncrement, $nextIncrementLength, '0', STR_PAD_LEFT);
+        
+        \Log::info('Generated account number', [
+            'account_number' => $newAccountNumber,
+            'prefix' => $prefix,
+            'increment' => $nextIncrement,
+            'increment_length' => $nextIncrementLength
+        ]);
+        
+        return $newAccountNumber;
     }
 
     private function generateDefaultAccountNumber(): string

@@ -1367,6 +1367,18 @@ Route::prefix('service_orders')->group(function () {
     Route::delete('/{id}', [\App\Http\Controllers\Api\ServiceOrderApiController::class, 'destroy']);
 });
 
+// Customer Detail Management - Dedicated endpoint for customer details view
+Route::get('/customer-detail/{accountNo}', [\App\Http\Controllers\CustomerDetailController::class, 'show']);
+
+// Customer Management Routes
+Route::prefix('customers')->group(function () {
+    Route::get('/', [\App\Http\Controllers\CustomerController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\CustomerController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\CustomerController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\CustomerController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\CustomerController::class, 'destroy']);
+});
+
 // Billing API Routes - Fetches from customers, billing_accounts, and technical_details
 Route::prefix('billing')->group(function () {
     Route::get('/', [\App\Http\Controllers\BillingController::class, 'index']);
@@ -1468,6 +1480,36 @@ Route::get('/debug/customers-structure', function() {
     }
 });
 
+// Debug route to check customers table structure
+Route::get('/debug/customers-structure', function() {
+    try {
+        $customer = \App\Models\Customer::first();
+        
+        if (!$customer) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No customers found in database'
+            ]);
+        }
+        
+        $columns = \Illuminate\Support\Facades\Schema::getColumnListing('customers');
+        
+        return response()->json([
+            'success' => true,
+            'columns' => $columns,
+            'sample_customer' => $customer->getAttributes(),
+            'contact_number_primary' => $customer->contact_number_primary ?? 'NULL',
+            'contact_number_secondary' => $customer->contact_number_secondary ?? 'NULL',
+            'has_secondary_field' => in_array('contact_number_secondary', $columns)
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Debug route to check billing data
 Route::get('/debug/billing-data', function() {
     try {
@@ -1509,6 +1551,7 @@ Route::prefix('billing-generation')->group(function () {
     Route::post('/generate-enhanced-invoices', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedInvoices']);
     Route::post('/generate-enhanced-statements', [\App\Http\Controllers\BillingGenerationController::class, 'generateEnhancedStatements']);
     Route::post('/generate-for-day', [\App\Http\Controllers\BillingGenerationController::class, 'generateBillingsForDay']);
+    Route::post('/force-generate-all', [\App\Http\Controllers\BillingGenerationController::class, 'forceGenerateAll']);
     Route::get('/invoices', [\App\Http\Controllers\BillingGenerationController::class, 'getInvoices']);
     Route::get('/statements', [\App\Http\Controllers\BillingGenerationController::class, 'getStatements']);
 });
