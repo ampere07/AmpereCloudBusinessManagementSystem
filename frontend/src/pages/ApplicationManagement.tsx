@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { FileText, Search, ListFilter, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, Search, ListFilter, ChevronDown, ArrowUp, ArrowDown, Menu, X } from 'lucide-react';
 import ApplicationDetails from '../components/ApplicationDetails';
+import AddApplicationModal from '../modals/AddApplicationModal';
 import { getApplications } from '../services/applicationService';
 import { getCities, City } from '../services/cityService';
 import { getRegions, Region } from '../services/regionService';
@@ -40,7 +41,6 @@ interface LocationItem {
 
 type DisplayMode = 'card' | 'table';
 
-// All available columns from applications table
 const allColumns = [
   { key: 'timestamp', label: 'Timestamp', width: 'min-w-40' },
   { key: 'customerName', label: 'Customer Name', width: 'min-w-48' },
@@ -88,6 +88,8 @@ const ApplicationManagement: React.FC = () => {
   const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const [sidebarWidth, setSidebarWidth] = useState<number>(256);
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -96,7 +98,6 @@ const ApplicationManagement: React.FC = () => {
   const sidebarStartXRef = useRef<number>(0);
   const sidebarStartWidthRef = useRef<number>(0);
 
-  // Handle click outside to close dropdowns
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -114,7 +115,6 @@ const ApplicationManagement: React.FC = () => {
     };
   }, [dropdownRef, filterDropdownRef]);
 
-  // Fetch cities and regions data
   useEffect(() => {
     const fetchLocationData = async () => {
       try {
@@ -136,13 +136,11 @@ const ApplicationManagement: React.FC = () => {
     fetchLocationData();
   }, []);
 
-  // Fetch applications data - only after location data is loaded
   useEffect(() => {
     if (!locationDataLoaded) return;
     fetchApplications();
   }, [locationDataLoaded]);
 
-  // Function to fetch applications (extracted for reuse) from 'applications' table
   const fetchApplications = async () => {
     try {
       setIsLoading(true);
@@ -197,12 +195,10 @@ const ApplicationManagement: React.FC = () => {
     }
   };
 
-  // Handle application refresh when status is updated
   const handleApplicationUpdate = () => {
     fetchApplications();
   };
   
-  // Listen for location updates to refresh city data
   useEffect(() => {
     const handleLocationUpdate = async () => {
       try {
@@ -220,7 +216,6 @@ const ApplicationManagement: React.FC = () => {
     };
   }, []);
   
-  // Generate location items with counts from string-based city data
   const locationItems: LocationItem[] = useMemo(() => {
     const items: LocationItem[] = [
       {
@@ -230,14 +225,12 @@ const ApplicationManagement: React.FC = () => {
       }
     ];
     
-    // Group by city string values
     const cityGroups: Record<string, number> = {};
     applications.forEach(app => {
       const cityKey = app.city || 'Unknown';
       cityGroups[cityKey] = (cityGroups[cityKey] || 0) + 1;
     });
     
-    // Add city groups to location items
     Object.entries(cityGroups).forEach(([cityName, count]) => {
       items.push({
         id: cityName.toLowerCase(),
@@ -246,7 +239,6 @@ const ApplicationManagement: React.FC = () => {
       });
     });
     
-    // Add cities from database for compatibility (with zero count if not in data)
     cities.forEach(city => {
       if (!cityGroups[city.name]) {
         items.push({
@@ -260,7 +252,6 @@ const ApplicationManagement: React.FC = () => {
     return items;
   }, [cities, applications]);
 
-  // Filter applications based on location and search query
   const filteredApplications = useMemo(() => {
     let filtered = applications.filter(application => {
       const matchesLocation = selectedLocation === 'all' || 
@@ -275,7 +266,6 @@ const ApplicationManagement: React.FC = () => {
       return matchesLocation && matchesSearch;
     });
 
-    // Apply sorting
     if (sortColumn) {
       filtered = [...filtered].sort((a, b) => {
         let aValue: any = '';
@@ -610,16 +600,22 @@ const ApplicationManagement: React.FC = () => {
     return renderCellValue(application, columnKey);
   };
 
+  const handleLocationSelect = (locationId: string) => {
+    setSelectedLocation(locationId);
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Location Sidebar Container */}
-      <div className="bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth}px` }}>
+    <div className="bg-gray-950 h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Desktop Sidebar - Hidden on mobile */}
+      <div className="hidden md:flex bg-gray-900 border-r border-gray-700 flex-shrink-0 flex-col relative" style={{ width: `${sidebarWidth}px` }}>
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Applications</h2>
             <button 
-              className="bg-orange-600 text-white px-3 py-1 rounded text-sm flex items-center space-x-1"
-              aria-label="Applications"
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white px-3 py-1 rounded text-sm flex items-center space-x-1 transition-colors"
+              aria-label="Add new application"
             >
               <span>Form</span>
             </button>
@@ -653,19 +649,67 @@ const ApplicationManagement: React.FC = () => {
           ))}
         </div>
         
-        {/* Resize Handle */}
         <div
           className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-10"
           onMouseDown={handleMouseDownSidebarResize}
         />
       </div>
 
-      {/* Applications List - Adjusts to available space */}
-      <div className="bg-gray-900 overflow-hidden flex-1">
+      {/* Mobile Overlay Menu */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-64 bg-gray-900 shadow-xl flex flex-col">
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Filters</h2>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-gray-400 hover:text-white">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {locationItems.map((location) => (
+                <button
+                  key={location.id}
+                  onClick={() => handleLocationSelect(location.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
+                    selectedLocation === location.id
+                      ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                      : 'text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span className="capitalize">{location.name}</span>
+                  </div>
+                  {location.count > 0 && (
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      selectedLocation === location.id
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {location.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className="bg-gray-900 overflow-hidden flex-1 flex flex-col pb-16 md:pb-0">
         <div className="flex flex-col h-full">
           {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
+              <button
+                onClick={() => setMobileMenuOpen(true)}
+                className="md:hidden bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-sm transition-colors flex items-center justify-center"
+                aria-label="Open filter menu"
+              >
+                <Menu className="h-5 w-5" />
+              </button>
               <div className="relative flex-1">
                 <input
                   type="text"
@@ -676,7 +720,7 @@ const ApplicationManagement: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <div className="flex space-x-2">
+              <div className="hidden md:flex space-x-2">
                 {displayMode === 'table' && (
                   <div className="relative" ref={filterDropdownRef}>
                     <button
@@ -929,16 +973,71 @@ const ApplicationManagement: React.FC = () => {
         </div>
       </div>
 
-      {/* Application Detail View - Only visible when an application is selected */}
+      {/* Mobile Bottom Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-40">
+        <div className="flex overflow-x-auto hide-scrollbar">
+          {locationItems.map((location) => (
+            <button
+              key={location.id}
+              onClick={() => setSelectedLocation(location.id)}
+              className={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 text-xs transition-colors ${
+                selectedLocation === location.id
+                  ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                  : 'text-gray-300'
+              }`}
+            >
+              <FileText className="h-5 w-5 mb-1" />
+              <span className="capitalize whitespace-nowrap">{location.name}</span>
+              {location.count > 0 && (
+                <span className={`mt-1 px-2 py-0.5 rounded-full text-xs ${
+                  selectedLocation === location.id
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-gray-700 text-gray-300'
+                }`}>
+                  {location.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Application Detail View - Modal Sidebar */}
       {selectedApplication && (
-        <div className="flex-shrink-0 overflow-hidden">
-          <ApplicationDetails 
-            application={selectedApplication} 
-            onClose={() => setSelectedApplication(null)}
-            onApplicationUpdate={handleApplicationUpdate}
-          />
+        <div className="fixed inset-0 z-50 flex items-center justify-end" onClick={() => setSelectedApplication(null)}>
+          <div className="absolute inset-0 bg-black bg-opacity-50" />
+          <div 
+            className="relative h-full w-full md:w-3/4 lg:w-2/3 xl:w-1/2 bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <ApplicationDetails 
+              application={selectedApplication} 
+              onClose={() => setSelectedApplication(null)}
+              onApplicationUpdate={handleApplicationUpdate}
+            />
+          </div>
         </div>
       )}
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
+
+      {/* Add Application Modal */}
+      <AddApplicationModal
+        isOpen={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        onSave={() => {
+          fetchApplications();
+          setIsAddModalOpen(false);
+        }}
+      />
     </div>
   );
 };
