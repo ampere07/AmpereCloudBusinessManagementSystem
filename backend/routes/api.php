@@ -273,6 +273,66 @@ Route::get('/billing-generation/trigger-scheduled', function() {
 });
 
 // Test Invoice ID Generation
+Route::post('/billing-generation/test-single-account', function(Request $request) {
+    try {
+        $validated = $request->validate([
+            'account_id' => 'required|integer'
+        ]);
+        
+        $account = \App\Models\BillingAccount::with(['customer'])->findOrFail($validated['account_id']);
+        $service = app(\App\Services\EnhancedBillingGenerationService::class);
+        $today = \Carbon\Carbon::now();
+        $userId = 1;
+        
+        $soaResult = null;
+        $invoiceResult = null;
+        $errors = [];
+        
+        try {
+            $account->refresh();
+            $soaResult = $service->createEnhancedStatement($account, $today, $userId);
+        } catch (\Exception $e) {
+            $errors['soa'] = $e->getMessage();
+        }
+        
+        try {
+            $account->refresh();
+            $invoiceResult = $service->createEnhancedInvoice($account, $today, $userId);
+        } catch (\Exception $e) {
+            $errors['invoice'] = $e->getMessage();
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test generation completed for single account',
+            'data' => [
+                'account_no' => $account->account_no,
+                'soa' => $soaResult ? [
+                    'id' => $soaResult->id,
+                    'balance_from_previous_bill' => $soaResult->balance_from_previous_bill,
+                    'payment_received_previous' => $soaResult->payment_received_previous,
+                    'remaining_balance_previous' => $soaResult->remaining_balance_previous,
+                    'amount_due' => $soaResult->amount_due,
+                    'total_amount_due' => $soaResult->total_amount_due
+                ] : null,
+                'invoice' => $invoiceResult ? [
+                    'id' => $invoiceResult->id,
+                    'invoice_balance' => $invoiceResult->invoice_balance,
+                    'total_amount' => $invoiceResult->total_amount
+                ] : null,
+                'errors' => $errors
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Test generation failed',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 Route::get('/billing-generation/test-invoice-id', function() {
     $date = \Carbon\Carbon::now();
     $year = $date->format('y');

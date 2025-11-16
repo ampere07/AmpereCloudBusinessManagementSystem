@@ -18,6 +18,45 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 
+/**
+ * Enhanced Billing Generation Service
+ * 
+ * CRITICAL ORDER OF OPERATIONS:
+ * ================================
+ * 1. Generate SOA FIRST (before invoice)
+ * 2. Generate Invoice SECOND (after SOA)
+ * 
+ * Why this order matters:
+ * - SOA needs to show the previous balance from the last billing period
+ * - Invoice generation updates the account_balance to the new ending balance
+ * - If invoice is generated first, SOA will incorrectly use the new ending balance
+ *   instead of the actual previous balance
+ * 
+ * Example Flow:
+ * =============
+ * Previous Period:
+ *   - Total Amount Due: ₱6,694.00 (this is the ending balance)
+ * 
+ * Current Period (CORRECT ORDER):
+ *   Step 1 - Generate SOA:
+ *     - getPreviousBalance() returns ₱6,694.00 (from last SOA)
+ *     - Balance from Previous Bill: ₱6,694.00 ✓
+ *     - New charges: ₱1,299.00
+ *     - Total Amount Due: ₱7,993.00 (new ending balance)
+ *   
+ *   Step 2 - Generate Invoice:
+ *     - Updates account_balance to ₱7,993.00
+ *     - Invoice created with correct amounts
+ * 
+ * Next Period:
+ *   - getPreviousBalance() will return ₱7,993.00 (from current SOA's total_amount_due)
+ *   - Cycle continues correctly
+ * 
+ * All generation methods follow this order:
+ * - generateAllBillingsForToday()
+ * - generateBillingsForSpecificDay()
+ * - forceGenerateAll() (in BillingGenerationController)
+ */
 class EnhancedBillingGenerationService
 {
     protected const VAT_RATE = 0.12;
@@ -182,6 +221,23 @@ class EnhancedBillingGenerationService
         return $billingDay;
     }
 
+    /**
+     * Generate Statement of Account for a billing account
+     * 
+     * IMPORTANT: This method should be called BEFORE invoice generation to ensure
+     * the "Balance from Previous Bill" uses the correct previous balance.
+     * 
+     * Logic:
+     * 1. Get previous balance from last SOA's total_amount_due (or account_balance if first SOA)
+     * 2. Calculate payment received from last period
+     * 3. Calculate remaining balance: previous_balance - payment_received
+     * 4. Calculate current period charges (monthly fee, VAT, others)
+     * 5. Calculate total_amount_due: remaining_balance + amount_due
+     * 
+     * This ensures the SOA shows:
+     * - balance_from_previous_bill = Last SOA's total_amount_due (e.g., 6694)
+     * - NOT the account_balance which may have been updated by invoice generation
+     */
     public function createEnhancedStatement(BillingAccount $account, Carbon $statementDate, int $userId): StatementOfAccount
     {
         DB::beginTransaction();
@@ -243,14 +299,18 @@ class EnhancedBillingGenerationService
                                      $charges['total_deductions'];
 
             $amountDue = $monthlyServiceFee + $vat + $othersAndBasicCharges;
-            $totalAmountDue = $account->account_balance + $amountDue;
+            
+            $previousBalance = $this->getPreviousBalance($account, $statementDate);
+            $paymentReceived = $charges['payment_received_previous'];
+            $remainingBalance = $previousBalance - $paymentReceived;
+            $totalAmountDue = $remainingBalance + $amountDue;
 
             $statement = StatementOfAccount::create([
                 'account_id' => $account->id,
                 'statement_date' => $statementDate,
-                'balance_from_previous_bill' => round($account->account_balance, 2),
-                'payment_received_previous' => round($charges['payment_received_previous'], 2),
-                'remaining_balance_previous' => round($account->account_balance, 2),
+                'balance_from_previous_bill' => round($previousBalance, 2),
+                'payment_received_previous' => round($paymentReceived, 2),
+                'remaining_balance_previous' => round($remainingBalance, 2),
                 'monthly_service_fee' => round($monthlyServiceFee, 2),
                 'others_and_basic_charges' => round($othersAndBasicCharges, 2),
                 'vat' => round($vat, 2),
@@ -271,6 +331,19 @@ class EnhancedBillingGenerationService
         }
     }
 
+    /**
+     * Generate Invoice for a billing account
+     * 
+     * IMPORTANT: This method should be called AFTER SOA generation because it updates
+     * the account_balance, which would affect the SOA's "Balance from Previous Bill".
+     * 
+     * This method:
+     * 1. Calculates the invoice amount
+     * 2. Updates account_balance to new ending balance (previous + new charges)
+     * 3. Creates the invoice record
+     * 
+     * The updated account_balance will be used by the next period's SOA.
+     */
     public function createEnhancedInvoice(BillingAccount $account, Carbon $invoiceDate, int $userId): Invoice
     {
         DB::beginTransaction();
@@ -631,8 +704,8 @@ class EnhancedBillingGenerationService
             
             Log::info("Processing billing day: {$billingDayLabel}");
             
-            $invoiceResults = $this->generateInvoicesForBillingDay($billingDay, $today, $userId);
             $soaResults = $this->generateSOAForBillingDay($billingDay, $today, $userId);
+            $invoiceResults = $this->generateInvoicesForBillingDay($billingDay, $today, $userId);
             
             $results['billing_days_processed'][] = $billingDayLabel;
             $results['invoices']['success'] += $invoiceResults['success'];
@@ -651,8 +724,8 @@ class EnhancedBillingGenerationService
     {
         $today = Carbon::now();
 
-        $invoiceResults = $this->generateInvoicesForBillingDay($billingDay, $today, $userId);
         $soaResults = $this->generateSOAForBillingDay($billingDay, $today, $userId);
+        $invoiceResults = $this->generateInvoicesForBillingDay($billingDay, $today, $userId);
 
         return [
             'date' => $today->format('Y-m-d'),
@@ -670,5 +743,32 @@ class EnhancedBillingGenerationService
         }
         
         return trim($desiredPlan);
+    }
+
+    /**
+     * Get the previous balance for SOA generation
+     * 
+     * This method retrieves the correct previous balance to use in the SOA:
+     * 1. If a previous SOA exists: Use its total_amount_due (the ending balance from last period)
+     * 2. If this is the first SOA: Use the current account_balance
+     * 
+     * Example:
+     * - Previous SOA: total_amount_due = 6694 (this becomes current period's starting balance)
+     * - Current SOA: balance_from_previous_bill = 6694
+     * 
+     * CRITICAL: This method must be called BEFORE invoice generation updates account_balance
+     */
+    protected function getPreviousBalance(BillingAccount $account, Carbon $currentDate): float
+    {
+        $lastSoa = StatementOfAccount::where('account_id', $account->id)
+            ->where('statement_date', '<', $currentDate)
+            ->orderBy('statement_date', 'desc')
+            ->first();
+
+        if ($lastSoa) {
+            return $lastSoa->total_amount_due ?? 0;
+        }
+
+        return $account->account_balance ?? 0;
     }
 }

@@ -353,24 +353,7 @@ class BillingGenerationController extends Controller
                 ]);
 
                 try {
-                    $this->enhancedBillingService->createEnhancedInvoice($account, $generationDate, $userId);
-                    $invoiceResults['success']++;
-                    Log::info('Invoice created successfully', ['account_no' => $account->account_no]);
-                } catch (\Exception $e) {
-                    $invoiceResults['failed']++;
-                    $invoiceResults['errors'][] = [
-                        'account_id' => $account->id,
-                        'account_no' => $account->account_no,
-                        'error' => $e->getMessage(),
-                        'trace' => $e->getTraceAsString()
-                    ];
-                    Log::error('Invoice generation failed', [
-                        'account_no' => $account->account_no,
-                        'error' => $e->getMessage()
-                    ]);
-                }
-
-                try {
+                    $account->refresh();
                     $this->enhancedBillingService->createEnhancedStatement($account, $generationDate, $userId);
                     $soaResults['success']++;
                     Log::info('SOA created successfully', ['account_no' => $account->account_no]);
@@ -383,6 +366,25 @@ class BillingGenerationController extends Controller
                         'trace' => $e->getTraceAsString()
                     ];
                     Log::error('SOA generation failed', [
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+
+                try {
+                    $account->refresh();
+                    $this->enhancedBillingService->createEnhancedInvoice($account, $generationDate, $userId);
+                    $invoiceResults['success']++;
+                    Log::info('Invoice created successfully', ['account_no' => $account->account_no]);
+                } catch (\Exception $e) {
+                    $invoiceResults['failed']++;
+                    $invoiceResults['errors'][] = [
+                        'account_id' => $account->id,
+                        'account_no' => $account->account_no,
+                        'error' => $e->getMessage(),
+                        'trace' => $e->getTraceAsString()
+                    ];
+                    Log::error('Invoice generation failed', [
                         'account_no' => $account->account_no,
                         'error' => $e->getMessage()
                     ]);
