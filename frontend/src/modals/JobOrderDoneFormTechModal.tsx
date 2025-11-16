@@ -17,6 +17,7 @@ import { barangayService, Barangay } from '../services/barangayService';
 import { locationDetailService, LocationDetail } from '../services/locationDetailService';
 import { updateApplication } from '../services/applicationService';
 import apiClient from '../config/api';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
 
 interface Region {
   id: number;
@@ -176,6 +177,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   }>({ title: '', messages: [] });
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [loadingPercentage, setLoadingPercentage] = useState(0);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -268,6 +270,21 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
       </div>
     );
   };
+
+  useEffect(() => {
+    const fetchImageSizeSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getActiveImageSize();
+          setActiveImageSize(settings);
+        } catch (error) {
+          setActiveImageSize(null);
+        }
+      }
+    };
+    
+    fetchImageSizeSettings();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -802,18 +819,43 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
-    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviews[field]!);
-    }
-    
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleImageUpload = async (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
+    try {
+      let processedFile = file;
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          processedFile = await resizeImage(file, activeImageSize.image_size_value);
+        } catch (resizeError) {
+          processedFile = file;
+        }
+      }
+      
+      setFormData(prev => ({ ...prev, [field]: processedFile }));
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      setFormData(prev => ({ ...prev, [field]: file }));
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 

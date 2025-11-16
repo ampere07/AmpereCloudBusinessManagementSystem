@@ -3,6 +3,8 @@ import { X, Camera, MapPin, ChevronDown, CheckCircle, AlertCircle, Loader2 } fro
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
 import { locationDetailService, LocationDetail } from '../services/locationDetailService';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
+import { GOOGLE_MAPS_API_KEY } from '../config/maps';
 
 interface AddLcpNapLocationModalProps {
   isOpen: boolean;
@@ -83,19 +85,30 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
   const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   const [showCoordinatesMap, setShowCoordinatesMap] = useState<boolean>(false);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
   const API_BASE_URL = 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
     if (isOpen) {
       loadDropdownData();
+      fetchImageSizeSettings();
       resetForm();
     }
   }, [isOpen]);
+
+  const fetchImageSizeSettings = async () => {
+    try {
+      const settings = await getActiveImageSize();
+      setActiveImageSize(settings);
+    } catch (error) {
+      setActiveImageSize(null);
+    }
+  };
 
   useEffect(() => {
     if (showCoordinatesMap && !mapInstanceRef.current) {
@@ -115,48 +128,51 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   }, [formData.lcp_name, formData.nap_name]);
 
   const loadMapScript = () => {
-    const existingCSS = document.getElementById('leaflet-css-lcpnap');
-    const existingJS = document.getElementById('leaflet-js-lcpnap');
-
-    if (!existingCSS) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css-lcpnap';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    if (!existingJS) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js-lcpnap';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = initializeMap;
-      document.head.appendChild(script);
-    } else if ((window as any).L && !mapInstanceRef.current) {
+    if (window.google?.maps) {
       initializeMap();
+      return;
     }
+
+    const existingScript = document.getElementById('google-maps-script-modal');
+    if (existingScript) {
+      existingScript.addEventListener('load', initializeMap);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-script-modal';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeMap;
+    script.onerror = () => {
+      console.error('Failed to load Google Maps script');
+    };
+    document.head.appendChild(script);
   };
 
   const initializeMap = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.google?.maps) return;
 
     cleanupMap();
-
-    const L = (window as any).L;
-    if (!L) return;
 
     try {
       const defaultLat = 14.5995;
       const defaultLng = 120.9842;
-      const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 6);
+      
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: defaultLat, lng: defaultLng },
+        zoom: 6,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+      });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
-      map.on('click', (e: any) => {
-        const { lat, lng } = e.latlng;
-        handleMapClick(lat, lng);
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          handleMapClick(e.latLng.lat(), e.latLng.lng());
+        }
       });
 
       mapInstanceRef.current = map;
@@ -168,7 +184,8 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
           const lng = parseFloat(coords[1]);
           if (!isNaN(lat) && !isNaN(lng)) {
             addMarkerToMap(lat, lng);
-            map.setView([lat, lng], 15);
+            map.setCenter({ lat, lng });
+            map.setZoom(15);
           }
         }
       }
@@ -178,14 +195,11 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   };
 
   const cleanupMap = () => {
-    if (markerRef.current && mapInstanceRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
+    if (markerRef.current) {
+      markerRef.current.setMap(null);
       markerRef.current = null;
     }
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    mapInstanceRef.current = null;
   };
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -200,36 +214,38 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   };
 
   const addMarkerToMap = (lat: number, lng: number) => {
-    if (!mapInstanceRef.current) return;
-
-    const L = (window as any).L;
-    if (!L) return;
+    if (!mapInstanceRef.current || !window.google?.maps) return;
 
     if (markerRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
+      markerRef.current.setMap(null);
     }
 
-    const marker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        className: 'custom-marker',
-        html: `
-          <svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 0C7.163 0 0 7.163 0 16c0 13 16 28 16 28s16-15 16-28c0-8.837-7.163-16-16-16z" fill="#f97316" stroke="#fff" stroke-width="2"/>
-            <circle cx="16" cy="16" r="6" fill="#fff"/>
-          </svg>
-        `,
-        iconSize: [32, 44],
-        iconAnchor: [16, 44],
-        popupAnchor: [0, -44]
-      })
-    }).addTo(mapInstanceRef.current);
+    const marker = new google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstanceRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#f97316',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      title: 'Selected Location'
+    });
 
-    marker.bindPopup(`
-      <div style="font-family: system-ui; text-align: center;">
-        <strong>Selected Location</strong><br/>
-        <span style="font-size: 12px; color: #666;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
-      </div>
-    `);
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div style="font-family: system-ui; text-align: center; color: #1f2937;">
+          <strong>Selected Location</strong><br/>
+          <span style="font-size: 12px; color: #666;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+        </div>
+      `
+    });
+
+    marker.addListener('click', () => {
+      infoWindow.open(mapInstanceRef.current, marker);
+    });
 
     markerRef.current = marker;
   };
@@ -314,18 +330,43 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = (field: 'reading_image' | 'image' | 'image_2', file: File) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
-    if (imagePreviews[field]) {
-      URL.revokeObjectURL(imagePreviews[field]!);
-    }
-    
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleImageUpload = async (field: 'reading_image' | 'image' | 'image_2', file: File) => {
+    try {
+      let processedFile = file;
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          processedFile = await resizeImage(file, activeImageSize.image_size_value);
+        } catch (resizeError) {
+          processedFile = file;
+        }
+      }
+      
+      setFormData(prev => ({ ...prev, [field]: processedFile }));
+      
+      if (imagePreviews[field]) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      setFormData(prev => ({ ...prev, [field]: file }));
+      
+      if (imagePreviews[field]) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 

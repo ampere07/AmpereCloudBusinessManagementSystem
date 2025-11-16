@@ -1745,6 +1745,22 @@ Route::prefix('settings-image-size')->group(function () {
     Route::put('/{id}/status', [\App\Http\Controllers\SettingsImageSizeController::class, 'updateStatus']);
 });
 
+Route::get('/settings/image-size', function() {
+    try {
+        $sizes = \App\Models\SettingsImageSize::orderBy('id')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $sizes
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error fetching image size settings',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Settings Color Palette Management Routes
 Route::prefix('settings-color-palette')->group(function () {
     Route::get('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'index']);

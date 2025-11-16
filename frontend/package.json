@@ -50,6 +50,7 @@
     "@types/connect": "^3.4.38",
     "@types/connect-history-api-fallback": "^1.5.4",
     "@types/estree": "^1.0.8",
+    "@types/google.maps": "^3.58.1",
     "@types/graceful-fs": "^4.1.9",
     "@types/html-minifier-terser": "^7.0.2",
     "@types/jest": "^30.0.0",
