@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Minus, Plus, Camera, Calendar, Loader2 } from 'lucide-react';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
 
 interface InventoryFormModalProps {
   isOpen: boolean;
@@ -48,6 +49,7 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [categories, setCategories] = useState<string[]>([]);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
 
   useEffect(() => {
     const fetchCategories = async () => {
@@ -64,6 +66,21 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     };
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    const fetchImageSizeSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getActiveImageSize();
+          setActiveImageSize(settings);
+        } catch (error) {
+          setActiveImageSize(null);
+        }
+      }
+    };
+    
+    fetchImageSizeSettings();
+  }, [isOpen]);
 
   useEffect(() => {
     if (editData) {
@@ -114,10 +131,24 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     }));
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      handleInputChange('image', file);
+      try {
+        let processedFile = file;
+        
+        if (activeImageSize && activeImageSize.image_size_value < 100) {
+          try {
+            processedFile = await resizeImage(file, activeImageSize.image_size_value);
+          } catch (resizeError) {
+            processedFile = file;
+          }
+        }
+        
+        handleInputChange('image', processedFile);
+      } catch (error) {
+        handleInputChange('image', file);
+      }
     }
   };
 
