@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin } from 'lucide-react';
+import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin ,Loader2 } from 'lucide-react';
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
@@ -190,6 +190,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [lcpnaps, setLcpnaps] = useState<LCPNAP[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
@@ -213,6 +214,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     message: ''
   });
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
   
   const [imagePreviews, setImagePreviews] = useState<{
     signedContractImage: string | null;
@@ -1034,7 +1036,12 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
     setLoading(true);
     setShowLoadingModal(true);
+    setUploadProgress(0);
+    setProgressSteps([]);
     try {
+      setUploadProgress(10);
+      setProgressSteps(['Preparing data...']);
+      
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
       const applicationId = jobOrderData.Application_ID || jobOrderData.application_id;
       
@@ -1090,11 +1097,16 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       }
 
+      setUploadProgress(30);
+      setProgressSteps(prev => [...prev, 'Updating job order...']);
+      
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
+      
+      setUploadProgress(50);
 
       if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
         const validItems = orderItems.filter(item => {
@@ -1121,6 +1133,9 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             console.error('Error deleting existing items:', deleteError);
           }
 
+          setUploadProgress(60);
+          setProgressSteps(prev => [...prev, 'Saving items...']);
+          
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
             return {
               job_order_id: parseInt(jobOrderId.toString()),
@@ -1131,6 +1146,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
+            
+            setUploadProgress(75);
             
             if (!itemsResponse.success) {
               throw new Error(itemsResponse.message || 'Failed to create job order items');
@@ -1152,6 +1169,9 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
       }
 
       if (applicationId) {
+        setUploadProgress(85);
+        setProgressSteps(prev => [...prev, 'Updating application...']);
+        
         const applicationUpdateData: any = {
           first_name: updatedFormData.firstName,
           middle_initial: updatedFormData.middleInitial,
@@ -1170,7 +1190,12 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         };
 
         await updateApplication(applicationId, applicationUpdateData);
+        
+        setUploadProgress(95);
       }
+      
+      setUploadProgress(100);
+      setProgressSteps(prev => [...prev, 'Complete!']);
 
       setModal({
         isOpen: true,
@@ -1231,10 +1256,13 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     {showLoadingModal && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
         <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
-            <h3 className="text-xl font-semibold text-white">Saving...</h3>
-            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+          <div className="flex flex-col items-center space-y-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-orange-500"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">{uploadProgress}%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

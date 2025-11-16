@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Camera, MapPin, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { X, Calendar, ChevronDown, Camera, MapPin, CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { userService } from '../services/userService';
@@ -175,6 +175,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
   }>({ title: '', messages: [] });
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -968,6 +969,15 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
 
     setLoading(true);
     setShowLoadingModal(true);
+    setLoadingPercentage(0);
+    
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 90) return prev;
+        return prev + 10;
+      });
+    }, 400);
+    
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
     try {
@@ -1274,16 +1284,23 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         }
       }
 
+      clearInterval(progressInterval);
+      setLoadingPercentage(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       setErrors({});
       setLoading(false);
       setShowLoadingModal(false);
+      setLoadingPercentage(0);
       showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
     } catch (error: any) {
+      clearInterval(progressInterval);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setLoading(false);
       setShowLoadingModal(false);
+      setLoadingPercentage(0);
       showMessageModal('Error', [
         { type: 'error', text: `Failed to update records: ${errorMessage}` }
       ]);
@@ -1322,12 +1339,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   return (
     <>
     {showLoadingModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
-        <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
-            <h3 className="text-xl font-semibold text-white">Saving...</h3>
-            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-[10000] flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6 min-w-[320px]">
+          <Loader2 className="w-20 h-20 text-orange-500 animate-spin" />
+          <div className="text-center">
+            <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
           </div>
         </div>
       </div>

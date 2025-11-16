@@ -316,11 +316,20 @@ const BillingConfig: React.FC = () => {
     setIsEditingBillingConfig(false);
   };
 
+  interface BillingGenerationResponse {
+    success: boolean;
+    data: {
+      invoices: { success: number; failed: number };
+      statements: { success: number; failed: number };
+    };
+    message?: string;
+  }
+
   const handleTestGeneration = async () => {
     try {
       setLoadingBillingConfig(true);
       
-      const response = await apiClient.post('/billing-generation/force-generate-all');
+      const response = await apiClient.post<BillingGenerationResponse>('/billing-generation/force-generate-all');
       
       if (response.data.success) {
         const data = response.data.data;

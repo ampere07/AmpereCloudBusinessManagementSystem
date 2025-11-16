@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown, Camera } from 'lucide-react';
+import { X, ChevronDown, Camera ,Loader2 } from 'lucide-react';
 import { updateApplicationVisit, uploadApplicationVisitImages } from '../services/applicationVisitService';
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
@@ -178,6 +178,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -568,6 +569,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
 
     setLoading(true);
+    setLoadingPercentage(0);
     setModal({
       isOpen: true,
       type: 'loading',
@@ -576,9 +578,12 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     });
     
     try {
+      setLoadingPercentage(20);
       const updateData = mapFormDataToUpdateData();
       
+      setLoadingPercentage(40);
       const result = await updateApplicationVisit(visitData.id, updateData);
+      setLoadingPercentage(60);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to update application visit');
@@ -586,6 +591,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       
       if (userRole === 'technician' && (technicianFormData.image1 || technicianFormData.image2 || technicianFormData.image3)) {
         try {
+          setLoadingPercentage(70);
           const uploadResult = await uploadApplicationVisitImages(
             visitData.id,
             visitData.first_name,
@@ -598,6 +604,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
             }
           );
           
+          setLoadingPercentage(100);
           if (uploadResult.success) {
             const updatedVisit = { ...visitData, ...updateData };
             setPendingUpdate(updatedVisit);
@@ -632,6 +639,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           });
         }
       } else {
+        setLoadingPercentage(100);
         const updatedVisit = { ...visitData, ...updateData };
         setPendingUpdate(updatedVisit);
         setModal({
@@ -1242,11 +1250,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
             {modal.type === 'loading' ? (
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                <div className="flex justify-center mb-6">
+                  <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-orange-500"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
-                <p className="text-gray-400 text-sm">{modal.message}</p>
+                <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
               </div>
             ) : (
               <>

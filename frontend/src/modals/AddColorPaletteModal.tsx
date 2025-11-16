@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Loader2, CheckCircle, XCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Loader2, XCircle } from 'lucide-react';
 
 interface AddColorPaletteModalProps {
   isOpen: boolean;
@@ -26,9 +26,26 @@ const AddColorPaletteModal: React.FC<AddColorPaletteModalProps> = ({
   const [accentColor, setAccentColor] = useState('#fb923c');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [loadingProgress, setLoadingProgress] = useState(0);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  useEffect(() => {
+    if (isLoading) {
+      setLoadingProgress(0);
+      const interval = setInterval(() => {
+        setLoadingProgress((prev) => {
+          if (prev >= 90) {
+            clearInterval(interval);
+            return prev;
+          }
+          return prev + Math.random() * 15;
+        });
+      }, 200);
+
+      return () => clearInterval(interval);
+    }
+  }, [isLoading]);
 
   const validateHexColor = (color: string): boolean => {
     return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color);
@@ -76,13 +93,11 @@ const AddColorPaletteModal: React.FC<AddColorPaletteModalProps> = ({
 
     try {
       await onSave(newPalette);
-      setIsLoading(false);
-      setShowSuccess(true);
-      
+      setLoadingProgress(100);
       setTimeout(() => {
-        setShowSuccess(false);
+        setIsLoading(false);
         handleClose();
-      }, 2000);
+      }, 500);
     } catch (error) {
       setIsLoading(false);
       setShowError(true);
@@ -98,9 +113,9 @@ const AddColorPaletteModal: React.FC<AddColorPaletteModalProps> = ({
     setSecondaryColor('#1f2937');
     setAccentColor('#fb923c');
     setErrors({});
-    setShowSuccess(false);
     setShowError(false);
     setErrorMessage('');
+    setLoadingProgress(0);
     onClose();
   };
 
@@ -310,18 +325,9 @@ const AddColorPaletteModal: React.FC<AddColorPaletteModalProps> = ({
 
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center gap-4">
-            <Loader2 className="h-12 w-12 text-orange-500 animate-spin" />
-            <p className="text-white font-medium">Creating color palette...</p>
-          </div>
-        </div>
-      )}
-
-      {showSuccess && (
-        <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-[60]">
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center gap-4">
-            <CheckCircle className="h-16 w-16 text-green-500" />
-            <p className="text-white font-medium text-lg">Color palette created successfully!</p>
+          <div className="bg-gray-800 rounded-lg p-12 flex flex-col items-center gap-6">
+            <Loader2 className="h-16 w-16 text-orange-500 animate-spin" />
+            <p className="text-white font-bold text-4xl">{Math.round(loadingProgress)}%</p>
           </div>
         </div>
       )}

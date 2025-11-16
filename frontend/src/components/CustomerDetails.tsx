@@ -201,250 +201,180 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
         </div>
       </div>
 
-      {/* Customer Details */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4">
-        {/* Usage Type */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Usage Type</span>
-          <span className="text-white font-medium">{billingRecord.usageType || ''}</span>
-        </div>
-
-        {/* Full Name */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Full Name</span>
-          <span className="text-white font-medium">{billingRecord.customerName}</span>
-        </div>
-
-        {/* Billing Status */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Billing Status</span>
-          <span className="text-white font-medium">{billingRecord.status}</span>
-        </div>
-
-        {/* Affiliate */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Affiliate</span>
-          <span className="text-white font-medium">{billingRecord.group || ''}</span>
-        </div>
-
-        {/* Billing Day */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Billing Day</span>
-          <span className="text-white font-medium">{billingRecord.billingDay === 0 ? 'Every end of month' : (billingRecord.billingDay || '-')}</span>
-        </div>
-
-        {/* Account No */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Account No.</span>
-          <span className="text-white font-medium">{billingRecord.applicationId}</span>
-        </div>
-
-        {/* Date Installed */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Date Installed</span>
-          <span className="text-white font-medium">{billingRecord.dateInstalled || ''}</span>
-        </div>
-
-        {/* Contact Number */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Contact Number</span>
-          <span className="text-white font-medium">{billingRecord.contactNumber || ''}</span>
-        </div>
-
-        {/* Second Contact Number */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Second Contact Number</span>
-          <span className="text-white font-medium">{billingRecord.secondContactNumber || ''}</span>
-        </div>
-
-        {/* Email Address */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Email Address</span>
-          <span className="text-white font-medium">{billingRecord.emailAddress || ''}</span>
-        </div>
-
-        {/* Address */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Address</span>
-          <span className="text-white font-medium">{billingRecord.address?.split(',')[0] || ''}</span>
-        </div>
-
-        {/* Barangay */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Barangay</span>
-          <span className="text-white font-medium">{billingRecord.barangay || ''}</span>
-        </div>
-
-        {/* City */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">City</span>
-          <span className="text-white font-medium">{billingRecord.city || ''}</span>
-        </div>
-
-        {/* Region */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Region</span>
-          <span className="text-white font-medium">{billingRecord.region || ''}</span>
-        </div>
-
-        {/* Location */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Location</span>
-          <span className="text-white font-medium">{billingRecord.location || ''}</span>
-        </div>
-
-        {/* Housing Status */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Housing Status</span>
-          <span className="text-white font-medium">{billingRecord.housingStatus || ''}</span>
-        </div>
-
-        {/* Address Coordinates - Map placeholder */}
-        <div className="space-y-2">
-          <span className="text-gray-400 text-sm">Address Coordinates</span>
-          <div className="w-full h-24 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
-            <span className="text-gray-500 text-sm">{billingRecord.addressCoordinates || 'Map View'}</span>
+      {/* Customer Details Section */}
+      <div className="flex-1 overflow-y-auto p-6 space-y-6">
+        {/* Customer Details */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold text-sm mb-4">Customer Details</h3>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Full Name</span>
+            <span className="text-white font-medium">{billingRecord.customerName}</span>
           </div>
-        </div>
 
-        {/* Plan */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Plan</span>
-          <span className="text-white font-medium">{billingRecord.plan || ''}</span>
-        </div>
-
-        {/* Account Balance */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Account Balance</span>
-          <span className="text-white font-medium">₱{billingRecord.accountBalance || '0.00'}</span>
-        </div>
-
-        {/* Total Paid */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Total Paid</span>
-          <span className="text-white font-medium">₱{billingRecord.totalPaid || '0.00'}</span>
-        </div>
-
-        {/* Referred By */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Referred By:</span>
-          <span className="text-white font-medium">{billingRecord.referredBy || ''}</span>
-        </div>
-
-        {/* Referral Contact No */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Referral Contact No.</span>
-          <span className="text-white font-medium">{billingRecord.referralContactNo || ''}</span>
-        </div>
-
-        {/* Username */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Username</span>
-          <span className="text-white font-medium">{billingRecord.username || ''}</span>
-        </div>
-
-        {/* Connection Type */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Connection Type</span>
-          <span className="text-white font-medium">{billingRecord.connectionType || ''}</span>
-        </div>
-
-        {/* Router Model */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Router Model</span>
-          <span className="text-white font-medium">{billingRecord.routerModel || ''}</span>
-        </div>
-
-        {/* Router/Modem SN */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Router/Modem SN</span>
-          <span className="text-white font-medium">{billingRecord.routerModemSN || ''}</span>
-        </div>
-
-        {/* Status */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Status</span>
-          <div className="flex items-center space-x-2">
-            <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-            <span className="text-green-400 font-medium">{billingRecord.onlineStatus}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Email Address</span>
+            <span className="text-white font-medium">{billingRecord.emailAddress || billingRecord.email || ''}</span>
           </div>
-        </div>
 
-        {/* Group */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Affiliate</span>
-          <span className="text-white font-medium">{billingRecord.groupName || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Contact Number</span>
+            <span className="text-white font-medium">{billingRecord.contactNumber || ''}</span>
+          </div>
 
-        {/* Mikrotik ID */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Mikrotik ID</span>
-          <span className="text-white font-medium">{billingRecord.mikrotikId || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Second Contact Number</span>
+            <span className="text-white font-medium">{billingRecord.secondContactNumber || ''}</span>
+          </div>
 
-        {/* LCPNAP */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">LCPNAP</span>
-          <span className="text-white font-medium">{billingRecord.lcpnap || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Address</span>
+            <span className="text-white font-medium">{billingRecord.address?.split(',')[0] || ''}</span>
+          </div>
 
-        {/* LCP */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">LCP</span>
-          <span className="text-white font-medium">{billingRecord.lcp || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Barangay</span>
+            <span className="text-white font-medium">{billingRecord.barangay || ''}</span>
+          </div>
 
-        {/* NAP */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">NAP</span>
-          <span className="text-white font-medium">{billingRecord.nap || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">City</span>
+            <span className="text-white font-medium">{billingRecord.city || ''}</span>
+          </div>
 
-        {/* PORT */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">PORT</span>
-          <span className="text-white font-medium">{billingRecord.port || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Region</span>
+            <span className="text-white font-medium">{billingRecord.region || ''}</span>
+          </div>
 
-        {/* VLAN */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">VLAN</span>
-          <span className="text-white font-medium">{billingRecord.vlan || ''}</span>
-        </div>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Referred By</span>
+            <span className="text-white font-medium">{billingRecord.referredBy || ''}</span>
+          </div>
 
-        {/* Session IP */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Session IP</span>
-          <span className="text-white font-medium">{billingRecord.sessionIp || ''}</span>
-        </div>
+          <div className="space-y-2">
+            <span className="text-gray-400 text-sm">Address Coordinates</span>
+            <div className="w-full h-24 bg-gray-800 border border-gray-700 rounded flex items-center justify-center">
+              <span className="text-gray-500 text-sm">{billingRecord.addressCoordinates || 'Map View'}</span>
+            </div>
+          </div>
 
-        {/* Modified By */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Modified By</span>
-          <span className="text-white font-medium">{billingRecord.modifiedBy || ''}</span>
-        </div>
-
-        {/* Modified Date */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">Modified Date</span>
-          <span className="text-white font-medium">{billingRecord.modifiedDate || ''}</span>
-        </div>
-
-        {/* House Front Picture */}
-        <div className="flex justify-between items-center">
-          <span className="text-gray-400 text-sm">House Front Picture</span>
-          {(() => {
-            console.log('Rendering House Front Picture - Value:', billingRecord.houseFrontPicture);
-            console.log('Rendering House Front Picture - Truthy check:', !!billingRecord.houseFrontPicture);
-            return billingRecord.houseFrontPicture ? (
-              <button className="text-blue-400 hover:text-blue-300 flex items-center space-x-1">
-                <span className="text-sm">{billingRecord.houseFrontPicture}</span>
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">House Front Picture</span>
+            {billingRecord.houseFrontPicture ? (
+              <button 
+                onClick={() => window.open(billingRecord.houseFrontPicture, '_blank')}
+                className="text-blue-400 hover:text-blue-300 flex items-center space-x-1"
+              >
+                <span className="text-sm truncate max-w-xs">{billingRecord.houseFrontPicture}</span>
                 <ExternalLink size={14} />
               </button>
             ) : (
               <span className="text-white font-medium">No image</span>
-            );
-          })()}
+            )}
+          </div>
+        </div>
+
+        {/* Technical Details */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold text-sm mb-4">Technical Details</h3>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Usage Type</span>
+            <span className="text-white font-medium">{billingRecord.usageType || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Date Installed</span>
+            <span className="text-white font-medium">{billingRecord.dateInstalled || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">PPPOE Username</span>
+            <span className="text-white font-medium">{billingRecord.username || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Connection Type</span>
+            <span className="text-white font-medium">{billingRecord.connectionType || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Router Model</span>
+            <span className="text-white font-medium">{billingRecord.routerModel || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Router Serial Number</span>
+            <span className="text-white font-medium">{billingRecord.routerModemSN || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Online Status</span>
+            <div className="flex items-center space-x-2">
+              <div className={`w-2 h-2 rounded-full ${
+                billingRecord.onlineStatus === 'Online' ? 'bg-green-400' : 'bg-red-400'
+              }`}></div>
+              <span className={`font-medium ${
+                billingRecord.onlineStatus === 'Online' ? 'text-green-400' : 'text-red-400'
+              }`}>{billingRecord.onlineStatus}</span>
+            </div>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Mikrotik ID</span>
+            <span className="text-white font-medium">{billingRecord.mikrotikId || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">LCP NAP PORT</span>
+            <span className="text-white font-medium">{billingRecord.lcpnap || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">VLAN</span>
+            <span className="text-white font-medium">{billingRecord.vlan || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">SESSION IP</span>
+            <span className="text-white font-medium">{billingRecord.sessionIp || billingRecord.sessionIP || ''}</span>
+          </div>
+        </div>
+
+        {/* Billing Details */}
+        <div className="space-y-4">
+          <h3 className="text-white font-semibold text-sm mb-4">Billing Details</h3>
+          
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Account Number</span>
+            <span className="text-white font-medium">{billingRecord.applicationId}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Billing Status</span>
+            <span className="text-white font-medium">{billingRecord.status}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Billing Day</span>
+            <span className="text-white font-medium">{billingRecord.billingDay === 0 ? 'Every end of month' : (billingRecord.billingDay || '-')}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Plan</span>
+            <span className="text-white font-medium">{billingRecord.plan || ''}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Account Balance</span>
+            <span className="text-white font-medium">₱{billingRecord.accountBalance || billingRecord.balance || '0.00'}</span>
+          </div>
+
+          <div className="flex justify-between items-center">
+            <span className="text-gray-400 text-sm">Total Paid</span>
+            <span className="text-white font-medium">₱{billingRecord.totalPaid || '0.00'}</span>
+          </div>
         </div>
       </div>
 
