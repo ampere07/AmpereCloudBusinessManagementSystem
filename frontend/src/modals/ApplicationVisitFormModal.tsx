@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown } from 'lucide-react';
+import { X, ChevronDown ,Loader2 } from 'lucide-react';
 import { createApplicationVisit, ApplicationVisitData } from '../services/applicationVisitService';
 import { updateApplication } from '../services/applicationService';
 import { UserData } from '../types/api';
@@ -75,6 +75,22 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
   useEffect(() => {
     if (isOpen && applicationData) {
+      setFormData(prev => ({
+        ...prev,
+        firstName: applicationData.first_name || prev.firstName,
+        middleInitial: applicationData.middle_initial || prev.middleInitial,
+        lastName: applicationData.last_name || prev.lastName,
+        contactNumber: applicationData.mobile_number || prev.contactNumber,
+        secondContactNumber: applicationData.secondary_mobile_number || prev.secondContactNumber,
+        email: applicationData.email_address || prev.email,
+        address: applicationData.installation_address || prev.address,
+        barangay: applicationData.barangay || prev.barangay,
+        city: applicationData.city || prev.city,
+        region: applicationData.region || prev.region,
+        location: applicationData.location || prev.location,
+        choosePlan: applicationData.desired_plan || prev.choosePlan,
+        promo: applicationData.promo || prev.promo
+      }));
     }
   }, [isOpen, applicationData]);
   
@@ -111,6 +127,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   
   const [modal, setModal] = useState<ModalConfig>({
@@ -302,30 +319,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     fetchTechnicians();
   }, [isOpen]);
 
-  useEffect(() => {
-    if (applicationData) {
-      setFormData(prev => {
-        const secondContact = applicationData.secondary_mobile_number || '';
-        
-        return {
-          ...prev,
-          firstName: applicationData.first_name || prev.firstName,
-          middleInitial: applicationData.middle_initial || prev.middleInitial,
-          lastName: applicationData.last_name || prev.lastName,
-          contactNumber: applicationData.mobile_number || prev.contactNumber,
-          secondContactNumber: secondContact,
-          email: applicationData.email_address || prev.email,
-          address: applicationData.installation_address || prev.address,
-          barangay: applicationData.barangay || prev.barangay,
-          city: applicationData.city || prev.city,
-          region: applicationData.region || prev.region,
-          location: applicationData.location || prev.location,
-          choosePlan: applicationData.desired_plan || prev.choosePlan,
-          promo: applicationData.promo || prev.promo
-        };
-      });
-    }
-  }, [applicationData]);
+
 
   const handleInputChange = (field: keyof VisitFormData, value: string) => {
     setFormData(prev => {
@@ -442,6 +436,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     }
 
     setLoading(true);
+    setLoadingPercentage(0);
     setModal({
       isOpen: true,
       type: 'loading',
@@ -450,6 +445,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     });
     
     try {
+      setLoadingPercentage(10);
       const applicationId = applicationData.id;
       
       const applicationUpdateData: any = {
@@ -469,7 +465,9 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       };
       
       try {
+        setLoadingPercentage(30);
         await updateApplication(applicationId.toString(), applicationUpdateData);
+        setLoadingPercentage(50);
       } catch (appError: any) {
         console.error('Error updating application:', appError);
         
@@ -484,9 +482,12 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         return;
       }
       
+      setLoadingPercentage(60);
       const visitData = mapFormDataToVisitData(applicationId);
       
+      setLoadingPercentage(80);
       const result = await createApplicationVisit(visitData);
+      setLoadingPercentage(100);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to create application visit');
@@ -878,11 +879,10 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
             {modal.type === 'loading' ? (
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                <div className="flex justify-center mb-6">
+                  <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-orange-500"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
-                <p className="text-gray-400 text-sm">{modal.message}</p>
+                <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
               </div>
             ) : (
               <>
