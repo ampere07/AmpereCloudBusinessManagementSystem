@@ -31,16 +31,25 @@ export const resizeImage = (file: File, resizePercentage: number): Promise<File>
         const canvas = document.createElement('canvas');
         const scaleFactor = resizePercentage / 100;
         
-        canvas.width = img.width * scaleFactor;
-        canvas.height = img.height * scaleFactor;
+        canvas.width = Math.floor(img.width * scaleFactor);
+        canvas.height = Math.floor(img.height * scaleFactor);
         
-        const ctx = canvas.getContext('2d');
+        const ctx = canvas.getContext('2d', { alpha: false });
         if (!ctx) {
           reject(new Error('Failed to get canvas context'));
           return;
         }
         
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        const outputType = file.type === 'image/png' ? 'image/jpeg' : file.type;
+        const outputQuality = 0.85;
         
         canvas.toBlob(
           (blob) => {
@@ -49,15 +58,19 @@ export const resizeImage = (file: File, resizePercentage: number): Promise<File>
               return;
             }
             
-            const resizedFile = new File([blob], file.name, {
-              type: file.type,
+            const extension = outputType === 'image/jpeg' ? '.jpg' : file.name.split('.').pop();
+            const baseName = file.name.replace(/\.[^/.]+$/, '');
+            const outputFileName = `${baseName}.${extension}`;
+            
+            const resizedFile = new File([blob], outputFileName, {
+              type: outputType,
               lastModified: Date.now(),
             });
             
             resolve(resizedFile);
           },
-          file.type,
-          0.95
+          outputType,
+          outputQuality
         );
       };
       
