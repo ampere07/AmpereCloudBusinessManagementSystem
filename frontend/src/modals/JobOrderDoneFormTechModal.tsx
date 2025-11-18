@@ -822,16 +822,30 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
   const handleImageUpload = async (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
     try {
       let processedFile = file;
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
       
       if (activeImageSize && activeImageSize.image_size_value < 100) {
         try {
-          processedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedSize = (resizedFile.size / 1024 / 1024).toFixed(2);
+          
+          if (resizedFile.size < file.size) {
+            processedFile = resizedFile;
+            console.log(`[RESIZE SUCCESS] ${field}: ${originalSize}MB → ${resizedSize}MB (${activeImageSize.image_size_value}%, saved ${((1 - resizedFile.size / file.size) * 100).toFixed(1)}%)`);
+          } else {
+            console.log(`[RESIZE SKIP] ${field}: Resized file (${resizedSize}MB) is not smaller than original (${originalSize}MB), using original`);
+          }
         } catch (resizeError) {
+          console.error(`[RESIZE FAILED] ${field}:`, resizeError);
           processedFile = file;
         }
       }
       
-      setFormData(prev => ({ ...prev, [field]: processedFile }));
+      setFormData(prev => {
+        const updated = { ...prev, [field]: processedFile };
+        console.log(`[STATE UPDATE] ${field} stored: ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        return updated;
+      });
       
       if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
         URL.revokeObjectURL(imagePreviews[field]!);
@@ -844,6 +858,7 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         setErrors(prev => ({ ...prev, [field]: '' }));
       }
     } catch (error) {
+      console.error(`[UPLOAD ERROR] ${field}:`, error);
       setFormData(prev => ({ ...prev, [field]: file }));
       
       if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
@@ -1112,27 +1127,38 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
         const imageFormData = new FormData();
         imageFormData.append('folder_name', folderName);
         
-        if (updatedFormData.signedContractImage) {
-          imageFormData.append('signed_contract_image', updatedFormData.signedContractImage);
+        console.log('[UPLOAD START] Preparing images for upload...');
+        
+        if (formData.signedContractImage) {
+          console.log(`[APPEND] Signed Contract: ${(formData.signedContractImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('signed_contract_image', formData.signedContractImage, formData.signedContractImage.name);
         }
-        if (updatedFormData.setupImage) {
-          imageFormData.append('setup_image', updatedFormData.setupImage);
+        if (formData.setupImage) {
+          console.log(`[APPEND] Setup: ${(formData.setupImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('setup_image', formData.setupImage, formData.setupImage.name);
         }
-        if (updatedFormData.boxReadingImage) {
-          imageFormData.append('box_reading_image', updatedFormData.boxReadingImage);
+        if (formData.boxReadingImage) {
+          console.log(`[APPEND] Box Reading: ${(formData.boxReadingImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('box_reading_image', formData.boxReadingImage, formData.boxReadingImage.name);
         }
-        if (updatedFormData.routerReadingImage) {
-          imageFormData.append('router_reading_image', updatedFormData.routerReadingImage);
+        if (formData.routerReadingImage) {
+          console.log(`[APPEND] Router Reading: ${(formData.routerReadingImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('router_reading_image', formData.routerReadingImage, formData.routerReadingImage.name);
         }
-        if (updatedFormData.portLabelImage) {
-          imageFormData.append('port_label_image', updatedFormData.portLabelImage);
+        if (formData.portLabelImage) {
+          console.log(`[APPEND] Port Label: ${(formData.portLabelImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('port_label_image', formData.portLabelImage, formData.portLabelImage.name);
         }
-        if (updatedFormData.clientSignatureImage) {
-          imageFormData.append('client_signature_image', updatedFormData.clientSignatureImage);
+        if (formData.clientSignatureImage) {
+          console.log(`[APPEND] Client Signature: ${(formData.clientSignatureImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('client_signature_image', formData.clientSignatureImage, formData.clientSignatureImage.name);
         }
-        if (updatedFormData.speedTestImage) {
-          imageFormData.append('speed_test_image', updatedFormData.speedTestImage);
+        if (formData.speedTestImage) {
+          console.log(`[APPEND] Speed Test: ${(formData.speedTestImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('speed_test_image', formData.speedTestImage, formData.speedTestImage.name);
         }
+        
+        console.log('[UPLOAD] FormData prepared, sending to backend...');
         
         try {
           const uploadResponse = await apiClient.post<{

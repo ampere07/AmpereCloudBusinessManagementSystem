@@ -816,13 +816,20 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
   const handleImageUpload = async (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
     try {
       let processedFile = file;
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
       
       if (activeImageSize && activeImageSize.image_size_value < 100) {
         try {
+          console.log(`Resizing ${field} from ${originalSize}MB with ${activeImageSize.image_size_value}% scale...`);
           processedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedSize = (processedFile.size / 1024 / 1024).toFixed(2);
+          console.log(`Resized ${field}: ${originalSize}MB → ${resizedSize}MB (${activeImageSize.image_size_value}%)`);
         } catch (resizeError) {
+          console.error(`Failed to resize ${field}:`, resizeError);
           processedFile = file;
         }
+      } else {
+        console.log(`Skipping resize for ${field}: no active size or size >= 100% (${activeImageSize?.image_size_value}%)`);
       }
       
       setFormData(prev => ({ ...prev, [field]: processedFile }));
@@ -838,6 +845,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         setErrors(prev => ({ ...prev, [field]: '' }));
       }
     } catch (error) {
+      console.error(`Error in handleImageUpload for ${field}:`, error);
       setFormData(prev => ({ ...prev, [field]: file }));
       
       if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
