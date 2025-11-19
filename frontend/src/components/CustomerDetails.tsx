@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, ChevronRight, Plus, Trash2, OctagonX, HandCoins, Wrench, Edit, ChevronLeft, ChevronRight as ChevronRightNav, Maximize2, X, Paperclip, Calendar, ExternalLink } from 'lucide-react';
 import TransactConfirmationModal from '../modals/TransactConfirmationModal';
 import TransactionFormModal from '../modals/TransactionFormModal';
+import StaggeredInstallationFormModal from '../modals/StaggeredInstallationFormModal';
+import DiscountFormModal from '../modals/DiscountFormModal';
 import { BillingDetailRecord } from '../types/billing';
 
 interface OnlineStatusRecord {
@@ -50,6 +52,8 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
   });
   const [showTransactModal, setShowTransactModal] = useState(false);
   const [showTransactionFormModal, setShowTransactionFormModal] = useState(false);
+  const [showStaggeredInstallationModal, setShowStaggeredInstallationModal] = useState(false);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [detailsWidth, setDetailsWidth] = useState<number>(600);
   const [isResizing, setIsResizing] = useState<boolean>(false);
   const startXRef = useRef<number>(0);
@@ -123,6 +127,32 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
 
   const handleTransactionFormClose = () => {
     setShowTransactionFormModal(false);
+  };
+
+  const handleStaggeredInstallationAdd = () => {
+    setShowStaggeredInstallationModal(true);
+  };
+
+  const handleStaggeredInstallationFormSave = (formData: any) => {
+    console.log('Staggered installation form saved:', formData);
+    setShowStaggeredInstallationModal(false);
+  };
+
+  const handleStaggeredInstallationFormClose = () => {
+    setShowStaggeredInstallationModal(false);
+  };
+
+  const handleDiscountAdd = () => {
+    setShowDiscountModal(true);
+  };
+
+  const handleDiscountFormSave = (formData: any) => {
+    console.log('Discount form saved:', formData);
+    setShowDiscountModal(false);
+  };
+
+  const handleDiscountFormClose = () => {
+    setShowDiscountModal(false);
   };
 
   // Sample online status data based on the image
@@ -509,10 +539,97 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
         </div>
 
         {/* Add other sections with similar structure */}
+        {/* Related Staggered Installations with Add Button */}
+        <div className="border-b border-gray-700">
+          <button
+            onClick={() => toggleSection('staggeredInstallations')}
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-medium">Related Staggered Installations</span>
+              <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded">0</span>
+            </div>
+            {expandedSections.staggeredInstallations ? (
+              <ChevronDown size={20} className="text-gray-400" />
+            ) : (
+              <ChevronRight size={20} className="text-gray-400" />
+            )}
+          </button>
+
+          {expandedSections.staggeredInstallations && (
+            <div className="px-6 pb-4">
+              <div className="text-center py-8 text-gray-500">No items</div>
+              <div className="flex justify-end">
+                <button 
+                  onClick={handleStaggeredInstallationAdd}
+                  className="text-red-400 hover:text-red-300 text-sm"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Related Advanced Payments */}
+        <div className="border-b border-gray-700">
+          <button
+            onClick={() => toggleSection('advancedPayments')}
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-medium">Related Advanced Payments</span>
+              <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded">0</span>
+            </div>
+            {expandedSections.advancedPayments ? (
+              <ChevronDown size={20} className="text-gray-400" />
+            ) : (
+              <ChevronRight size={20} className="text-gray-400" />
+            )}
+          </button>
+
+          {expandedSections.advancedPayments && (
+            <div className="px-6 pb-4">
+              <div className="text-center py-8 text-gray-500">No items</div>
+              <div className="flex justify-end">
+                <button className="text-red-400 hover:text-red-300 text-sm">Add</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Related Discounts with Add Button */}
+        <div className="border-b border-gray-700">
+          <button
+            onClick={() => toggleSection('discounts')}
+            className="w-full px-6 py-4 flex items-center justify-between text-left hover:bg-gray-800 transition-colors"
+          >
+            <div className="flex items-center space-x-2">
+              <span className="text-white font-medium">Related Discounts</span>
+              <span className="bg-gray-600 text-white text-xs px-2 py-1 rounded">0</span>
+            </div>
+            {expandedSections.discounts ? (
+              <ChevronDown size={20} className="text-gray-400" />
+            ) : (
+              <ChevronRight size={20} className="text-gray-400" />
+            )}
+          </button>
+
+          {expandedSections.discounts && (
+            <div className="px-6 pb-4">
+              <div className="text-center py-8 text-gray-500">No items</div>
+              <div className="flex justify-end">
+                <button 
+                  onClick={handleDiscountAdd}
+                  className="text-red-400 hover:text-red-300 text-sm"
+                >
+                  Add
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
         {[
-          { key: 'advancedPayments', label: 'Related Advanced Payments' },
-          { key: 'discounts', label: 'Related Discounts' },
-          { key: 'staggeredInstallations', label: 'Related Staggered Installations' },
           { key: 'staggeredPayments', label: 'Related Staggered Payments' },
           { key: 'serviceOrders', label: 'Related Service Orders' },
           { key: 'reconnectionLogs', label: 'Related Reconnection Logs' },
@@ -569,6 +686,35 @@ const BillingDetails: React.FC<BillingDetailsProps> = ({
         onClose={handleTransactionFormClose}
         onSave={handleTransactionFormSave}
         billingRecord={billingRecord}
+      />
+
+      {/* Staggered Installation Form Modal */}
+      <StaggeredInstallationFormModal
+        isOpen={showStaggeredInstallationModal}
+        onClose={handleStaggeredInstallationFormClose}
+        onSave={handleStaggeredInstallationFormSave}
+        customerData={{
+          accountNo: billingRecord.applicationId,
+          fullName: billingRecord.customerName,
+          contactNo: billingRecord.contactNumber,
+          emailAddress: billingRecord.emailAddress || billingRecord.email || '',
+          address: billingRecord.address?.split(',')[0] || '',
+          plan: billingRecord.plan,
+          barangay: billingRecord.barangay || '',
+          city: billingRecord.city || ''
+        }}
+      />
+
+      {/* Discount Form Modal */}
+      <DiscountFormModal
+        isOpen={showDiscountModal}
+        onClose={handleDiscountFormClose}
+        onSave={handleDiscountFormSave}
+        customerData={{
+          accountNo: billingRecord.applicationId,
+          fullName: billingRecord.customerName,
+          address: billingRecord.address
+        }}
       />
     </div>
   );

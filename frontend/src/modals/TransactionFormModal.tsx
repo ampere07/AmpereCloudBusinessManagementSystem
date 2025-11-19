@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, ChevronDown, Minus, Plus, Camera } from 'lucide-react';
+import { transactionService } from '../services/transactionService';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
 
 interface TransactionFormModalProps {
   isOpen: boolean;
@@ -57,6 +59,30 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchImageSizeSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getActiveImageSize();
+          setActiveImageSize(settings);
+        } catch (error) {
+          setActiveImageSize(null);
+        }
+      }
+    };
+    
+    fetchImageSizeSettings();
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen && imagePreview && imagePreview.startsWith('blob:')) {
+      URL.revokeObjectURL(imagePreview);
+      setImagePreview(null);
+    }
+  }, [isOpen, imagePreview]);
 
   useEffect(() => {
     if (billingRecord) {
@@ -99,10 +125,57 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     setFormData(prev => ({ ...prev, transactionType: type }));
   };
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
+    if (!file) return;
+
+    try {
+      let processedFile = file;
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          const resizedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedSize = (resizedFile.size / 1024 / 1024).toFixed(2);
+          
+          if (resizedFile.size < file.size) {
+            processedFile = resizedFile;
+            console.log(`[RESIZE SUCCESS] Payment Proof: ${originalSize}MB → ${resizedSize}MB (${activeImageSize.image_size_value}%, saved ${((1 - resizedFile.size / file.size) * 100).toFixed(1)}%)`);
+          } else {
+            console.log(`[RESIZE SKIP] Payment Proof: Resized file (${resizedSize}MB) is not smaller than original (${originalSize}MB), using original`);
+          }
+        } catch (resizeError) {
+          console.error('[RESIZE FAILED] Payment Proof:', resizeError);
+          processedFile = file;
+        }
+      }
+      
+      setFormData(prev => ({ ...prev, image: processedFile }));
+      
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreview(previewUrl);
+      
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: '' }));
+      }
+    } catch (error) {
+      console.error('[UPLOAD ERROR] Payment Proof:', error);
       setFormData(prev => ({ ...prev, image: file }));
+      
+      if (imagePreview && imagePreview.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreview);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      
+      if (errors.image) {
+        setErrors(prev => ({ ...prev, image: '' }));
+      }
     }
   };
 
@@ -141,11 +214,55 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
     try {
       console.log('Creating transaction with data:', formData);
       
-      // TODO: Call transaction API here
+      let imageUrl = undefined;
       
-      alert('Transaction saved successfully!');
-      onSave(formData);
-      onClose();
+      if (formData.image) {
+        try {
+          const imageFormData = new FormData();
+          const folderName = `transactionform - ${formData.fullName}`;
+          imageFormData.append('folder_name', folderName);
+          imageFormData.append('payment_proof_image', formData.image, formData.image.name);
+          
+          console.log(`[UPLOAD] Uploading image to Google Drive folder: ${folderName}`);
+          
+          const uploadResponse = await transactionService.uploadTransactionImage(imageFormData);
+          
+          if (uploadResponse.success && uploadResponse.data?.payment_proof_image_url) {
+            imageUrl = uploadResponse.data.payment_proof_image_url;
+            console.log('[UPLOAD SUCCESS] Image uploaded to:', imageUrl);
+          } else {
+            console.warn('[UPLOAD WARNING] Image upload did not return URL');
+          }
+        } catch (uploadError: any) {
+          console.error('[UPLOAD ERROR]:', uploadError);
+          alert(`Warning: Failed to upload image: ${uploadError.message}`);
+        }
+      }
+      
+      const payload = {
+        account_id: billingRecord?.id || undefined,
+        transaction_type: formData.transactionType,
+        received_payment: parseFloat(formData.receivedPayment) || 0,
+        payment_date: formData.paymentDate,
+        date_processed: new Date().toISOString(),
+        processed_by_user_id: undefined,
+        payment_method: formData.paymentMethod,
+        reference_no: formData.referenceNo,
+        or_no: formData.orNo,
+        remarks: formData.remarks || '',
+        status: 'Pending',
+        image_url: imageUrl
+      };
+      
+      const result = await transactionService.createTransaction(payload);
+      
+      if (result.success) {
+        alert('Transaction created successfully!');
+        onSave(formData);
+        onClose();
+      } else {
+        alert(`Failed to create transaction: ${result.message}`);
+      }
     } catch (error) {
       console.error('Error creating transaction:', error);
       alert(`Failed to save transaction: ${error instanceof Error ? error.message : 'Unknown error'}`);
@@ -458,32 +575,37 @@ const TransactionFormModal: React.FC<TransactionFormModalProps> = ({
           {/* Image Upload */}
           <div>
             <label className="block text-sm font-medium text-gray-300 mb-2">
-              Image
+              Payment Proof Image
             </label>
-            <div className="border-2 border-dashed border-gray-700 rounded-lg p-8">
-              <div className="text-center">
-                <Camera className="mx-auto h-12 w-12 text-gray-400" />
-                <div className="mt-4">
-                  <label htmlFor="file-upload" className="cursor-pointer">
-                    <span className="mt-2 block text-sm font-medium text-gray-300">
-                      Click to upload image
-                    </span>
-                    <input
-                      id="file-upload"
-                      name="file-upload"
-                      type="file"
-                      className="sr-only"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                    />
-                  </label>
+            <div className="relative w-full h-48 bg-gray-800 border border-gray-700 rounded overflow-hidden cursor-pointer hover:bg-gray-750">
+              <input 
+                type="file" 
+                accept="image/*" 
+                onChange={handleImageUpload}
+                className="absolute inset-0 opacity-0 cursor-pointer z-10" 
+              />
+              {imagePreview ? (
+                <div className="relative w-full h-full">
+                  <img 
+                    src={imagePreview} 
+                    alt="Payment Proof" 
+                    className="w-full h-full object-contain"
+                  />
+                  <div className="absolute bottom-2 right-2 bg-green-500 text-white px-2 py-1 rounded text-xs flex items-center pointer-events-none">
+                    <Camera className="mr-1" size={14} />Uploaded
+                  </div>
                 </div>
-                {formData.image && (
-                  <p className="mt-2 text-xs text-gray-400">
-                    Selected: {formData.image.name}
-                  </p>
-                )}
-              </div>
+              ) : (
+                <div className="w-full h-full flex flex-col items-center justify-center text-gray-400">
+                  <Camera size={32} />
+                  <span className="text-sm mt-2">Click to upload payment proof</span>
+                  {formData.image && (
+                    <p className="mt-2 text-xs text-gray-400">
+                      Selected: {formData.image.name}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
