@@ -537,9 +537,82 @@ class EnhancedBillingGenerationService
         return round($total, 2);
     }
 
+    /**
+     * Calculate staggered installation fees and process monthly payments
+     * 
+     * This method handles staggered payment plans where:
+     * 1. An installment is created with total_balance split across months_to_pay
+     * 2. Each billing cycle adds monthly_payment to the balance
+     * 3. Decrements months_to_pay by 1 each cycle
+     * 4. When months_to_pay reaches 0, marks installment as completed and stops adding fees
+     * 
+     * Initial Payment Flow:
+     * - Account balance: 999
+     * - Staggered balance: 888
+     * - Immediate deduction: 999 - 888 = 111 (new account balance)
+     * - Invoice status: Unpaid (if remaining balance > 0)
+     * 
+     * Monthly Addition:
+     * - Each billing cycle: balance += monthly_payment
+     * - Decrements: months_to_pay -= 1
+     * - Completion: months_to_pay = 0, status = completed
+     * 
+     * @param BillingAccount $account
+     * @param int $userId
+     * @param string $invoiceId
+     * @return float Total staggered fees to add to current billing
+     */
     protected function calculateStaggeredInstallFees(BillingAccount $account, int $userId, string $invoiceId): float
     {
-        return 0;
+        $total = 0;
+
+        $installments = Installment::where('account_id', $account->id)
+            ->where('status', 'active')
+            ->where('months_to_pay', '>', 0)
+            ->get();
+
+        Log::info('Processing staggered installments', [
+            'account_id' => $account->id,
+            'account_no' => $account->account_no,
+            'installments_count' => $installments->count()
+        ]);
+
+        foreach ($installments as $installment) {
+            $total += $installment->monthly_payment;
+            
+            $newMonthsToPay = $installment->months_to_pay - 1;
+            
+            Log::info('Processing installment', [
+                'installment_id' => $installment->id,
+                'monthly_payment' => $installment->monthly_payment,
+                'previous_months_to_pay' => $installment->months_to_pay,
+                'new_months_to_pay' => $newMonthsToPay
+            ]);
+            
+            if ($newMonthsToPay <= 0) {
+                $installment->update([
+                    'months_to_pay' => 0,
+                    'status' => 'completed',
+                    'updated_by' => $userId
+                ]);
+                
+                Log::info('Installment completed', [
+                    'installment_id' => $installment->id
+                ]);
+            } else {
+                $installment->update([
+                    'months_to_pay' => $newMonthsToPay,
+                    'updated_by' => $userId
+                ]);
+            }
+        }
+
+        Log::info('Staggered installments total', [
+            'account_id' => $account->id,
+            'total_staggered_fees' => $total
+        ]);
+
+        return round($total, 2);
     }
 
     protected function calculateDiscounts(BillingAccount $account, int $userId, string $invoiceId): float

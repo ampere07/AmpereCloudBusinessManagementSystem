@@ -378,6 +378,15 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     setUploadProgress(0);
     setLoadingPercentage(0);
     
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
+      });
+    }, 200);
+    
     try {
       const submitData = new FormData();
       
@@ -431,23 +440,10 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
 
       console.log('Sending POST request to:', `${API_BASE_URL}/lcpnap`);
       
-      setUploadProgress(25);
-      setLoadingPercentage(25);
-      
       const xhr = new XMLHttpRequest();
       
       const uploadPromise = new Promise<Response>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 50) + 25;
-            setUploadProgress(Math.min(percentComplete, 75));
-            setLoadingPercentage(Math.min(percentComplete, 75));
-          }
-        });
-        
         xhr.addEventListener('load', () => {
-          setUploadProgress(90);
-          setLoadingPercentage(90);
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(new Response(xhr.responseText, {
               status: xhr.status,
@@ -469,8 +465,6 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       });
       
       const response = await uploadPromise;
-      setUploadProgress(95);
-      setLoadingPercentage(95);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
@@ -498,9 +492,9 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       }
 
       console.log('=== FORM SUBMISSION SUCCESS ===');
-      setUploadProgress(100);
+      clearInterval(progressInterval);
       setLoadingPercentage(100);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 500));
       setShowLoadingModal(false);
       setResultType('success');
       setResultMessage('LCP/NAP location created successfully');
@@ -519,6 +513,7 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       console.error('Error stack:', error.stack);
       console.error('Full error:', error);
       
+      clearInterval(progressInterval);
       setShowLoadingModal(false);
       setResultType('error');
       setResultMessage(error.message || 'Failed to save LCP/NAP location');

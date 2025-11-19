@@ -1183,10 +1183,12 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     
     const progressInterval = setInterval(() => {
       setLoadingPercentage(prev => {
-        if (prev >= 90) return prev;
-        return prev + 10;
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
       });
-    }, 400);
+    }, 300);
     
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     

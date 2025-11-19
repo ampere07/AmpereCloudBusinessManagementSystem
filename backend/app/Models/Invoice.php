@@ -20,8 +20,8 @@ class Invoice extends Model
         'status',
         'payment_portal_log_ref',
         'transaction_id',
-        'created_by',
-        'updated_by'
+        'created_by_user_id',
+        'updated_by_user_id'
     ];
 
     protected $casts = [
@@ -36,5 +36,10 @@ class Invoice extends Model
     public function billingAccount(): BelongsTo
     {
         return $this->belongsTo(BillingAccount::class, 'account_id');
+    }
+
+    public function transaction(): BelongsTo
+    {
+        return $this->belongsTo(Transaction::class, 'transaction_id');
     }
 }

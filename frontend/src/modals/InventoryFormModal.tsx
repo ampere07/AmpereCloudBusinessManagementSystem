@@ -172,10 +172,12 @@ const InventoryFormModal: React.FC<InventoryFormModalProps> = ({
     
     const progressInterval = setInterval(() => {
       setLoadingPercentage(prev => {
-        if (prev >= 90) return prev;
-        return prev + 10;
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
       });
-    }, 200);
+    }, 300);
     
     try {
       await onSave(formData);

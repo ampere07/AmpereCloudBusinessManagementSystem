@@ -1030,10 +1030,12 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     
     const progressInterval = setInterval(() => {
       setLoadingPercentage(prev => {
-        if (prev >= 90) return prev;
-        return prev + 10;
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
       });
-    }, 400);
+    }, 200);
     
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
