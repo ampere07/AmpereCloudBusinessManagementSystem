@@ -31,6 +31,13 @@ axiosInstance.interceptors.request.use((config) => {
   return config;
 });
 
+interface ApiResponse<T = any> {
+  data?: T;
+  message?: string;
+  error?: string;
+  count?: number;
+}
+
 interface ApproveTransactionResponse {
   success: boolean;
   message?: string;
@@ -61,7 +68,7 @@ interface CreateTransactionResponse {
 export const transactionService = {
   approveTransaction: async (transactionId: string): Promise<ApproveTransactionResponse> => {
     try {
-      const response = await axiosInstance.post(`/transactions/${transactionId}/approve`);
+      const response = await axiosInstance.post<ApiResponse>(`/transactions/${transactionId}/approve`);
       return {
         success: true,
         message: response.data.message || 'Transaction approved successfully',
@@ -78,7 +85,7 @@ export const transactionService = {
 
   createTransaction: async (payload: CreateTransactionPayload): Promise<CreateTransactionResponse> => {
     try {
-      const response = await axiosInstance.post('/transactions', payload);
+      const response = await axiosInstance.post<ApiResponse>('/transactions', payload);
       return {
         success: true,
         message: response.data.message || 'Transaction created successfully',
@@ -95,7 +102,7 @@ export const transactionService = {
 
   getAllTransactions: async (): Promise<any> => {
     try {
-      const response = await axiosInstance.get('/transactions');
+      const response = await axiosInstance.get<ApiResponse>('/transactions');
       return {
         success: true,
         data: response.data.data || [],
@@ -113,7 +120,7 @@ export const transactionService = {
 
   uploadTransactionImage: async (formData: FormData): Promise<any> => {
     try {
-      const response = await axiosInstance.post('/transactions/upload-images', formData, {
+      const response = await axiosInstance.post<ApiResponse>('/transactions/upload-images', formData, {
         headers: {
           'Content-Type': 'multipart/form-data'
         }

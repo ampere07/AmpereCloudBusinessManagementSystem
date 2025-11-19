@@ -1031,11 +1031,11 @@ const JobOrderDoneFormTechModal: React.FC<JobOrderDoneFormTechModalProps> = ({
     const progressInterval = setInterval(() => {
       setLoadingPercentage(prev => {
         if (prev >= 99) return 99;
-        if (prev >= 90) return prev + 1;
-        if (prev >= 70) return prev + 2;
-        return prev + 5;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
       });
-    }, 300);
+    }, 200);
     
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     

@@ -444,8 +444,16 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       message: 'Please wait while we process your request...'
     });
     
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
+      });
+    }, 200);
+    
     try {
-      setLoadingPercentage(10);
       const applicationId = applicationData.id;
       
       const applicationUpdateData: any = {
@@ -465,12 +473,11 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
       };
       
       try {
-        setLoadingPercentage(30);
         await updateApplication(applicationId.toString(), applicationUpdateData);
-        setLoadingPercentage(50);
       } catch (appError: any) {
         console.error('Error updating application:', appError);
         
+        clearInterval(progressInterval);
         const errorMsg = appError.response?.data?.message || appError.message || 'Unknown error';
         setModal({
           isOpen: true,
@@ -482,16 +489,17 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
         return;
       }
       
-      setLoadingPercentage(60);
       const visitData = mapFormDataToVisitData(applicationId);
       
-      setLoadingPercentage(80);
       const result = await createApplicationVisit(visitData);
-      setLoadingPercentage(100);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to create application visit');
       }
+      
+      clearInterval(progressInterval);
+      setLoadingPercentage(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setModal({
         isOpen: true,
@@ -508,6 +516,7 @@ const ApplicationVisitFormModal: React.FC<ApplicationVisitFormModalProps> = ({
     } catch (error: any) {
       console.error('Error creating application visit:', error);
       
+      clearInterval(progressInterval);
       let errorMessage = 'Unknown error occurred';
       let errorDetails = '';
       

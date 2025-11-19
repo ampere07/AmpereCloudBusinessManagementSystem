@@ -1088,8 +1088,17 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     setShowLoadingModal(true);
     setUploadProgress(0);
     setProgressSteps([]);
+    
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
+      });
+    }, 300);
+    
     try {
-      setUploadProgress(10);
       setProgressSteps(['Preparing data...']);
       
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
@@ -1147,7 +1156,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       }
 
-      setUploadProgress(30);
       setProgressSteps(prev => [...prev, 'Updating job order...']);
       
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
@@ -1155,8 +1163,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
       if (!jobOrderResponse.success) {
         throw new Error(jobOrderResponse.message || 'Job order update failed');
       }
-      
-      setUploadProgress(50);
 
       if (updatedFormData.status === 'Confirmed' && updatedFormData.onsiteStatus === 'Done') {
         const validItems = orderItems.filter(item => {
@@ -1183,7 +1189,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             console.error('Error deleting existing items:', deleteError);
           }
 
-          setUploadProgress(60);
           setProgressSteps(prev => [...prev, 'Saving items...']);
           
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
@@ -1196,8 +1201,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
           
           try {
             const itemsResponse = await createJobOrderItems(jobOrderItems);
-            
-            setUploadProgress(75);
             
             if (!itemsResponse.success) {
               throw new Error(itemsResponse.message || 'Failed to create job order items');
@@ -1219,7 +1222,6 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
       }
 
       if (applicationId) {
-        setUploadProgress(85);
         setProgressSteps(prev => [...prev, 'Updating application...']);
         
         const applicationUpdateData: any = {
@@ -1240,12 +1242,12 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         };
 
         await updateApplication(applicationId, applicationUpdateData);
-        
-        setUploadProgress(95);
       }
       
+      clearInterval(progressInterval);
       setUploadProgress(100);
       setProgressSteps(prev => [...prev, 'Complete!']);
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       setModal({
         isOpen: true,
@@ -1260,6 +1262,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       });
     } catch (error: any) {
+      clearInterval(progressInterval);
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setModal({

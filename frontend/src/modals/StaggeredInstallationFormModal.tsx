@@ -499,6 +499,7 @@ const StaggeredInstallationFormModal: React.FC<StaggeredInstallationFormModalPro
           </div>
         </div>
       </div>
+      </div>
     </>
   );
 };

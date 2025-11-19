@@ -1,32 +1,4 @@
-            {formData.status === 'Monthly' && (
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Remaining Cycles<span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={formData.remaining}
-                  onChange={(e) => handleInputChange('remaining', e.target.value)}
-                  className={`w-full px-3 py-2 bg-gray-800 border ${errors.remaining ? 'border-red-500' : 'border-gray-700'} rounded text-white focus:outline-none focus:border-orange-500`}
-                  placeholder="Number of billing cycles"
-                />
-                <p className="text-xs text-gray-400 mt-1">Number of billing cycles this discount will apply</p>
-                {errors.remaining && <p className="text-red-500 text-xs mt-1">{errors.remaining}</p>}
-              </div>
-            )}
-
-            <div>
-              <label className="block text-sm font-medium text-gray-300 mb-2">
-                Processed Date
-              </label>
-              <input
-                type="datetime-local"
-                value={formData.processedDate}
-                onChange={(e) => handleInputChange('processedDate', e.target.value)}
-                className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-orange-500"
-              />
-            </div>import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, ChevronDown, Minus, Plus } from 'lucide-react';
 import LoadingModal from '../components/LoadingModal';
 import * as discountService from '../services/discountService';
@@ -100,7 +72,7 @@ const DiscountFormModal: React.FC<DiscountFormModalProps> = ({
     }
   }, [formData.status]);
 
-  const handleInputChange = (field: keyof DiscountFormData, value: string) => {
+  const handleInputChange = (field: keyof DiscountFormData, value: string | number | null) => {
     setFormData(prev => ({ ...prev, [field]: value }));
     if (errors[field]) {
       setErrors(prev => ({ ...prev, [field]: '' }));

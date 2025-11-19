@@ -577,13 +577,19 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       message: 'Please wait while we process your request...'
     });
     
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
+      });
+    }, 200);
+    
     try {
-      setLoadingPercentage(20);
       const updateData = mapFormDataToUpdateData();
       
-      setLoadingPercentage(40);
       const result = await updateApplicationVisit(visitData.id, updateData);
-      setLoadingPercentage(60);
       
       if (!result.success) {
         throw new Error(result.message || 'Failed to update application visit');
@@ -591,7 +597,6 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
       
       if (userRole === 'technician' && (technicianFormData.image1 || technicianFormData.image2 || technicianFormData.image3)) {
         try {
-          setLoadingPercentage(70);
           const uploadResult = await uploadApplicationVisitImages(
             visitData.id,
             visitData.first_name,
@@ -604,7 +609,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
             }
           );
           
+          clearInterval(progressInterval);
           setLoadingPercentage(100);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           if (uploadResult.success) {
             const updatedVisit = { ...visitData, ...updateData };
             setPendingUpdate(updatedVisit);
@@ -630,6 +638,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
             });
           }
         } catch (uploadError: any) {
+          clearInterval(progressInterval);
           const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
           setModal({
             isOpen: true,
@@ -639,7 +648,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           });
         }
       } else {
+        clearInterval(progressInterval);
         setLoadingPercentage(100);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const updatedVisit = { ...visitData, ...updateData };
         setPendingUpdate(updatedVisit);
         setModal({
@@ -657,6 +669,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         });
       }
     } catch (error: any) {
+      clearInterval(progressInterval);
       let errorMessage = 'Unknown error occurred';
       
       if (error instanceof Error) {
