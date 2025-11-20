@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin, CheckCircle, AlertCircle, XCircle } from 'lucide-react';
+import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin, CheckCircle, AlertCircle, XCircle, Loader2 } from 'lucide-react';
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
@@ -17,6 +17,7 @@ import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
 import { locationDetailService, LocationDetail } from '../services/locationDetailService';
 import apiClient from '../config/api';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
 
 interface Region {
   id: number;
@@ -200,6 +201,8 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     messages: Array<{ type: 'success' | 'warning' | 'error'; text: string }>;
   }>({ title: '', messages: [] });
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
 
   const convertGoogleDriveUrl = (url: string | null | undefined): string | null => {
     if (!url) return null;
@@ -292,6 +295,21 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
       </div>
     );
   };
+
+  useEffect(() => {
+    const fetchImageSizeSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getActiveImageSize();
+          setActiveImageSize(settings);
+        } catch (error) {
+          setActiveImageSize(null);
+        }
+      }
+    };
+    
+    fetchImageSizeSettings();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -927,18 +945,58 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
-    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviews[field]!);
-    }
-    
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleImageUpload = async (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
+    try {
+      let processedFile = file;
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          const resizedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedSize = (resizedFile.size / 1024 / 1024).toFixed(2);
+          
+          if (resizedFile.size < file.size) {
+            processedFile = resizedFile;
+            console.log(`[RESIZE SUCCESS] ${field}: ${originalSize}MB → ${resizedSize}MB (${activeImageSize.image_size_value}%, saved ${((1 - resizedFile.size / file.size) * 100).toFixed(1)}%)`);
+          } else {
+            console.log(`[RESIZE SKIP] ${field}: Resized file (${resizedSize}MB) is not smaller than original (${originalSize}MB), using original`);
+          }
+        } catch (resizeError) {
+          console.error(`[RESIZE FAILED] ${field}:`, resizeError);
+          processedFile = file;
+        }
+      }
+      
+      setFormData(prev => {
+        const updated = { ...prev, [field]: processedFile };
+        console.log(`[STATE UPDATE] ${field} stored: ${(processedFile.size / 1024 / 1024).toFixed(2)}MB`);
+        return updated;
+      });
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      console.error(`[UPLOAD ERROR] ${field}:`, error);
+      setFormData(prev => ({ ...prev, [field]: file }));
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 
@@ -1121,6 +1179,17 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
 
     setLoading(true);
     setShowLoadingModal(true);
+    setLoadingPercentage(0);
+    
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
+      });
+    }, 300);
+    
     const saveMessages: Array<{ type: 'success' | 'warning' | 'error'; text: string }> = [];
     
     try {
@@ -1237,27 +1306,47 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         const imageFormData = new FormData();
         imageFormData.append('folder_name', folderName);
         
-        if (updatedFormData.signedContractImage) {
-          imageFormData.append('signed_contract_image', updatedFormData.signedContractImage);
+        console.log('[UPLOAD START] Preparing images for upload...');
+        console.log('[FORM DATA STATE]', {
+          signedContract: formData.signedContractImage ? `${(formData.signedContractImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          setup: formData.setupImage ? `${(formData.setupImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          boxReading: formData.boxReadingImage ? `${(formData.boxReadingImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          routerReading: formData.routerReadingImage ? `${(formData.routerReadingImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          portLabel: formData.portLabelImage ? `${(formData.portLabelImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          clientSignature: formData.clientSignatureImage ? `${(formData.clientSignatureImage.size / 1024 / 1024).toFixed(2)}MB` : 'none',
+          speedTest: formData.speedTestImage ? `${(formData.speedTestImage.size / 1024 / 1024).toFixed(2)}MB` : 'none'
+        });
+        
+        if (formData.signedContractImage) {
+          console.log(`[APPEND] Signed Contract: ${(formData.signedContractImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('signed_contract_image', formData.signedContractImage, formData.signedContractImage.name);
         }
-        if (updatedFormData.setupImage) {
-          imageFormData.append('setup_image', updatedFormData.setupImage);
+        if (formData.setupImage) {
+          console.log(`[APPEND] Setup: ${(formData.setupImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('setup_image', formData.setupImage, formData.setupImage.name);
         }
-        if (updatedFormData.boxReadingImage) {
-          imageFormData.append('box_reading_image', updatedFormData.boxReadingImage);
+        if (formData.boxReadingImage) {
+          console.log(`[APPEND] Box Reading: ${(formData.boxReadingImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('box_reading_image', formData.boxReadingImage, formData.boxReadingImage.name);
         }
-        if (updatedFormData.routerReadingImage) {
-          imageFormData.append('router_reading_image', updatedFormData.routerReadingImage);
+        if (formData.routerReadingImage) {
+          console.log(`[APPEND] Router Reading: ${(formData.routerReadingImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('router_reading_image', formData.routerReadingImage, formData.routerReadingImage.name);
         }
-        if (updatedFormData.portLabelImage) {
-          imageFormData.append('port_label_image', updatedFormData.portLabelImage);
+        if (formData.portLabelImage) {
+          console.log(`[APPEND] Port Label: ${(formData.portLabelImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('port_label_image', formData.portLabelImage, formData.portLabelImage.name);
         }
-        if (updatedFormData.clientSignatureImage) {
-          imageFormData.append('client_signature_image', updatedFormData.clientSignatureImage);
+        if (formData.clientSignatureImage) {
+          console.log(`[APPEND] Client Signature: ${(formData.clientSignatureImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('client_signature_image', formData.clientSignatureImage, formData.clientSignatureImage.name);
         }
-        if (updatedFormData.speedTestImage) {
-          imageFormData.append('speed_test_image', updatedFormData.speedTestImage);
+        if (formData.speedTestImage) {
+          console.log(`[APPEND] Speed Test: ${(formData.speedTestImage.size / 1024 / 1024).toFixed(2)}MB`);
+          imageFormData.append('speed_test_image', formData.speedTestImage, formData.speedTestImage.name);
         }
+        
+        console.log('[UPLOAD] FormData prepared, sending to backend...');
         
         try {
           const uploadResponse = await apiClient.post<{
@@ -1516,17 +1605,24 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
         });
       }
 
+      clearInterval(progressInterval);
+      setLoadingPercentage(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
       setErrors({});
       setLoading(false);
       setShowLoadingModal(false);
+      setLoadingPercentage(0);
       showMessageModal('Success', saveMessages);
       onSave(updatedFormData);
       onClose();
     } catch (error: any) {
       console.error('Error updating records:', error);
+      clearInterval(progressInterval);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setLoading(false);
       setShowLoadingModal(false);
+      setLoadingPercentage(0);
       showMessageModal('Error', [
         { type: 'error', text: `Failed to update records: ${errorMessage}` }
       ]);
@@ -1563,12 +1659,11 @@ const JobOrderDoneFormModal: React.FC<JobOrderDoneFormModalProps> = ({
   return (
     <>
     {showLoadingModal && (
-      <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
-        <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
-            <h3 className="text-xl font-semibold text-white">Saving...</h3>
-            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-[10000] flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6 min-w-[320px]">
+          <Loader2 className="w-20 h-20 text-orange-500 animate-spin" />
+          <div className="text-center">
+            <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
           </div>
         </div>
       </div>

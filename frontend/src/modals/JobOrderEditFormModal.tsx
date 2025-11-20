@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin } from 'lucide-react';
+import { X, Calendar, ChevronDown, Minus, Plus, Camera, MapPin ,Loader2 } from 'lucide-react';
 import { UserData } from '../types/api';
 import { updateJobOrder } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
@@ -18,6 +18,7 @@ import { locationDetailService, LocationDetail } from '../services/locationDetai
 import { getAllInventoryItems, InventoryItem } from '../services/inventoryItemService';
 import { createJobOrderItems, JobOrderItem } from '../services/jobOrderItemService';
 import apiClient from '../config/api';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
 
 interface Region {
   id: number;
@@ -190,6 +191,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [lcpnaps, setLcpnaps] = useState<LCPNAP[]>([]);
   const [ports, setPorts] = useState<Port[]>([]);
@@ -213,6 +215,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     message: ''
   });
   const [showLoadingModal, setShowLoadingModal] = useState(false);
+  const [progressSteps, setProgressSteps] = useState<string[]>([]);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
   
   const [imagePreviews, setImagePreviews] = useState<{
     signedContractImage: string | null;
@@ -231,6 +235,21 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     clientSignatureImage: null,
     speedTestImage: null
   });
+
+  useEffect(() => {
+    const fetchImageSizeSettings = async () => {
+      if (isOpen) {
+        try {
+          const settings = await getActiveImageSize();
+          setActiveImageSize(settings);
+        } catch (error) {
+          setActiveImageSize(null);
+        }
+      }
+    };
+    
+    fetchImageSizeSettings();
+  }, [isOpen]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -794,18 +813,51 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     }
   };
 
-  const handleImageUpload = (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
-    if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
-      URL.revokeObjectURL(imagePreviews[field]!);
-    }
-    
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleImageUpload = async (field: 'signedContractImage' | 'setupImage' | 'boxReadingImage' | 'routerReadingImage' | 'portLabelImage' | 'clientSignatureImage' | 'speedTestImage', file: File) => {
+    try {
+      let processedFile = file;
+      const originalSize = (file.size / 1024 / 1024).toFixed(2);
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          console.log(`Resizing ${field} from ${originalSize}MB with ${activeImageSize.image_size_value}% scale...`);
+          processedFile = await resizeImage(file, activeImageSize.image_size_value);
+          const resizedSize = (processedFile.size / 1024 / 1024).toFixed(2);
+          console.log(`Resized ${field}: ${originalSize}MB → ${resizedSize}MB (${activeImageSize.image_size_value}%)`);
+        } catch (resizeError) {
+          console.error(`Failed to resize ${field}:`, resizeError);
+          processedFile = file;
+        }
+      } else {
+        console.log(`Skipping resize for ${field}: no active size or size >= 100% (${activeImageSize?.image_size_value}%)`);
+      }
+      
+      setFormData(prev => ({ ...prev, [field]: processedFile }));
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      console.error(`Error in handleImageUpload for ${field}:`, error);
+      setFormData(prev => ({ ...prev, [field]: file }));
+      
+      if (imagePreviews[field] && imagePreviews[field]?.startsWith('blob:')) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 
@@ -1034,7 +1086,21 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
     setLoading(true);
     setShowLoadingModal(true);
+    setUploadProgress(0);
+    setProgressSteps([]);
+    
+    const progressInterval = setInterval(() => {
+      setUploadProgress(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
+      });
+    }, 300);
+    
     try {
+      setProgressSteps(['Preparing data...']);
+      
       const jobOrderId = jobOrderData.id || jobOrderData.JobOrder_ID;
       const applicationId = jobOrderData.Application_ID || jobOrderData.application_id;
       
@@ -1090,6 +1156,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       }
 
+      setProgressSteps(prev => [...prev, 'Updating job order...']);
+      
       const jobOrderResponse = await updateJobOrder(jobOrderId, jobOrderUpdateData);
       
       if (!jobOrderResponse.success) {
@@ -1121,6 +1189,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
             console.error('Error deleting existing items:', deleteError);
           }
 
+          setProgressSteps(prev => [...prev, 'Saving items...']);
+          
           const jobOrderItems: JobOrderItem[] = validItems.map(item => {
             return {
               job_order_id: parseInt(jobOrderId.toString()),
@@ -1152,6 +1222,8 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
       }
 
       if (applicationId) {
+        setProgressSteps(prev => [...prev, 'Updating application...']);
+        
         const applicationUpdateData: any = {
           first_name: updatedFormData.firstName,
           middle_initial: updatedFormData.middleInitial,
@@ -1171,6 +1243,11 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
 
         await updateApplication(applicationId, applicationUpdateData);
       }
+      
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+      setProgressSteps(prev => [...prev, 'Complete!']);
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       setModal({
         isOpen: true,
@@ -1185,6 +1262,7 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
         }
       });
     } catch (error: any) {
+      clearInterval(progressInterval);
       console.error('Error updating records:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Unknown error occurred';
       setModal({
@@ -1231,10 +1309,13 @@ const JobOrderEditFormModal: React.FC<JobOrderEditFormModalProps> = ({
     {showLoadingModal && (
       <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-[70]">
         <div className="bg-gray-800 rounded-lg shadow-xl p-8 max-w-md w-full mx-4">
-          <div className="flex flex-col items-center space-y-4">
-            <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-orange-500"></div>
-            <h3 className="text-xl font-semibold text-white">Saving...</h3>
-            <p className="text-gray-400 text-center">Please wait while we process your request.</p>
+          <div className="flex flex-col items-center space-y-6">
+            <div className="relative">
+              <div className="animate-spin rounded-full h-24 w-24 border-t-4 border-b-4 border-orange-500"></div>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="text-2xl font-bold text-white">{uploadProgress}%</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>

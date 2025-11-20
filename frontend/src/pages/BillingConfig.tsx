@@ -316,6 +316,53 @@ const BillingConfig: React.FC = () => {
     setIsEditingBillingConfig(false);
   };
 
+  interface BillingGenerationResponse {
+    success: boolean;
+    data: {
+      invoices: { success: number; failed: number };
+      statements: { success: number; failed: number };
+    };
+    message?: string;
+  }
+
+  const handleTestGeneration = async () => {
+    try {
+      setLoadingBillingConfig(true);
+      
+      const response = await apiClient.post<BillingGenerationResponse>('/billing-generation/force-generate-all');
+      
+      if (response.data.success) {
+        const data = response.data.data;
+        const totalGenerated = data.invoices.success + data.statements.success;
+        const totalFailed = data.invoices.failed + data.statements.failed;
+        
+        setModal({
+          isOpen: true,
+          type: 'success',
+          title: 'Test Generation Complete',
+          message: `Successfully generated ${totalGenerated} billing records. ${totalFailed > 0 ? `${totalFailed} failed.` : ''} Check SOA and Invoice pages to review.`
+        });
+      } else {
+        setModal({
+          isOpen: true,
+          type: 'error',
+          title: 'Generation Failed',
+          message: response.data.message || 'Failed to generate billing records'
+        });
+      }
+    } catch (error: any) {
+      console.error('Error testing billing generation:', error);
+      setModal({
+        isOpen: true,
+        type: 'error',
+        title: 'Error',
+        message: `Test generation failed: ${error.response?.data?.error || error.message}`
+      });
+    } finally {
+      setLoadingBillingConfig(false);
+    }
+  };
+
   const handleBillingConfigInputChange = (field: keyof BillingConfigData, value: string) => {
     if (value === '') {
       setBillingConfigInput(prev => ({
@@ -612,6 +659,34 @@ const BillingConfig: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+
+        <div className="space-y-4 pb-6 border-b border-gray-700">
+          <div className="flex items-center gap-3">
+            <h3 className="text-lg font-semibold text-white">
+              Test Billing Generation
+            </h3>
+          </div>
+          
+          <div className="space-y-4">
+            <p className="text-gray-400 text-sm">
+              Test the billing generation system by generating SOA and invoices for all active accounts. This will create new billing records for testing purposes.
+            </p>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleTestGeneration}
+                disabled={loadingBillingConfig}
+                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded transition-colors"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="23 4 23 10 17 10"></polyline>
+                  <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                </svg>
+                <span>Test Generate All Billings</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, ChevronDown, Minus, Plus } from 'lucide-react';
+import { X, Calendar, ChevronDown, Minus, Plus ,Loader2 } from 'lucide-react';
 import { createJobOrder, JobOrderData } from '../services/jobOrderService';
 import { updateApplication } from '../services/applicationService';
 import { getContractTemplates, ContractTemplate } from '../services/lookupService';
@@ -132,6 +132,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [pendingJobOrder, setPendingJobOrder] = useState<any>(null);
   
   const [modal, setModal] = useState<ModalConfig>({
@@ -595,12 +596,16 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
     }
 
     setLoading(true);
-    setModal({
-      isOpen: true,
-      type: 'loading',
-      title: 'Creating Job Order',
-      message: 'Please wait while we process your request...'
-    });
+    setLoadingPercentage(0);
+    
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 1;
+        if (prev >= 70) return prev + 2;
+        return prev + 5;
+      });
+    }, 300);
     
     try {
       const jobOrderData = mapFormDataToJobOrder(applicationData.id, updatedFormData);
@@ -634,6 +639,10 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         setLoading(false);
         return;
       }
+      
+      clearInterval(progressInterval);
+      setLoadingPercentage(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
       
       setPendingJobOrder(result.data);
       setErrors({});
@@ -671,6 +680,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
         errorMessage = error;
       }
       
+      clearInterval(progressInterval);
       setModal({
         isOpen: true,
         type: 'error',
@@ -679,6 +689,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
       });
     } finally {
       setLoading(false);
+      setLoadingPercentage(0);
     }
   };
 
@@ -715,6 +726,17 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
 
   return (
     <>
+    {loading && (
+      <div className="fixed inset-0 bg-black bg-opacity-70 z-[10000] flex items-center justify-center">
+        <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6 min-w-[320px]">
+          <Loader2 className="w-20 h-20 text-orange-500 animate-spin" />
+          <div className="text-center">
+            <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
+          </div>
+        </div>
+      </div>
+    )}
+    
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-end z-50">
       <div className="h-full w-full max-w-2xl bg-gray-900 shadow-2xl transform transition-transform duration-300 ease-in-out translate-x-0 overflow-hidden flex flex-col">
         <div className="bg-gray-800 px-6 py-4 flex items-center justify-between border-b border-gray-700">
@@ -731,14 +753,7 @@ const JOAssignFormModal: React.FC<JOAssignFormModalProps> = ({
               disabled={loading}
               className="px-4 py-2 bg-orange-600 hover:bg-orange-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm flex items-center"
             >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Saving...
-                </>
-              ) : (
-                'Save'
-              )}
+              {loading ? 'Saving...' : 'Save'}
             </button>
             <button
               onClick={onClose}

@@ -918,6 +918,18 @@ class JobOrderController extends Controller
     public function uploadImages(Request $request, $id): JsonResponse
     {
         try {
+            Log::info('[BACKEND] Upload images request received', [
+                'job_order_id' => $id,
+                'folder_name' => $request->input('folder_name'),
+                'has_signed_contract' => $request->hasFile('signed_contract_image'),
+                'has_setup' => $request->hasFile('setup_image'),
+                'has_box_reading' => $request->hasFile('box_reading_image'),
+                'has_router_reading' => $request->hasFile('router_reading_image'),
+                'has_port_label' => $request->hasFile('port_label_image'),
+                'has_client_signature' => $request->hasFile('client_signature_image'),
+                'has_speed_test' => $request->hasFile('speed_test_image'),
+            ]);
+
             $validator = Validator::make($request->all(), [
                 'folder_name' => 'required|string|max:255',
                 'signed_contract_image' => 'nullable|image|max:10240',
@@ -948,6 +960,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('signed_contract_image')) {
                 $file = $request->file('signed_contract_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Signed contract received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'signed_contract_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['signed_contract_image_url'] = $driveService->uploadFile(
                     $file,
@@ -959,6 +977,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('setup_image')) {
                 $file = $request->file('setup_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Setup image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'setup_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['setup_image_url'] = $driveService->uploadFile(
                     $file,
@@ -970,6 +994,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('box_reading_image')) {
                 $file = $request->file('box_reading_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Box reading image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'box_reading_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['box_reading_image_url'] = $driveService->uploadFile(
                     $file,
@@ -981,6 +1011,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('router_reading_image')) {
                 $file = $request->file('router_reading_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Router reading image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'router_reading_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['router_reading_image_url'] = $driveService->uploadFile(
                     $file,
@@ -992,6 +1028,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('port_label_image')) {
                 $file = $request->file('port_label_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Port label image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'port_label_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['port_label_image_url'] = $driveService->uploadFile(
                     $file,
@@ -1003,6 +1045,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('client_signature_image')) {
                 $file = $request->file('client_signature_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Client signature image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'client_signature_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['client_signature_image_url'] = $driveService->uploadFile(
                     $file,
@@ -1014,6 +1062,12 @@ class JobOrderController extends Controller
 
             if ($request->hasFile('speed_test_image')) {
                 $file = $request->file('speed_test_image');
+                $fileSizeKB = round($file->getSize() / 1024, 2);
+                Log::info('[BACKEND] Speed test image received', [
+                    'size_kb' => $fileSizeKB,
+                    'size_mb' => round($fileSizeKB / 1024, 2),
+                    'mime_type' => $file->getMimeType(),
+                ]);
                 $fileName = 'speed_test_' . time() . '.' . $file->getClientOriginalExtension();
                 $imageUrls['speedtest_image_url'] = $driveService->uploadFile(
                     $file,

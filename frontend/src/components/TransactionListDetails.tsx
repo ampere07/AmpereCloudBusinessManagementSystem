@@ -3,6 +3,8 @@ import {
   ArrowLeft, ArrowRight, Maximize2, X, Phone, MessageSquare, Info, 
   ExternalLink, Mail, Edit, Trash2, Receipt, RefreshCw, CheckCircle
 } from 'lucide-react';
+import { transactionService } from '../services/transactionService';
+import LoadingModal from './LoadingModal';
 
 interface TransactionListDetailsProps {
   transaction: {
@@ -39,6 +41,7 @@ interface TransactionListDetailsProps {
 
 const TransactionListDetails: React.FC<TransactionListDetailsProps> = ({ transaction, onClose }) => {
   const [loading, setLoading] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [error, setError] = useState<string | null>(null);
 
   // Format currency
@@ -46,21 +49,44 @@ const TransactionListDetails: React.FC<TransactionListDetailsProps> = ({ transac
     return `₱${amount.toFixed(2)}`;
   };
 
-  // Handle status update
-  const handleStatusUpdate = async (newStatus: string) => {
+  const handleApproveTransaction = async () => {
+    if (!window.confirm('Are you sure you want to approve this transaction?')) {
+      return;
+    }
+
     try {
       setLoading(true);
-      console.log(`Updating transaction ${transaction.id} status to ${newStatus}`);
+      setLoadingPercentage(0);
+      setError(null);
       
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      setLoadingPercentage(20);
       
-      transaction.status = newStatus;
-      alert(`Transaction status updated to ${newStatus}`);
+      const result = await transactionService.approveTransaction(transaction.id);
+      
+      setLoadingPercentage(60);
+      
+      if (result.success) {
+        setLoadingPercentage(100);
+        
+        const status = result.data?.status || 'Done';
+        transaction.status = status;
+        
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
+        alert(`Transaction approved successfully. Status: ${status}`);
+        
+        if (onClose) {
+          onClose();
+        }
+      } else {
+        setError(result.message || 'Failed to approve transaction');
+      }
     } catch (err: any) {
-      setError(`Failed to update status: ${err.message}`);
-      console.error('Status update error:', err);
+      setError(`Failed to approve transaction: ${err.message}`);
+      console.error('Approve transaction error:', err);
     } finally {
       setLoading(false);
+      setLoadingPercentage(0);
     }
   };
 
@@ -70,7 +96,14 @@ const TransactionListDetails: React.FC<TransactionListDetailsProps> = ({ transac
   };
 
   return (
-    <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
+    <>
+      <LoadingModal 
+        isOpen={loading} 
+        message="Approving transaction..." 
+        percentage={loadingPercentage} 
+      />
+      
+      <div className="w-full h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30">
       {/* Header */}
       <div className="bg-gray-800 p-3 flex items-center justify-between border-b border-gray-700">
         <div className="flex items-center min-w-0 flex-1">
@@ -190,13 +223,25 @@ const TransactionListDetails: React.FC<TransactionListDetailsProps> = ({ transac
             
             <div className="flex border-b border-gray-800 py-2">
               <div className="w-40 text-gray-400 text-sm">Status</div>
-              <div className={`flex-1 capitalize ${
-                transaction.status.toLowerCase() === 'done' ? 'text-green-500' :
-                transaction.status.toLowerCase() === 'pending' ? 'text-yellow-500' :
-                transaction.status.toLowerCase() === 'processing' ? 'text-blue-500' :
-                'text-gray-400'
-              }`}>
-                {transaction.status}
+              <div className="flex-1 flex items-center justify-between">
+                <div className={`capitalize ${
+                  transaction.status.toLowerCase() === 'done' ? 'text-green-500' :
+                  transaction.status.toLowerCase() === 'pending' ? 'text-yellow-500' :
+                  transaction.status.toLowerCase() === 'processing' ? 'text-blue-500' :
+                  'text-gray-400'
+                }`}>
+                  {transaction.status}
+                </div>
+                {transaction.status.toLowerCase() === 'pending' && (
+                  <button
+                    onClick={handleApproveTransaction}
+                    disabled={loading}
+                    className="flex items-center space-x-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white px-4 py-2 rounded text-sm transition-colors"
+                  >
+                    <CheckCircle size={16} />
+                    <span>{loading ? 'Approving...' : 'Approve'}</span>
+                  </button>
+                )}
               </div>
             </div>
             
@@ -266,6 +311,7 @@ const TransactionListDetails: React.FC<TransactionListDetailsProps> = ({ transac
         </div>
       </div>
     </div>
+    </>
   );
 };
 

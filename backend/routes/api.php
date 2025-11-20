@@ -19,6 +19,7 @@ use App\Http\Controllers\DebugController;
 use App\Http\Controllers\EmergencyLocationController;
 use App\Http\Controllers\RadiusController;
 use App\Http\Controllers\RadiusConfigController;
+use App\Http\Controllers\TransactionController;
 use App\Models\User;
 use App\Services\ActivityLogService;
 
@@ -78,55 +79,13 @@ Route::prefix('debug')->group(function () {
     });
 });
 
-// Discount Management Routes (if not already exists)
+// Discount Management Routes
 Route::prefix('discounts')->group(function () {
-    Route::get('/', function(Request $request) {
-        $query = \App\Models\Discount::with(['billingAccount']);
-        
-        if ($request->has('account_id')) {
-            $query->where('account_id', $request->account_id);
-        }
-        
-        if ($request->has('status')) {
-            $query->where('status', $request->status);
-        }
-        
-        $discounts = $query->orderBy('created_at', 'desc')->get();
-        
-        return response()->json([
-            'success' => true,
-            'data' => $discounts,
-            'count' => $discounts->count()
-        ]);
-    });
-    
-    Route::post('/', function(Request $request) {
-        try {
-            $validated = $request->validate([
-                'account_id' => 'required|exists:billing_accounts,id',
-                'discount_amount' => 'required|numeric|min:0',
-                'status' => 'required|in:Unused,Permanent,Monthly',
-                'remaining' => 'nullable|numeric',
-                'remarks' => 'nullable|string'
-            ]);
-            
-            $validated['created_by_user_id'] = $request->user()->id ?? 1;
-            $validated['updated_by_user_id'] = $request->user()->id ?? 1;
-            
-            $discount = \App\Models\Discount::create($validated);
-            
-            return response()->json([
-                'success' => true,
-                'message' => 'Discount created successfully',
-                'data' => $discount
-            ], 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'error' => $e->getMessage()
-            ], 500);
-        }
-    });
+    Route::get('/', [\App\Http\Controllers\DiscountController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\DiscountController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\DiscountController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\DiscountController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\DiscountController::class, 'destroy']);
 });
 
 // Service Charge Logs Routes
@@ -185,7 +144,7 @@ Route::prefix('service-charges')->group(function () {
 // Installment Management Routes (Enhanced)
 Route::prefix('installments')->group(function () {
     Route::get('/', function(Request $request) {
-        $query = \App\Models\Installment::with(['billingAccount', 'schedules']);
+        $query = \App\Models\Installment::with(['billingAccount', 'invoice', 'schedules']);
         
         if ($request->has('account_id')) {
             $query->where('account_id', $request->account_id);
@@ -208,11 +167,14 @@ Route::prefix('installments')->group(function () {
         try {
             $validated = $request->validate([
                 'account_id' => 'required|exists:billing_accounts,id',
+                'invoice_id' => 'nullable|exists:invoices,id',
                 'total_balance' => 'required|numeric|min:0',
                 'months_to_pay' => 'required|integer|min:1',
                 'start_date' => 'required|date',
                 'remarks' => 'nullable|string'
             ]);
+            
+            \Illuminate\Support\Facades\DB::beginTransaction();
             
             $validated['monthly_payment'] = $validated['total_balance'] / $validated['months_to_pay'];
             $validated['status'] = 'active';
@@ -221,12 +183,79 @@ Route::prefix('installments')->group(function () {
             
             $installment = \App\Models\Installment::create($validated);
             
+            $balanceChanges = null;
+            
+            if (isset($validated['invoice_id'])) {
+                $invoice = \App\Models\Invoice::find($validated['invoice_id']);
+                $billingAccount = \App\Models\BillingAccount::find($validated['account_id']);
+                
+                if ($invoice && $billingAccount) {
+                    $staggeredBalance = $validated['total_balance'];
+                    $currentAccountBalance = $billingAccount->account_balance ?? 0;
+                    
+                    $newAccountBalance = $currentAccountBalance - $staggeredBalance;
+                    
+                    $billingAccount->update([
+                        'account_balance' => round($newAccountBalance, 2),
+                        'balance_update_date' => now()
+                    ]);
+                    
+                    $currentReceivedPayment = $invoice->received_payment ?? 0;
+                    $newReceivedPayment = $currentReceivedPayment + $staggeredBalance;
+                    
+                    $remainingInvoiceBalance = $invoice->total_amount - $newReceivedPayment;
+                    
+                    $invoiceStatus = 'Unpaid';
+                    if ($remainingInvoiceBalance <= 0) {
+                        $invoiceStatus = 'Paid';
+                    } elseif ($newReceivedPayment > 0) {
+                        $invoiceStatus = 'Partial';
+                    }
+                    
+                    $invoice->update([
+                        'received_payment' => round($newReceivedPayment, 2),
+                        'status' => $invoiceStatus,
+                        'updated_by' => (string)($request->user()->id ?? 1)
+                    ]);
+                    
+                    $balanceChanges = [
+                        'account_balance' => [
+                            'previous' => round($currentAccountBalance, 2),
+                            'staggered_payment' => round($staggeredBalance, 2),
+                            'new' => round($newAccountBalance, 2)
+                        ],
+                        'invoice' => [
+                            'total_amount' => round($invoice->total_amount, 2),
+                            'previous_received' => round($currentReceivedPayment, 2),
+                            'new_received' => round($newReceivedPayment, 2),
+                            'remaining' => round($remainingInvoiceBalance, 2),
+                            'status' => $invoiceStatus
+                        ]
+                    ];
+                    
+                    \Illuminate\Support\Facades\Log::info('Staggered installment created', [
+                        'installment_id' => $installment->id,
+                        'account_id' => $validated['account_id'],
+                        'invoice_id' => $validated['invoice_id'],
+                        'balance_changes' => $balanceChanges
+                    ]);
+                }
+            }
+            
+            \Illuminate\Support\Facades\DB::commit();
+            
             return response()->json([
                 'success' => true,
-                'message' => 'Installment created successfully',
-                'data' => $installment
+                'message' => 'Installment created successfully and balances updated',
+                'data' => $installment,
+                'balance_changes' => $balanceChanges
             ], 201);
         } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            \Illuminate\Support\Facades\Log::error('Failed to create staggered installment', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
             return response()->json([
                 'success' => false,
                 'error' => $e->getMessage()
@@ -236,7 +265,7 @@ Route::prefix('installments')->group(function () {
     
     Route::get('/{id}', function($id) {
         try {
-            $installment = \App\Models\Installment::with(['billingAccount', 'schedules'])->findOrFail($id);
+            $installment = \App\Models\Installment::with(['billingAccount', 'invoice', 'schedules'])->findOrFail($id);
             
             return response()->json([
                 'success' => true,
@@ -247,6 +276,52 @@ Route::prefix('installments')->group(function () {
                 'success' => false,
                 'error' => $e->getMessage()
             ], 404);
+        }
+    });
+    
+    Route::put('/{id}', function($id, Request $request) {
+        try {
+            $installment = \App\Models\Installment::findOrFail($id);
+            
+            $validated = $request->validate([
+                'total_balance' => 'sometimes|numeric|min:0',
+                'months_to_pay' => 'sometimes|integer|min:0',
+                'monthly_payment' => 'sometimes|numeric|min:0',
+                'status' => 'sometimes|in:active,completed,cancelled',
+                'remarks' => 'nullable|string'
+            ]);
+            
+            $validated['updated_by'] = $request->user()->id ?? 1;
+            
+            $installment->update($validated);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Installment updated successfully',
+                'data' => $installment->fresh()
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    });
+    
+    Route::delete('/{id}', function($id) {
+        try {
+            $installment = \App\Models\Installment::findOrFail($id);
+            $installment->delete();
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Installment deleted successfully'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ], 500);
         }
     });
 });
@@ -273,6 +348,66 @@ Route::get('/billing-generation/trigger-scheduled', function() {
 });
 
 // Test Invoice ID Generation
+Route::post('/billing-generation/test-single-account', function(Request $request) {
+    try {
+        $validated = $request->validate([
+            'account_id' => 'required|integer'
+        ]);
+        
+        $account = \App\Models\BillingAccount::with(['customer'])->findOrFail($validated['account_id']);
+        $service = app(\App\Services\EnhancedBillingGenerationService::class);
+        $today = \Carbon\Carbon::now();
+        $userId = 1;
+        
+        $soaResult = null;
+        $invoiceResult = null;
+        $errors = [];
+        
+        try {
+            $account->refresh();
+            $soaResult = $service->createEnhancedStatement($account, $today, $userId);
+        } catch (\Exception $e) {
+            $errors['soa'] = $e->getMessage();
+        }
+        
+        try {
+            $account->refresh();
+            $invoiceResult = $service->createEnhancedInvoice($account, $today, $userId);
+        } catch (\Exception $e) {
+            $errors['invoice'] = $e->getMessage();
+        }
+        
+        return response()->json([
+            'success' => true,
+            'message' => 'Test generation completed for single account',
+            'data' => [
+                'account_no' => $account->account_no,
+                'soa' => $soaResult ? [
+                    'id' => $soaResult->id,
+                    'balance_from_previous_bill' => $soaResult->balance_from_previous_bill,
+                    'payment_received_previous' => $soaResult->payment_received_previous,
+                    'remaining_balance_previous' => $soaResult->remaining_balance_previous,
+                    'amount_due' => $soaResult->amount_due,
+                    'total_amount_due' => $soaResult->total_amount_due
+                ] : null,
+                'invoice' => $invoiceResult ? [
+                    'id' => $invoiceResult->id,
+                    'invoice_balance' => $invoiceResult->invoice_balance,
+                    'total_amount' => $invoiceResult->total_amount
+                ] : null,
+                'errors' => $errors
+            ]
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Test generation failed',
+            'error' => $e->getMessage(),
+            'trace' => $e->getTraceAsString()
+        ], 500);
+    }
+});
+
 Route::get('/billing-generation/test-invoice-id', function() {
     $date = \Carbon\Carbon::now();
     $year = $date->format('y');
@@ -1685,6 +1820,22 @@ Route::prefix('settings-image-size')->group(function () {
     Route::put('/{id}/status', [\App\Http\Controllers\SettingsImageSizeController::class, 'updateStatus']);
 });
 
+Route::get('/settings/image-size', function() {
+    try {
+        $sizes = \App\Models\SettingsImageSize::orderBy('id')->get();
+        return response()->json([
+            'success' => true,
+            'data' => $sizes
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Error fetching image size settings',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 // Settings Color Palette Management Routes
 Route::prefix('settings-color-palette')->group(function () {
     Route::get('/', [\App\Http\Controllers\SettingsColorPaletteController::class, 'index']);
@@ -1693,4 +1844,23 @@ Route::prefix('settings-color-palette')->group(function () {
     Route::put('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'update']);
     Route::put('/{id}/status', [\App\Http\Controllers\SettingsColorPaletteController::class, 'updateStatus']);
     Route::delete('/{id}', [\App\Http\Controllers\SettingsColorPaletteController::class, 'destroy']);
+});
+
+// Transaction Management Routes
+Route::prefix('transactions')->group(function () {
+    Route::get('/', [\App\Http\Controllers\TransactionController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\TransactionController::class, 'store']);
+    Route::post('/upload-images', [\App\Http\Controllers\TransactionController::class, 'uploadImages']);
+    Route::get('/{id}', [\App\Http\Controllers\TransactionController::class, 'show']);
+    Route::post('/{id}/approve', [\App\Http\Controllers\TransactionController::class, 'approve']);
+    Route::put('/{id}/status', [\App\Http\Controllers\TransactionController::class, 'updateStatus']);
+});
+
+// Staggered Installation Management Routes
+Route::prefix('staggered-installations')->group(function () {
+    Route::get('/', [\App\Http\Controllers\StaggeredInstallationController::class, 'index']);
+    Route::post('/', [\App\Http\Controllers\StaggeredInstallationController::class, 'store']);
+    Route::get('/{id}', [\App\Http\Controllers\StaggeredInstallationController::class, 'show']);
+    Route::put('/{id}', [\App\Http\Controllers\StaggeredInstallationController::class, 'update']);
+    Route::delete('/{id}', [\App\Http\Controllers\StaggeredInstallationController::class, 'destroy']);
 });

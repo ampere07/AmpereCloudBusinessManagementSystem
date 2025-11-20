@@ -11,6 +11,7 @@ return new class extends Migration
         Schema::create('installments', function (Blueprint $table) {
             $table->id();
             $table->unsignedBigInteger('account_id')->nullable();
+            $table->unsignedBigInteger('invoice_id')->nullable();
             $table->date('start_date')->nullable();
             $table->decimal('total_balance', 10, 2)->nullable();
             $table->integer('months_to_pay')->nullable();
