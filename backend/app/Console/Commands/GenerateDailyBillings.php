@@ -7,6 +7,26 @@ use Illuminate\Console\Command;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * Daily Billing Generation Command
+ * 
+ * CRITICAL ORDER OF OPERATIONS:
+ * 1. Generate SOA FIRST (uses previous account_balance)
+ * 2. Generate Invoice SECOND (updates account_balance)
+ * 
+ * This order ensures that:
+ * - SOA "Balance from Previous Bill" shows the correct previous balance (e.g., 6694)
+ * - Invoice generation updates the account_balance to the new ending balance (e.g., 7993)
+ * - Next month's SOA will correctly use the previous SOA's "Total Amount Due" as starting balance
+ * 
+ * Schedule: Runs daily at 1:00 AM (configured in app/Console/Kernel.php)
+ * 
+ * Manual Usage:
+ *   php artisan billing:generate-daily                    # Generate for today's billing day
+ *   php artisan billing:generate-daily --day=15           # Generate for specific billing day
+ *   php artisan billing:generate-daily --day=0            # Generate for end-of-month billing
+ *   php artisan billing:generate-daily --date=2025-11-15  # Generate for specific date
+ */
 class GenerateDailyBillings extends Command
 {
     protected $signature = 'billing:generate-daily 
@@ -128,6 +148,8 @@ class GenerateDailyBillings extends Command
 
             $this->info("Summary:");
             $this->line("  Billing Day: {$billingDayLabel}");
+            $this->line("  SOA Generated: {$soaResults['success']}");
+            $this->line("  Invoices Generated: {$invoiceResults['success']}");
             $this->line("  Total Generated: {$totalSuccess}");
             $this->line("  Total Failed: {$totalFailed}");
             $this->line("  Execution Time: {$executionTime} seconds");

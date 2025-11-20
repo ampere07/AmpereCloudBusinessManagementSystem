@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, ChevronDown, Camera } from 'lucide-react';
+import { X, ChevronDown, Camera ,Loader2 } from 'lucide-react';
 import { updateApplicationVisit, uploadApplicationVisitImages } from '../services/applicationVisitService';
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
@@ -178,6 +178,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
 
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [statusRemarks, setStatusRemarks] = useState<StatusRemark[]>([]);
   const [technicians, setTechnicians] = useState<Array<{ email: string; name: string }>>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
@@ -568,12 +569,22 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
     }
 
     setLoading(true);
+    setLoadingPercentage(0);
     setModal({
       isOpen: true,
       type: 'loading',
       title: 'Updating',
       message: 'Please wait while we process your request...'
     });
+    
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
+      });
+    }, 200);
     
     try {
       const updateData = mapFormDataToUpdateData();
@@ -597,6 +608,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
               image3: technicianFormData.image3
             }
           );
+          
+          clearInterval(progressInterval);
+          setLoadingPercentage(100);
+          await new Promise(resolve => setTimeout(resolve, 500));
           
           if (uploadResult.success) {
             const updatedVisit = { ...visitData, ...updateData };
@@ -623,6 +638,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
             });
           }
         } catch (uploadError: any) {
+          clearInterval(progressInterval);
           const errorMsg = uploadError.response?.data?.message || uploadError.message || 'Unknown error';
           setModal({
             isOpen: true,
@@ -632,6 +648,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           });
         }
       } else {
+        clearInterval(progressInterval);
+        setLoadingPercentage(100);
+        await new Promise(resolve => setTimeout(resolve, 500));
+        
         const updatedVisit = { ...visitData, ...updateData };
         setPendingUpdate(updatedVisit);
         setModal({
@@ -649,6 +669,7 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
         });
       }
     } catch (error: any) {
+      clearInterval(progressInterval);
       let errorMessage = 'Unknown error occurred';
       
       if (error instanceof Error) {
@@ -1242,11 +1263,10 @@ const ApplicationVisitStatusModal: React.FC<ApplicationVisitStatusModalProps> = 
           <div className="bg-gray-900 border border-gray-700 rounded-lg p-8 max-w-md w-full mx-4">
             {modal.type === 'loading' ? (
               <div className="text-center">
-                <div className="flex justify-center mb-4">
-                  <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-orange-500"></div>
+                <div className="flex justify-center mb-6">
+                  <div className="animate-spin rounded-full h-20 w-20 border-b-4 border-orange-500"></div>
                 </div>
-                <h3 className="text-xl font-semibold text-white mb-2">{modal.title}</h3>
-                <p className="text-gray-400 text-sm">{modal.message}</p>
+                <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
               </div>
             ) : (
               <>

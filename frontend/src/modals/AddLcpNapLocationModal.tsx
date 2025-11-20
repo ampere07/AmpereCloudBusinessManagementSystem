@@ -3,6 +3,8 @@ import { X, Camera, MapPin, ChevronDown, CheckCircle, AlertCircle, Loader2 } fro
 import { getRegions, getCities, City } from '../services/cityService';
 import { barangayService, Barangay } from '../services/barangayService';
 import { locationDetailService, LocationDetail } from '../services/locationDetailService';
+import { getActiveImageSize, resizeImage, ImageSizeSetting } from '../services/imageSettingsService';
+import { GOOGLE_MAPS_API_KEY } from '../config/maps';
 
 interface AddLcpNapLocationModalProps {
   isOpen: boolean;
@@ -72,6 +74,7 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [showLoadingModal, setShowLoadingModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [loadingPercentage, setLoadingPercentage] = useState(0);
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultType, setResultType] = useState<'success' | 'error'>('success');
   const [resultMessage, setResultMessage] = useState('');
@@ -82,19 +85,30 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   const [allBarangays, setAllBarangays] = useState<Barangay[]>([]);
   const [allLocations, setAllLocations] = useState<LocationDetail[]>([]);
   const [showCoordinatesMap, setShowCoordinatesMap] = useState<boolean>(false);
+  const [activeImageSize, setActiveImageSize] = useState<ImageSizeSetting | null>(null);
   
   const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markerRef = useRef<google.maps.Marker | null>(null);
 
   const API_BASE_URL = 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
     if (isOpen) {
       loadDropdownData();
+      fetchImageSizeSettings();
       resetForm();
     }
   }, [isOpen]);
+
+  const fetchImageSizeSettings = async () => {
+    try {
+      const settings = await getActiveImageSize();
+      setActiveImageSize(settings);
+    } catch (error) {
+      setActiveImageSize(null);
+    }
+  };
 
   useEffect(() => {
     if (showCoordinatesMap && !mapInstanceRef.current) {
@@ -114,48 +128,51 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   }, [formData.lcp_name, formData.nap_name]);
 
   const loadMapScript = () => {
-    const existingCSS = document.getElementById('leaflet-css-lcpnap');
-    const existingJS = document.getElementById('leaflet-js-lcpnap');
-
-    if (!existingCSS) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css-lcpnap';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    if (!existingJS) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js-lcpnap';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = initializeMap;
-      document.head.appendChild(script);
-    } else if ((window as any).L && !mapInstanceRef.current) {
+    if (window.google?.maps) {
       initializeMap();
+      return;
     }
+
+    const existingScript = document.getElementById('google-maps-script-modal');
+    if (existingScript) {
+      existingScript.addEventListener('load', initializeMap);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-script-modal';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}`;
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeMap;
+    script.onerror = () => {
+      console.error('Failed to load Google Maps script');
+    };
+    document.head.appendChild(script);
   };
 
   const initializeMap = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.google?.maps) return;
 
     cleanupMap();
-
-    const L = (window as any).L;
-    if (!L) return;
 
     try {
       const defaultLat = 14.5995;
       const defaultLng = 120.9842;
-      const map = L.map(mapRef.current).setView([defaultLat, defaultLng], 6);
+      
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: defaultLat, lng: defaultLng },
+        zoom: 6,
+        mapTypeControl: true,
+        streetViewControl: false,
+        fullscreenControl: false,
+        zoomControl: true,
+      });
 
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
-      map.on('click', (e: any) => {
-        const { lat, lng } = e.latlng;
-        handleMapClick(lat, lng);
+      map.addListener('click', (e: google.maps.MapMouseEvent) => {
+        if (e.latLng) {
+          handleMapClick(e.latLng.lat(), e.latLng.lng());
+        }
       });
 
       mapInstanceRef.current = map;
@@ -167,7 +184,8 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
           const lng = parseFloat(coords[1]);
           if (!isNaN(lat) && !isNaN(lng)) {
             addMarkerToMap(lat, lng);
-            map.setView([lat, lng], 15);
+            map.setCenter({ lat, lng });
+            map.setZoom(15);
           }
         }
       }
@@ -177,14 +195,11 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   };
 
   const cleanupMap = () => {
-    if (markerRef.current && mapInstanceRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
+    if (markerRef.current) {
+      markerRef.current.setMap(null);
       markerRef.current = null;
     }
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
+    mapInstanceRef.current = null;
   };
 
   const handleMapClick = (lat: number, lng: number) => {
@@ -199,36 +214,38 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
   };
 
   const addMarkerToMap = (lat: number, lng: number) => {
-    if (!mapInstanceRef.current) return;
-
-    const L = (window as any).L;
-    if (!L) return;
+    if (!mapInstanceRef.current || !window.google?.maps) return;
 
     if (markerRef.current) {
-      mapInstanceRef.current.removeLayer(markerRef.current);
+      markerRef.current.setMap(null);
     }
 
-    const marker = L.marker([lat, lng], {
-      icon: L.divIcon({
-        className: 'custom-marker',
-        html: `
-          <svg width="32" height="44" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
-            <path d="M16 0C7.163 0 0 7.163 0 16c0 13 16 28 16 28s16-15 16-28c0-8.837-7.163-16-16-16z" fill="#f97316" stroke="#fff" stroke-width="2"/>
-            <circle cx="16" cy="16" r="6" fill="#fff"/>
-          </svg>
-        `,
-        iconSize: [32, 44],
-        iconAnchor: [16, 44],
-        popupAnchor: [0, -44]
-      })
-    }).addTo(mapInstanceRef.current);
+    const marker = new google.maps.Marker({
+      position: { lat, lng },
+      map: mapInstanceRef.current,
+      icon: {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: 10,
+        fillColor: '#f97316',
+        fillOpacity: 1,
+        strokeColor: '#ffffff',
+        strokeWeight: 2,
+      },
+      title: 'Selected Location'
+    });
 
-    marker.bindPopup(`
-      <div style="font-family: system-ui; text-align: center;">
-        <strong>Selected Location</strong><br/>
-        <span style="font-size: 12px; color: #666;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
-      </div>
-    `);
+    const infoWindow = new google.maps.InfoWindow({
+      content: `
+        <div style="font-family: system-ui; text-align: center; color: #1f2937;">
+          <strong>Selected Location</strong><br/>
+          <span style="font-size: 12px; color: #666;">${lat.toFixed(6)}, ${lng.toFixed(6)}</span>
+        </div>
+      `
+    });
+
+    marker.addListener('click', () => {
+      infoWindow.open(mapInstanceRef.current, marker);
+    });
 
     markerRef.current = marker;
   };
@@ -313,18 +330,43 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleImageUpload = (field: 'reading_image' | 'image' | 'image_2', file: File) => {
-    setFormData(prev => ({ ...prev, [field]: file }));
-    
-    if (imagePreviews[field]) {
-      URL.revokeObjectURL(imagePreviews[field]!);
-    }
-    
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
-    
-    if (errors[field]) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
+  const handleImageUpload = async (field: 'reading_image' | 'image' | 'image_2', file: File) => {
+    try {
+      let processedFile = file;
+      
+      if (activeImageSize && activeImageSize.image_size_value < 100) {
+        try {
+          processedFile = await resizeImage(file, activeImageSize.image_size_value);
+        } catch (resizeError) {
+          processedFile = file;
+        }
+      }
+      
+      setFormData(prev => ({ ...prev, [field]: processedFile }));
+      
+      if (imagePreviews[field]) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(processedFile);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
+    } catch (error) {
+      setFormData(prev => ({ ...prev, [field]: file }));
+      
+      if (imagePreviews[field]) {
+        URL.revokeObjectURL(imagePreviews[field]!);
+      }
+      
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreviews(prev => ({ ...prev, [field]: previewUrl }));
+      
+      if (errors[field]) {
+        setErrors(prev => ({ ...prev, [field]: '' }));
+      }
     }
   };
 
@@ -334,6 +376,16 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     setLoading(true);
     setShowLoadingModal(true);
     setUploadProgress(0);
+    setLoadingPercentage(0);
+    
+    const progressInterval = setInterval(() => {
+      setLoadingPercentage(prev => {
+        if (prev >= 99) return 99;
+        if (prev >= 90) return prev + 0.5;
+        if (prev >= 70) return prev + 1;
+        return prev + 3;
+      });
+    }, 200);
     
     try {
       const submitData = new FormData();
@@ -388,20 +440,10 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
 
       console.log('Sending POST request to:', `${API_BASE_URL}/lcpnap`);
       
-      setUploadProgress(25);
-      
       const xhr = new XMLHttpRequest();
       
       const uploadPromise = new Promise<Response>((resolve, reject) => {
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 50) + 25;
-            setUploadProgress(Math.min(percentComplete, 75));
-          }
-        });
-        
         xhr.addEventListener('load', () => {
-          setUploadProgress(90);
           if (xhr.status >= 200 && xhr.status < 300) {
             resolve(new Response(xhr.responseText, {
               status: xhr.status,
@@ -423,7 +465,6 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       });
       
       const response = await uploadPromise;
-      setUploadProgress(95);
 
       console.log('Response status:', response.status);
       console.log('Response headers:', Object.fromEntries(response.headers.entries()));
@@ -451,8 +492,9 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       }
 
       console.log('=== FORM SUBMISSION SUCCESS ===');
-      setUploadProgress(100);
-      await new Promise(resolve => setTimeout(resolve, 300));
+      clearInterval(progressInterval);
+      setLoadingPercentage(100);
+      await new Promise(resolve => setTimeout(resolve, 500));
       setShowLoadingModal(false);
       setResultType('success');
       setResultMessage('LCP/NAP location created successfully');
@@ -471,6 +513,7 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
       console.error('Error stack:', error.stack);
       console.error('Full error:', error);
       
+      clearInterval(progressInterval);
       setShowLoadingModal(false);
       setResultType('error');
       setResultMessage(error.message || 'Failed to save LCP/NAP location');
@@ -611,27 +654,11 @@ const AddLcpNapLocationModal: React.FC<AddLcpNapLocationModalProps> = ({
     <>
       {showLoadingModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 z-[10000] flex items-center justify-center">
-          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-4 min-w-[320px]">
-            <Loader2 className="w-16 h-16 text-orange-500 animate-spin" />
-            <p className="text-white text-lg font-medium">Saving LCP/NAP Location...</p>
-            <div className="w-full">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
-                <span>Progress</span>
-                <span>{uploadProgress}%</span>
-              </div>
-              <div className="w-full bg-gray-700 rounded-full h-2.5">
-                <div 
-                  className="bg-orange-500 h-2.5 rounded-full transition-all duration-300 ease-out"
-                  style={{ width: `${uploadProgress}%` }}
-                ></div>
-              </div>
+          <div className="bg-gray-800 rounded-lg p-8 flex flex-col items-center space-y-6 min-w-[320px]">
+            <Loader2 className="w-20 h-20 text-orange-500 animate-spin" />
+            <div className="text-center">
+              <p className="text-white text-4xl font-bold">{loadingPercentage}%</p>
             </div>
-            <p className="text-gray-400 text-sm text-center">
-              {uploadProgress < 25 && 'Preparing data...'}
-              {uploadProgress >= 25 && uploadProgress < 75 && 'Uploading images...'}
-              {uploadProgress >= 75 && uploadProgress < 95 && 'Processing...'}
-              {uploadProgress >= 95 && 'Finalizing...'}
-            </p>
           </div>
         </div>
       )}

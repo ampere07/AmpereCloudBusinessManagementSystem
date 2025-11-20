@@ -10,6 +10,7 @@ class Installment extends Model
 
     protected $fillable = [
         'account_id',
+        'invoice_id',
         'start_date',
         'total_balance',
         'months_to_pay',
@@ -30,6 +31,11 @@ class Installment extends Model
     public function billingAccount()
     {
         return $this->belongsTo(BillingAccount::class, 'account_id');
+    }
+
+    public function invoice()
+    {
+        return $this->belongsTo(Invoice::class, 'invoice_id');
     }
 
     public function schedules()

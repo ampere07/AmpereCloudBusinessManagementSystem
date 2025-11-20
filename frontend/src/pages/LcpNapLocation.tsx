@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Loader2, MapPin } from 'lucide-react';
 import AddLcpNapLocationModal from '../modals/AddLcpNapLocationModal';
+import { GOOGLE_MAPS_API_KEY } from '../config/maps';
 
 interface LocationMarker {
   id: number;
@@ -35,6 +36,8 @@ interface LcpNapItem {
   count: number;
 }
 
+
+
 const LcpNapLocation: React.FC = () => {
   const [markers, setMarkers] = useState<LocationMarker[]>([]);
   const [lcpNapGroups, setLcpNapGroups] = useState<LcpNapGroup[]>([]);
@@ -44,24 +47,26 @@ const LcpNapLocation: React.FC = () => {
   const [sidebarWidth, setSidebarWidth] = useState<number>(256);
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
   const [isMapReady, setIsMapReady] = useState<boolean>(false);
-  const mapRef = useRef<any>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markersLayerRef = useRef<any[]>([]);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<google.maps.Map | null>(null);
+  const markersRef = useRef<google.maps.Marker[]>([]);
+  const infoWindowRef = useRef<google.maps.InfoWindow | null>(null);
   const sidebarStartXRef = useRef<number>(0);
   const sidebarStartWidthRef = useRef<number>(0);
 
   const API_BASE_URL = 'https://backend.atssfiber.ph/api';
 
   useEffect(() => {
-    loadMapScript();
+    loadGoogleMapsScript();
     loadLocations();
 
     return () => {
-      if (mapInstanceRef.current) {
-        mapInstanceRef.current.remove();
-        mapInstanceRef.current = null;
+      clearMarkers();
+      if (infoWindowRef.current) {
+        infoWindowRef.current.close();
+        infoWindowRef.current = null;
       }
-      markersLayerRef.current = [];
+      mapInstanceRef.current = null;
       setIsMapReady(false);
     };
   }, []);
@@ -103,55 +108,79 @@ const LcpNapLocation: React.FC = () => {
     };
   }, [isResizingSidebar]);
 
-  const loadMapScript = () => {
-    const existingCSS = document.getElementById('leaflet-css');
-    const existingJS = document.getElementById('leaflet-js');
-
-    if (!existingCSS) {
-      const link = document.createElement('link');
-      link.id = 'leaflet-css';
-      link.rel = 'stylesheet';
-      link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-      document.head.appendChild(link);
-    }
-
-    if (!existingJS) {
-      const script = document.createElement('script');
-      script.id = 'leaflet-js';
-      script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-      script.onload = initializeMap;
-      document.head.appendChild(script);
-    } else if ((window as any).L && !mapInstanceRef.current) {
+  const loadGoogleMapsScript = () => {
+    if (window.google?.maps) {
       initializeMap();
+      return;
     }
+
+    const existingScript = document.getElementById('google-maps-script');
+    if (existingScript) {
+      existingScript.addEventListener('load', initializeMap);
+      return;
+    }
+
+    const script = document.createElement('script');
+    script.id = 'google-maps-script';
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=marker`;
+    script.async = true;
+    script.defer = true;
+    script.onload = initializeMap;
+    script.onerror = () => {
+      console.error('Failed to load Google Maps script');
+      setIsMapReady(false);
+    };
+    document.head.appendChild(script);
   };
 
   const initializeMap = () => {
-    if (!mapRef.current) return;
+    if (!mapRef.current || !window.google?.maps) return;
 
-    if (mapInstanceRef.current) {
-      mapInstanceRef.current.remove();
-      mapInstanceRef.current = null;
-    }
-
-    const L = (window as any).L;
-    
     try {
-      const map = L.map(mapRef.current).setView([12.8797, 121.7740], 6);
-
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-      }).addTo(map);
-
-      map.on('zoomend', () => {
-        updateMarkerSizes();
+      const map = new google.maps.Map(mapRef.current, {
+        center: { lat: 12.8797, lng: 121.7740 },
+        zoom: 6,
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true,
+        zoomControl: true,
+        styles: [
+          {
+            featureType: 'all',
+            elementType: 'geometry',
+            stylers: [{ color: '#1f2937' }]
+          },
+          {
+            featureType: 'water',
+            elementType: 'geometry',
+            stylers: [{ color: '#0f172a' }]
+          },
+          {
+            featureType: 'road',
+            elementType: 'geometry',
+            stylers: [{ color: '#374151' }]
+          },
+          {
+            featureType: 'poi',
+            elementType: 'geometry',
+            stylers: [{ color: '#1f2937' }]
+          },
+          {
+            elementType: 'labels.text.fill',
+            stylers: [{ color: '#9ca3af' }]
+          },
+          {
+            elementType: 'labels.text.stroke',
+            stylers: [{ color: '#111827' }]
+          }
+        ]
       });
 
+      infoWindowRef.current = new google.maps.InfoWindow();
       mapInstanceRef.current = map;
       setIsMapReady(true);
     } catch (error) {
       console.error('Error initializing map:', error);
-      mapInstanceRef.current = null;
       setIsMapReady(false);
     }
   };
@@ -216,14 +245,8 @@ const LcpNapLocation: React.FC = () => {
         
         setMarkers(validMarkers);
         
-        if (mapInstanceRef.current && (window as any).L) {
+        if (mapInstanceRef.current) {
           updateMapMarkers(validMarkers);
-        } else {
-          setTimeout(() => {
-            if (mapInstanceRef.current && (window as any).L) {
-              updateMapMarkers(validMarkers);
-            }
-          }, 500);
         }
       }
     } catch (error) {
@@ -256,73 +279,45 @@ const LcpNapLocation: React.FC = () => {
     setLcpNapGroups(groupArray);
   };
 
-  const getMarkerSize = (zoomLevel: number) => {
-    if (zoomLevel >= 15) return { width: 32, height: 44, iconSize: [32, 44], iconAnchor: [16, 44] };
-    if (zoomLevel >= 12) return { width: 24, height: 33, iconSize: [24, 33], iconAnchor: [12, 33] };
-    if (zoomLevel >= 9) return { width: 18, height: 25, iconSize: [18, 25], iconAnchor: [9, 25] };
-    if (zoomLevel >= 6) return { width: 14, height: 19, iconSize: [14, 19], iconAnchor: [7, 19] };
-    return { width: 10, height: 14, iconSize: [10, 14], iconAnchor: [5, 14] };
+  const clearMarkers = () => {
+    markersRef.current.forEach(marker => marker.setMap(null));
+    markersRef.current = [];
   };
 
-  const createMarkerIcon = (zoomLevel: number) => {
-    const L = (window as any).L;
-    const size = getMarkerSize(zoomLevel);
-    
-    return L.divIcon({
-      className: 'custom-marker',
-      html: `
-        <svg width="${size.width}" height="${size.height}" viewBox="0 0 32 44" xmlns="http://www.w3.org/2000/svg">
-          <path d="M16 0C7.163 0 0 7.163 0 16c0 13 16 28 16 28s16-15 16-28c0-8.837-7.163-16-16-16z" fill="#22c55e" stroke="#fff" stroke-width="2"/>
-          <circle cx="16" cy="16" r="6" fill="#fff"/>
-        </svg>
-      `,
-      iconSize: size.iconSize,
-      iconAnchor: size.iconAnchor,
-      popupAnchor: [0, -size.iconAnchor[1]]
-    });
-  };
-
-  const updateMarkerSizes = () => {
-    if (!mapInstanceRef.current) return;
-    
-    const L = (window as any).L;
-    if (!L) return;
-    
-    const currentZoom = mapInstanceRef.current.getZoom();
-    const newIcon = createMarkerIcon(currentZoom);
-    
-    markersLayerRef.current.forEach(marker => {
-      marker.setIcon(newIcon);
-    });
+  const createMarkerIcon = (): google.maps.Symbol => {
+    return {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 8,
+      fillColor: '#22c55e',
+      fillOpacity: 1,
+      strokeColor: '#ffffff',
+      strokeWeight: 2,
+    };
   };
 
   const updateMapMarkers = (locations: LocationMarker[]) => {
-    if (!mapInstanceRef.current) {
-      console.warn('Map instance not ready yet');
+    if (!mapInstanceRef.current || !window.google?.maps) {
+      console.warn('Map not ready');
       return;
     }
 
-    const L = (window as any).L;
-    if (!L) {
-      console.warn('Leaflet library not loaded yet');
-      return;
-    }
-    
-    markersLayerRef.current.forEach(marker => {
-      mapInstanceRef.current.removeLayer(marker);
-    });
-    markersLayerRef.current = [];
+    clearMarkers();
 
-    const currentZoom = mapInstanceRef.current.getZoom();
-    const customIcon = createMarkerIcon(currentZoom);
+    const bounds = new google.maps.LatLngBounds();
 
     locations.forEach(location => {
-      const marker = L.marker([location.latitude, location.longitude], { icon: customIcon })
-        .addTo(mapInstanceRef.current);
+      const position = { lat: location.latitude, lng: location.longitude };
+      
+      const marker = new google.maps.Marker({
+        position,
+        map: mapInstanceRef.current,
+        icon: createMarkerIcon(),
+        title: location.lcpnap_name
+      });
 
       const popupContent = `
-        <div style="min-width: 200px; font-family: system-ui;">
-          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600; color: #1f2937;">
+        <div style="min-width: 200px; font-family: system-ui; color: #1f2937;">
+          <h3 style="margin: 0 0 8px 0; font-size: 16px; font-weight: 600;">
             ${location.lcpnap_name}
           </h3>
           <div style="font-size: 14px; color: #4b5563; line-height: 1.6;">
@@ -364,16 +359,19 @@ const LcpNapLocation: React.FC = () => {
         </div>
       `;
 
-      marker.bindPopup(popupContent);
+      marker.addListener('click', () => {
+        if (infoWindowRef.current) {
+          infoWindowRef.current.setContent(popupContent);
+          infoWindowRef.current.open(mapInstanceRef.current, marker);
+        }
+      });
 
-      markersLayerRef.current.push(marker);
+      markersRef.current.push(marker);
+      bounds.extend(position);
     });
 
     if (locations.length > 0) {
-      const bounds = L.latLngBounds(
-        locations.map(loc => [loc.latitude, loc.longitude])
-      );
-      mapInstanceRef.current.fitBounds(bounds, { padding: [50, 50] });
+      mapInstanceRef.current.fitBounds(bounds, { top: 50, right: 50, bottom: 50, left: 50 });
     }
   };
 
@@ -393,16 +391,16 @@ const LcpNapLocation: React.FC = () => {
   const handleLocationSelect = (location: LocationMarker) => {
     if (!mapInstanceRef.current) return;
     
-    const L = (window as any).L;
-    mapInstanceRef.current.setView([location.latitude, location.longitude], 15);
+    mapInstanceRef.current.setCenter({ lat: location.latitude, lng: location.longitude });
+    mapInstanceRef.current.setZoom(15);
     
-    const marker = markersLayerRef.current.find(m => {
-      const latLng = m.getLatLng();
-      return latLng.lat === location.latitude && latLng.lng === location.longitude;
+    const marker = markersRef.current.find(m => {
+      const pos = m.getPosition();
+      return pos && pos.lat() === location.latitude && pos.lng() === location.longitude;
     });
     
-    if (marker) {
-      marker.openPopup();
+    if (marker && infoWindowRef.current) {
+      google.maps.event.trigger(marker, 'click');
     }
   };
 
@@ -473,29 +471,6 @@ const LcpNapLocation: React.FC = () => {
             </button>
           ))}
         </div>
-
-        {selectedGroup && selectedGroup.locations.length > 0 && (
-          <div className="border-t border-gray-700 bg-gray-800 max-h-64 overflow-y-auto">
-            <div className="px-4 py-2 bg-gray-850 border-b border-gray-700">
-              <div className="text-xs text-gray-400 font-medium">Locations</div>
-            </div>
-            {selectedGroup.locations.map(location => (
-              <button
-                key={location.id}
-                onClick={() => handleLocationSelect(location)}
-                className="w-full px-4 py-2 text-left flex items-start gap-2 hover:bg-gray-700 transition-colors text-sm"
-              >
-                <MapPin className="h-4 w-4 text-green-500 flex-shrink-0 mt-0.5" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-gray-300 truncate">{location.lcpnap_name}</div>
-                  {location.city && (
-                    <div className="text-xs text-gray-500 truncate">{location.city}</div>
-                  )}
-                </div>
-              </button>
-            ))}
-          </div>
-        )}
         
         <div 
           className="absolute right-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-10"
