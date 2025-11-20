@@ -256,42 +256,44 @@ const Inventory: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-950 h-full flex overflow-hidden">
-      {/* Category Sidebar */}
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
-        <div className="p-4 border-b border-gray-700 flex-shrink-0">
+    <div className="bg-gray-950 h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Category Sidebar - Desktop / Bottom Navbar - Mobile */}
+      <div className="md:w-64 bg-gray-900 md:border-r border-t md:border-t-0 border-gray-700 flex-shrink-0 flex flex-col order-2 md:order-1">
+        <div className="p-4 border-b border-gray-700 flex-shrink-0 hidden md:block">
           <h2 className="text-lg font-semibold text-white flex items-center">
             <Package className="mr-2" size={20} />
             Inventory
           </h2>
         </div>
         
-        <div className="flex-1 overflow-y-auto">
-          {categories.map((category) => (
-            <button
-              key={category.id}
-              onClick={() => setSelectedCategory(category.id)}
-              className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
-                selectedCategory === category.id
-                  ? 'bg-orange-500 bg-opacity-20 text-orange-400 border-r-2 border-orange-500'
-                  : 'text-gray-300'
-              }`}
-            >
-              <span className="uppercase font-medium">{category.name}</span>
-              <span className={`px-2 py-1 rounded text-xs ${
-                selectedCategory === category.id
-                  ? 'bg-orange-600 text-white'
-                  : 'bg-gray-700 text-gray-300'
-              }`}>
-                {category.count}
-              </span>
-            </button>
-          ))}
+        <div className="flex-1 overflow-y-auto md:block overflow-x-auto">
+          <div className="flex md:flex-col md:space-y-0 space-x-2 md:space-x-0 p-2 md:p-0">
+            {categories.map((category) => (
+              <button
+                key={category.id}
+                onClick={() => setSelectedCategory(category.id)}
+                className={`md:w-full flex-shrink-0 flex flex-col md:flex-row items-center md:justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 rounded-md md:rounded-none ${
+                  selectedCategory === category.id
+                    ? 'bg-orange-500 bg-opacity-20 text-orange-400 md:border-r-2 border-orange-500'
+                    : 'text-gray-300'
+                }`}
+              >
+                <span className="uppercase font-medium text-xs md:text-sm whitespace-nowrap">{category.name}</span>
+                <span className={`px-2 py-1 rounded-full text-xs mt-1 md:mt-0 ${
+                  selectedCategory === category.id
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-gray-700 text-gray-300'
+                }`}>
+                  {category.count}
+                </span>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Main Content Area */}
-      <div className="flex-1 bg-gray-900 overflow-hidden">
+      <div className="flex-1 bg-gray-900 overflow-hidden order-1 md:order-2">
         <div className="flex flex-col h-full">
           {/* Search Bar */}
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
@@ -311,7 +313,7 @@ const Inventory: React.FC = () => {
                 onClick={handleAddItem}
               >
                 <Plus size={16} />
-                <span>Add Item</span>
+                <span className="hidden sm:inline">Add Item</span>
               </button>
             </div>
           </div>
