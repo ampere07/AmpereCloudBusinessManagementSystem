@@ -231,9 +231,10 @@ const Discounts: React.FC = () => {
   };
 
   return (
-    <div className="bg-gray-950 h-full flex overflow-hidden">
-      <div className="w-64 bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col">
-      <div className="p-4 border-b border-gray-700 flex-shrink-0">
+    <div className="bg-gray-950 h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Location Sidebar - Desktop / Bottom Navbar - Mobile */}
+      <div className="md:w-64 bg-gray-900 md:border-r border-t md:border-t-0 border-gray-700 flex-shrink-0 flex flex-col order-2 md:order-1">
+        <div className="p-4 border-b border-gray-700 flex-shrink-0 hidden md:block">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Discounts</h2>
             <div>
@@ -247,31 +248,58 @@ const Discounts: React.FC = () => {
             </div>
           </div>
         </div>
-        <div className="flex-1 overflow-y-auto">
-          {locationItems.map((location) => (
-            <button
-            key={location.id}
-            onClick={() => setSelectedLocation(location.id)}
-            className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
-            selectedLocation === location.id
-            ? location.id === 'all' ? 'bg-orange-500 bg-opacity-20 text-orange-400' : 'text-gray-300'
-            : 'text-gray-300'
-            }`}
-            >
-            {location.id === 'all' ? (
-            <span>All</span>
-            ) : (
-              <div className="flex items-center w-full">
-                <ChevronRight size={16} className="mr-2" />
-              <span className="capitalize">{location.name}</span>
-            </div>
-            )}
-            </button>
-          ))}
+        <div className="flex-1 overflow-y-auto md:block overflow-x-auto">
+          <div className="flex md:flex-col md:space-y-0 space-x-2 md:space-x-0 p-2 md:p-0">
+            {locationItems.map((location) => (
+              <button
+                key={location.id}
+                onClick={() => setSelectedLocation(location.id)}
+                className={`md:w-full flex-shrink-0 flex flex-col md:flex-row items-center md:justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 rounded-md md:rounded-none ${
+                  selectedLocation === location.id
+                    ? location.id === 'all' 
+                      ? 'bg-orange-500 bg-opacity-20 text-orange-400' 
+                      : 'bg-orange-500 bg-opacity-20 text-orange-400'
+                    : 'text-gray-300'
+                }`}
+              >
+                {location.id === 'all' ? (
+                  <>
+                    <span className="text-xs md:text-sm whitespace-nowrap">All</span>
+                    {location.count > 0 && (
+                      <span className={`px-2 py-1 rounded-full text-xs mt-1 md:mt-0 ${
+                        selectedLocation === location.id
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}>
+                        {location.count}
+                      </span>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex flex-col md:flex-row items-center md:justify-between w-full">
+                    <div className="flex items-center">
+                      <ChevronRight size={16} className="mr-2 hidden md:block" />
+                      <span className="capitalize text-xs md:text-sm whitespace-nowrap">{location.name}</span>
+                    </div>
+                    {location.count > 0 && (
+                      <span className={`px-2 py-1 rounded-full text-xs mt-1 md:mt-0 ${
+                        selectedLocation === location.id
+                          ? 'bg-orange-600 text-white'
+                          : 'bg-gray-700 text-gray-300'
+                      }`}>
+                        {location.count}
+                      </span>
+                    )}
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="flex-1 bg-gray-950 overflow-hidden">
+      {/* Main Content */}
+      <div className="flex-1 bg-gray-950 overflow-hidden order-1 md:order-2">
         {/* Main content without the search bar */}
         <div className="flex flex-col h-full">
           <div className="flex-1 overflow-hidden">

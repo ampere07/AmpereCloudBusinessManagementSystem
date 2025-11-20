@@ -38,10 +38,6 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
   const [showStatusConfirmation, setShowStatusConfirmation] = useState(false);
   const [pendingStatus, setPendingStatus] = useState<string>('');
   const [showVisitExistsConfirmation, setShowVisitExistsConfirmation] = useState(false);
-  const [detailsWidth, setDetailsWidth] = useState<number>(600);
-  const [isResizing, setIsResizing] = useState<boolean>(false);
-  const startXRef = useRef<number>(0);
-  const startWidthRef = useRef<number>(0);
 
   const handleMoveToJO = () => {
     setShowMoveConfirmation(true);
@@ -131,37 +127,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
     }
   };
 
-  useEffect(() => {
-    if (!isResizing) return;
 
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isResizing) return;
-      
-      const diff = startXRef.current - e.clientX;
-      const newWidth = Math.max(600, Math.min(1200, startWidthRef.current + diff));
-      
-      setDetailsWidth(newWidth);
-    };
-
-    const handleMouseUp = () => {
-      setIsResizing(false);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [isResizing]);
-
-  const handleMouseDownResize = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setIsResizing(true);
-    startXRef.current = e.clientX;
-    startWidthRef.current = detailsWidth;
-  };
 
   useEffect(() => {
     const fetchApplicationDetails = async () => {
@@ -237,12 +203,7 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
 
   
   return (
-    <div className="h-full bg-gray-950 flex flex-col overflow-hidden border-l border-white border-opacity-30 relative" style={{ width: `${detailsWidth}px` }}>
-      {/* Resize Handle */}
-      <div
-        className="absolute left-0 top-0 bottom-0 w-1 cursor-col-resize hover:bg-orange-500 transition-colors z-50"
-        onMouseDown={handleMouseDownResize}
-      />
+    <div className="h-full bg-gray-950 flex flex-col overflow-hidden">
       <div className="bg-gray-900 p-3 flex items-center justify-between border-b border-gray-800">
         <div className="flex items-center">
           <h2 className="text-white font-semibold text-lg">
@@ -281,61 +242,63 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
       </div>
       
       {/* Action Buttons */}
-      <div className="bg-gray-900 py-4 border-b border-gray-800 flex items-center justify-center space-x-8">
-        <button 
-          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-          onClick={() => handleStatusChange('No Facility')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <Ban className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">No Facility</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-          onClick={() => handleStatusChange('Cancelled')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <XCircle className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Cancelled</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-          onClick={() => handleStatusChange('No Slot')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <RotateCw className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">No Slot</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-          onClick={() => handleStatusChange('Duplicate')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <Square className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Duplicate</span>
-        </button>
-        
-        <button 
-          className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors"
-          onClick={() => handleStatusChange('In Progress')}
-          disabled={loading}
-        >
-          <div className="bg-orange-600 p-3 rounded-full">
-            <CheckCircle className="text-white" size={24} />
-          </div>
-          <span className="text-xs mt-1 text-gray-300">Clear Status</span>
-        </button>
+      <div className="bg-gray-900 py-4 border-b border-gray-800">
+        <div className="flex items-center space-x-4 px-4 overflow-x-auto hide-scrollbar">
+          <button 
+            className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors flex-shrink-0"
+            onClick={() => handleStatusChange('No Facility')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <Ban className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300 whitespace-nowrap">No Facility</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors flex-shrink-0"
+            onClick={() => handleStatusChange('Cancelled')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <XCircle className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300 whitespace-nowrap">Cancelled</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors flex-shrink-0"
+            onClick={() => handleStatusChange('No Slot')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <RotateCw className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300 whitespace-nowrap">No Slot</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors flex-shrink-0"
+            onClick={() => handleStatusChange('Duplicate')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <Square className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300 whitespace-nowrap">Duplicate</span>
+          </button>
+          
+          <button 
+            className="flex flex-col items-center text-center hover:bg-gray-800 rounded-lg p-2 transition-colors flex-shrink-0"
+            onClick={() => handleStatusChange('In Progress')}
+            disabled={loading}
+          >
+            <div className="bg-orange-600 p-3 rounded-full">
+              <CheckCircle className="text-white" size={24} />
+            </div>
+            <span className="text-xs mt-1 text-gray-300 whitespace-nowrap">Clear Status</span>
+          </button>
+        </div>
       </div>
       
       {/* Application Details */}
@@ -614,6 +577,16 @@ const ApplicationDetails: React.FC<ApplicationDetailsProps> = ({ application, on
           secondaryNumber: detailedApplication?.mobile_alt || ''
         }}
       />
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

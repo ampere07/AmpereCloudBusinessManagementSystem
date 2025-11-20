@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { FileText, Search, ChevronDown, RefreshCw, ListFilter, ArrowUp, ArrowDown } from 'lucide-react';
+import { FileText, Search, ChevronDown, RefreshCw, ListFilter, ArrowUp, ArrowDown, Menu, X } from 'lucide-react';
 import ApplicationVisitDetails from '../components/ApplicationVisitDetails';
 import { getAllApplicationVisits } from '../services/applicationVisitService';
 import { getApplication } from '../services/applicationService';
@@ -101,6 +101,7 @@ const ApplicationVisit: React.FC = () => {
   const [columnOrder, setColumnOrder] = useState<string[]>(allColumns.map(col => col.key));
   const [sidebarWidth, setSidebarWidth] = useState<number>(256);
   const [isResizingSidebar, setIsResizingSidebar] = useState<boolean>(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const filterDropdownRef = useRef<HTMLDivElement>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -711,6 +712,11 @@ const ApplicationVisit: React.FC = () => {
     return renderCellValue(visit, columnKey);
   };
 
+  const handleLocationSelect = (locationId: string) => {
+    setSelectedLocation(locationId);
+    setMobileMenuOpen(false);
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full bg-gray-950">
@@ -758,9 +764,10 @@ const ApplicationVisit: React.FC = () => {
   }
 
   return (
-    <div className="bg-gray-950 h-full flex overflow-hidden">
+    <div className="bg-gray-950 h-full flex flex-col md:flex-row overflow-hidden">
+      {/* Desktop Sidebar - Hidden on mobile */}
       {userRole.toLowerCase() !== 'technician' && (
-      <div className="bg-gray-900 border-r border-gray-700 flex-shrink-0 flex flex-col relative" style={{ width: `${sidebarWidth}px` }}>
+      <div className="hidden md:flex bg-gray-900 border-r border-gray-700 flex-shrink-0 flex-col relative" style={{ width: `${sidebarWidth}px` }}>
         <div className="p-4 border-b border-gray-700 flex-shrink-0">
           <div className="flex items-center justify-between mb-1">
             <h2 className="text-lg font-semibold text-white">Application Visits</h2>
@@ -804,10 +811,62 @@ const ApplicationVisit: React.FC = () => {
       </div>
       )}
 
-      <div className={`bg-gray-900 overflow-hidden flex-1`}>
+      {/* Mobile Overlay Menu */}
+      {mobileMenuOpen && userRole.toLowerCase() !== 'technician' && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-black bg-opacity-50" onClick={() => setMobileMenuOpen(false)} />
+          <div className="absolute inset-y-0 left-0 w-64 bg-gray-900 shadow-xl flex flex-col">
+            <div className="p-4 border-b border-gray-700 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Filters</h2>
+              <button onClick={() => setMobileMenuOpen(false)} className="text-gray-400 hover:text-white">
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              {locationItems.map((location) => (
+                <button
+                  key={location.id}
+                  onClick={() => handleLocationSelect(location.id)}
+                  className={`w-full flex items-center justify-between px-4 py-3 text-sm transition-colors hover:bg-gray-800 ${
+                    selectedLocation === location.id
+                      ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                      : 'text-gray-300'
+                  }`}
+                >
+                  <div className="flex items-center">
+                    <FileText className="h-4 w-4 mr-2" />
+                    <span className="capitalize">{location.name}</span>
+                  </div>
+                  {location.count > 0 && (
+                    <span className={`px-2 py-1 rounded-full text-xs ${
+                      selectedLocation === location.id
+                        ? 'bg-orange-600 text-white'
+                        : 'bg-gray-700 text-gray-300'
+                    }`}>
+                      {location.count}
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Main Content */}
+      <div className={`bg-gray-900 overflow-hidden flex-1 flex flex-col pb-16 md:pb-0`}>
         <div className="flex flex-col h-full">
           <div className="bg-gray-900 p-4 border-b border-gray-700 flex-shrink-0">
             <div className="flex items-center space-x-3">
+              {userRole.toLowerCase() !== 'technician' && (
+                <button
+                  onClick={() => setMobileMenuOpen(true)}
+                  className="md:hidden bg-gray-700 hover:bg-gray-600 text-white p-2 rounded text-sm transition-colors flex items-center justify-center"
+                  aria-label="Open filter menu"
+                >
+                  <Menu className="h-5 w-5" />
+                </button>
+              )}
               <div className="relative flex-1">
                 <input
                   type="text"
@@ -818,7 +877,7 @@ const ApplicationVisit: React.FC = () => {
                 />
                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />
               </div>
-              <div className="flex space-x-2">
+              <div className="hidden md:flex space-x-2">
                 <button
                   onClick={handleRefresh}
                   disabled={isRefreshing}
@@ -1035,14 +1094,58 @@ const ApplicationVisit: React.FC = () => {
       </div>
 
       {selectedVisit && (
-        <div className="flex-shrink-0 overflow-hidden">
-          <ApplicationVisitDetails 
-            applicationVisit={selectedVisit}
-            onClose={() => setSelectedVisit(null)}
-            onUpdate={handleVisitUpdate}
-          />
+        <div className="fixed md:relative inset-0 md:flex-shrink-0 z-50 md:z-auto overflow-hidden">
+          <div className="md:hidden absolute inset-0 bg-black bg-opacity-50" onClick={() => setSelectedVisit(null)} />
+          <div className="absolute md:relative right-0 top-0 bottom-0 w-full md:w-auto h-full">
+            <ApplicationVisitDetails 
+              applicationVisit={selectedVisit}
+              onClose={() => setSelectedVisit(null)}
+              onUpdate={handleVisitUpdate}
+            />
+          </div>
         </div>
       )}
+
+      {/* Mobile Bottom Bar */}
+      {userRole.toLowerCase() !== 'technician' && (
+        <div className="md:hidden fixed bottom-0 left-0 right-0 bg-gray-900 border-t border-gray-700 z-40">
+          <div className="flex overflow-x-auto hide-scrollbar">
+            {locationItems.map((location) => (
+              <button
+                key={location.id}
+                onClick={() => setSelectedLocation(location.id)}
+                className={`flex-shrink-0 flex flex-col items-center justify-center px-4 py-2 text-xs transition-colors ${
+                  selectedLocation === location.id
+                    ? 'bg-orange-500 bg-opacity-20 text-orange-400'
+                    : 'text-gray-300'
+                }`}
+              >
+                <FileText className="h-5 w-5 mb-1" />
+                <span className="capitalize whitespace-nowrap">{location.name}</span>
+                {location.count > 0 && (
+                  <span className={`mt-1 px-2 py-0.5 rounded-full text-xs ${
+                    selectedLocation === location.id
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-700 text-gray-300'
+                  }`}>
+                    {location.count}
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <style>{`
+        .hide-scrollbar::-webkit-scrollbar {
+          display: none;
+        }
+        .hide-scrollbar {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+      `}</style>
     </div>
   );
 };

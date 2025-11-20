@@ -164,17 +164,17 @@ const UserManagement: React.FC = () => {
             </p>
           </div>
 
-          <div className="flex justify-between items-center mb-8">
+          <div className="flex flex-col md:flex-row justify-between items-stretch md:items-center gap-4 mb-8">
             <input
               type="text"
               placeholder="Search users by name, username, or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-100 w-80"
+              className="px-4 py-3 bg-gray-900 border border-gray-600 rounded text-white placeholder-gray-500 focus:outline-none focus:border-gray-100 w-full md:w-80"
             />
             <button 
               onClick={handleAddNewUser}
-              className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-medium"
+              className="px-6 py-3 bg-gray-600 text-white rounded hover:bg-gray-700 transition-colors text-sm font-medium whitespace-nowrap"
             >
               Add New User
             </button>
@@ -185,87 +185,147 @@ const UserManagement: React.FC = () => {
               <p className="text-gray-400">Loading users...</p>
             </div>
           ) : (
-            <div className="bg-gray-800 rounded border border-gray-600 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="">
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Name</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Username</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Contact</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Organization</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Created</th>
-                      <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {currentUsers.length === 0 ? (
-                      <tr>
-                        <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
-                          No users found
-                        </td>
+            <>
+              {/* Desktop Table View */}
+              <div className="hidden md:block bg-gray-800 rounded border border-gray-600 overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="">
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Name</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Username</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Email</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Contact</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Organization</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Created</th>
+                        <th className="px-4 py-4 text-left text-sm font-medium text-gray-300 border-b border-gray-600">Actions</th>
                       </tr>
-                    ) : (
-                      currentUsers.map((user: User) => (
-                        <tr key={user.id} className="border-b border-gray-700 hover:bg-gray-750">
-                          <td className="px-4 py-4 text-sm text-white">
-                            {user.salutation && (
-                              <span className="text-gray-400 mr-1">{user.salutation}</span>
-                            )}
-                            {getFullName(user)}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-white">{user.username}</td>
-                          <td className="px-4 py-4 text-sm text-gray-300">{user.email_address}</td>
-                          <td className="px-4 py-4 text-sm text-gray-300">
-                            {user.contact_number || '-'}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-300">
-                            {user.organization?.organization_name || 'No Organization'}
-                          </td>
-                          <td className="px-4 py-4 text-sm text-gray-300">
-                            {new Date(user.created_at).toLocaleDateString()}
-                          </td>
-                          <td className="px-4 py-4">
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => handleEditUser(user)}
-                                className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
-                                title="Edit user"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                </svg>
-                              </button>
-                              <button 
-                                onClick={() => handleDeleteClick(user)}
-                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
-                                title="Delete user"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                </svg>
-                              </button>
-                            </div>
+                    </thead>
+                    <tbody>
+                      {currentUsers.length === 0 ? (
+                        <tr>
+                          <td colSpan={7} className="px-6 py-8 text-center text-gray-400">
+                            No users found
                           </td>
                         </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
+                      ) : (
+                        currentUsers.map((user: User) => (
+                          <tr key={user.id} className="border-b border-gray-700 hover:bg-gray-750">
+                            <td className="px-4 py-4 text-sm text-white">
+                              {user.salutation && (
+                                <span className="text-gray-400 mr-1">{user.salutation}</span>
+                              )}
+                              {getFullName(user)}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-white">{user.username}</td>
+                            <td className="px-4 py-4 text-sm text-gray-300">{user.email_address}</td>
+                            <td className="px-4 py-4 text-sm text-gray-300">
+                              {user.contact_number || '-'}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-300">
+                              {user.organization?.organization_name || 'No Organization'}
+                            </td>
+                            <td className="px-4 py-4 text-sm text-gray-300">
+                              {new Date(user.created_at).toLocaleDateString()}
+                            </td>
+                            <td className="px-4 py-4">
+                              <div className="flex gap-2">
+                                <button 
+                                  onClick={() => handleEditUser(user)}
+                                  className="p-2 text-blue-400 hover:text-blue-300 hover:bg-blue-900 rounded transition-colors"
+                                  title="Edit user"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                                <button 
+                                  onClick={() => handleDeleteClick(user)}
+                                  className="p-2 text-red-400 hover:text-red-300 hover:bg-red-900 rounded transition-colors"
+                                  title="Delete user"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
               </div>
-            </div>
+
+              {/* Mobile Card View */}
+              <div className="md:hidden space-y-4">
+                {currentUsers.length === 0 ? (
+                  <div className="bg-gray-800 rounded border border-gray-600 p-6 text-center text-gray-400">
+                    No users found
+                  </div>
+                ) : (
+                  currentUsers.map((user: User) => (
+                    <div key={user.id} className="bg-gray-800 rounded border border-gray-600 p-4">
+                      <div className="mb-3">
+                        <div className="text-white font-medium mb-1">
+                          {user.salutation && (
+                            <span className="text-gray-400 mr-1">{user.salutation}</span>
+                          )}
+                          {getFullName(user)}
+                        </div>
+                        <div className="text-sm text-gray-400">@{user.username}</div>
+                      </div>
+                      
+                      <div className="space-y-2 mb-4">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Email:</span>
+                          <span className="text-gray-300 truncate ml-2">{user.email_address}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Contact:</span>
+                          <span className="text-gray-300">{user.contact_number || '-'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Organization:</span>
+                          <span className="text-gray-300 truncate ml-2">{user.organization?.organization_name || 'No Organization'}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-gray-400">Created:</span>
+                          <span className="text-gray-300">{new Date(user.created_at).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                      
+                      <div className="flex gap-2 pt-3 border-t border-gray-700">
+                        <button 
+                          onClick={() => handleEditUser(user)}
+                          className="flex-1 px-4 py-2 text-blue-400 border border-blue-400 hover:bg-blue-900 rounded transition-colors text-sm font-medium"
+                        >
+                          Edit
+                        </button>
+                        <button 
+                          onClick={() => handleDeleteClick(user)}
+                          className="flex-1 px-4 py-2 text-red-400 border border-red-400 hover:bg-red-900 rounded transition-colors text-sm font-medium"
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </>
           )}
 
           {/* Pagination Controls */}
           {totalItems > 0 && (
             <div className="mt-4">
-              <div className="px-6 py-4 flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="text-sm text-gray-300">
+              <div className="px-4 md:px-6 py-4 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
+                  <div className="text-sm text-gray-300 text-center sm:text-left">
                     Showing {showingStart} to {showingEnd} of {totalItems} entries
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center justify-center gap-2">
                     <span className="text-sm text-gray-300">Show</span>
                     <select
                       value={itemsPerPage}
@@ -281,15 +341,16 @@ const UserManagement: React.FC = () => {
                   </div>
                 </div>
                 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center justify-center gap-1 flex-wrap">
                   <button
                     onClick={() => handlePageChange(currentPage - 1)}
                     disabled={currentPage === 1 || totalPages === 0}
-                    className="px-3 py-1 text-sm bg-gray-800 border border-gray-600 rounded text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm bg-gray-800 border border-gray-600 rounded text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     Previous
                   </button>
                   
+                  <div className="hidden sm:flex items-center gap-1">
                   {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => i + 1)
                     .filter(page => {
                       const distance = Math.abs(page - currentPage);
@@ -317,11 +378,16 @@ const UserManagement: React.FC = () => {
                         </React.Fragment>
                       );
                     })}
+                  </div>
+                  
+                  <div className="sm:hidden text-sm text-gray-300 px-3 py-1">
+                    {currentPage} / {totalPages}
+                  </div>
                   
                   <button
                     onClick={() => handlePageChange(currentPage + 1)}
                     disabled={currentPage === totalPages || totalPages === 0}
-                    className="px-3 py-1 text-sm bg-gray-800 border border-gray-600 rounded text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-3 py-1 text-sm bg-gray-800 border border-gray-600 rounded text-white hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                   >
                     Next
                   </button>
